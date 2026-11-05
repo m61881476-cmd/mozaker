@@ -303,7 +303,7 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '1.0.0';
+  App.VERSION = '1.1.0';
   App.after = (fresh) => {
     document.removeEventListener('keydown', Lock.keyH);
     if (!location.hash || fresh) history.replaceState(null, '', '#home');

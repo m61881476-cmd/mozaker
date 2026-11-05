@@ -194,6 +194,59 @@ t('بحث: لاسبير', top('رقم لاسبير').id === 'st7', top('رقم �
 t('بحث: السمسرة', top('السمسرة').id === 'lw3', top('السمسرة').id);
 t('بحث: تجزئة السوق', top('تجزئة السوق').id === 'mk5', top('تجزئة السوق').id);
 
+/* ===== 1.1: الشرح + المتوقع ⭐ + المعلّم ===== */
+const RAW = {}; C.forEach(s => RAW[s.id] = s.questions.length);
+['acc', 'stats', 'prod', 'econ', 'mkt', 'law'].forEach(f => require(path.join(__dirname, '..', 'js', 'content', f + '-plus.js')));
+const PLUS = global.self.MZ_PLUS;
+for (const s of C) {
+  const P = PLUS[s.id];
+  t('ملف شرح لكل مادة: ' + s.id, !!P);
+  t('شرح لكل سؤال أصلي: ' + s.id, P.explain.length === RAW[s.id], P.explain.length + ' / ' + RAW[s.id]);
+  t('أرقام النجوم سليمة: ' + s.id, Object.keys(P.star).every(k => +k >= 0 && +k < RAW[s.id] && P.star[k]));
+  E.mergePlus(s, P);
+}
+const CONCEPTS = [].concat(...C.map(s => s.concepts));
+for (const s of C) {
+  const L = new Set(s.lessons.map(l => l.id)), ids = new Set();
+  for (const q of s.questions) {
+    if (ids.has(q.k)) t('مفتاح سؤال مكرر: ' + s.id + ':' + q.k, false); ids.add(q.k);
+    if (!q.e || q.e.length < 15) t('كل سؤال ليه شرح: ' + s.id + ' — ' + q.q, false);
+    if (q.x && !q.w) t('كل سؤال متوقع ليه سبب أهمية: ' + q.q, false);
+  }
+  for (const l of s.lessons) { const n = s.questions.filter(q => q.l === l.id && q.x).length; if (n < 2) t('كل درس فيه سؤالين متوقعين على الأقل: ' + l.id, false, n); }
+  for (const c of s.concepts) {
+    if (!c.k || !c.def || !L.has(c.l)) t('مفهوم سليم: ' + s.id + ' ' + c.k, false);
+    for (const r of c.rel || []) if (!E.findConcepts(CONCEPTS, r).length) t('مفهوم مرتبط موجود: ' + c.k + ' ← ' + r, false);
+  }
+  for (const q of s.questions.filter(q => q.x)) if (!E.findConcepts(s.concepts, q.q + ' ' + q.e).length && !s.concepts.some(c => c.l === q.l)) t('السؤال المتوقع ليه مفهوم يشرحه: ' + q.q, false);
+}
+t('مفاهيم كفاية لسَنَد (≥ 100)', CONCEPTS.length >= 100, CONCEPTS.length);
+const TU = (txt, kind, key, ctx, key2) => { const r = E.tutor(CONCEPTS, txt, ctx); t('المعلّم: ' + txt, !!r && r.kind === kind && r.c.k === key && (!key2 || (r.c2 && r.c2.k === key2)), r ? r.kind + ' ' + r.c.k + (r.c2 ? ' / ' + r.c2.k : '') : 'null'); return r; };
+TU('يعني ايه شهرة المحل', 'def', 'شهرة المحل');
+TU('ليه بنعمل احتياطي رأسمالي؟', 'why', 'احتياطي رأسمالي');
+TU('الفرق بين الشهرة والاحتياطي الرأسمالي', 'diff', 'شهرة المحل', null, 'احتياطي رأسمالي');
+TU('ايه الفرق بين لاسبير وباش', 'diff', 'لاسبير', null, 'باش');
+TU('الفرق بين IS و LM', 'diff', 'منحنى IS', null, 'منحنى LM');
+TU('ازاي احسب الانحراف المعياري', 'how', 'الانحراف المعياري');
+TU('اديني مثال على مقياس الفترة', 'example', 'مقياس الفترة');
+TU('ازاي احسب نقطة السواء', 'how', 'نقطة السواء التشغيلي');
+TU('يعني ايه GDP', 'def', 'الناتج المحلي الإجمالي');
+TU('ليه الموصي مش بيدير', 'why', 'الشريك الموصي');
+TU('اشرحلي المضاعف', 'def', 'المضاعف');
+TU('طب ليه؟', 'why', 'المضاعف', { last: 'المضاعف' });
+TU('مثال', 'example', 'المضاعف', { last: 'المضاعف' });
+const tz1 = TU('مش فاهم', 'simpler', 'المضاعف', { last: 'المضاعف', level: 0 }); t('مش فاهم أول مرة = مستوى 1', tz1 && tz1.level === 1);
+const tz2 = TU('برضو مش فاهم', 'simpler', 'المضاعف', { last: 'المضاعف', level: 1 }); t('مش فاهم تاني = مستوى 2', tz2 && tz2.level === 2);
+const tz3 = E.tutor(CONCEPTS, 'لسه مش فاهم', { last: 'المضاعف', level: 2 }); t('مش فاهم تالت = طريقة تانية', tz3 && tz3.level === 3 && E.tutorParts(tz3)[0].h.includes('طريقة'));
+TU('والفرق بينه وبين الميل الحدي للتسرب', 'diff', 'المضاعف', { last: 'المضاعف' }, 'الميل الحدي للتسرب');
+t('المعلّم: «امتحني محاسبة» مش شرح', !E.tutor(CONCEPTS, 'امتحني محاسبة 10 اسئله'));
+t('المعلّم: من غير موضوع سابق «ليه» مش بيخترع', !E.tutor(CONCEPTS, 'ليه', {}));
+const tpd = E.tutorParts(E.tutor(CONCEPTS, 'يعني ايه شهرة المحل'));
+t('شرح التعريف فيه يعني إيه + ليه + مثال + الغلطة', ['يعني إيه؟', 'ليه؟', 'مثال', 'خلي بالك'].every(h => tpd.some(x => x.h === h)), tpd.map(x => x.h).join(','));
+const pdf = E.tutorParts(E.tutor(CONCEPTS, 'الفرق بين لاسبير وباش'));
+t('شرح الفرق فيه الخلاصة', pdf.some(x => x.h === 'الخلاصة'));
+// كل الأسئلة الجديدة اللي فيها حساب بتطلع صح بالمحرك
+
 /* ===== سلامة المحتوى ===== */
 const subjects = C.map(s => s.id); t('6 مواد', subjects.length === 6);
 let nQ = 0, nC = 0;

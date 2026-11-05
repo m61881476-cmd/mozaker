@@ -287,6 +287,135 @@
     const s = Math.max(0, at - 50); return (s > 0 ? '…' : '') + t.slice(s, s + len) + (s + len < t.length ? '…' : '');
   }
 
+  /* ================= المعلّم: دمج الشرح + فهم الأسئلة على المفاهيم ================= */
+  /** يدمج ملف الشرح (MZ_PLUS) في المادة: شرح لكل سؤال + نجمة للمتوقع + أسئلة جديدة + مفاهيم */
+  function mergePlus(s, plus) {
+    s.questions = s.questions.map((q, i) => {
+      const o = Object.assign({}, q, { k: q.k || 'q' + i });
+      if (plus) {
+        if (plus.explain && plus.explain[i]) o.e = plus.explain[i];
+        if (plus.star && plus.star[i] != null) { o.x = 1; o.w = plus.star[i]; }
+      }
+      return o;
+    });
+    if (plus) {
+      (plus.add || []).forEach((q, j) => s.questions.push(Object.assign({ x: 1 }, q, { k: 'x' + j })));
+      s.concepts = (plus.concepts || []).map(c => Object.assign({ s: s.id }, c));
+    } else s.concepts = s.concepts || [];
+    return s;
+  }
+  const bare = s => ' ' + norm(s).split(' ').map(w => w.replace(/^(وال|بال|فال|كال|لل|ال)(?=..)/, '').replace(/^و(?=...)/, '')).join(' ') + ' ';
+  /** يلاقي المفاهيم المذكورة في الكلام — الأطول الأول ومن غير تداخل */
+  function findConcepts(concepts, text) {
+    const T = bare(text), hits = [];
+    for (const c of concepts || []) {
+      let best = null;
+      for (const name of [c.k].concat(c.alt || [])) {
+        const b = bare(name).trim(); if (b.length < 2) continue;
+        const at = T.indexOf(' ' + b + ' ');
+        if (at >= 0 && (!best || b.length > best.len)) best = { len: b.length, at };
+      }
+      if (best) hits.push({ c, at: best.at, len: best.len });
+    }
+    hits.sort((a, b) => b.len - a.len);
+    const used = [], out = [];
+    for (const h of hits) {
+      if (used.some(u => h.at < u[1] && h.at + h.len + 1 > u[0])) continue;
+      used.push([h.at, h.at + h.len + 1]); out.push(h);
+    }
+    return out.sort((a, b) => a.at - b.at).map(h => h.c);
+  }
+  const ASK = [
+    ['diff', /(الفرق بين|ايه الفرق|فرق بين|بيفرق ايه|يفرق ايه|قارن|مقارنه|ولا ايه الفرق)/],
+    ['simpler', /(مش فاهم|مش فاهمه|مفهمتش|ما فهمتش|مافهمتش|مش واضح|مش واضحه|ابسط|بسطها|بسطلي|بسط|وضح|وضحلي|بطريقه تانيه|بالبلدي|مش مستوعب|مستوعبتش|تاني كده|مش داخل دماغي)/],
+    ['why', /(^| )(ليه|لماذا|ليش|السبب|سبب|عشان ايه|علشان ايه|الحكمه|الهدف من)( |$)/],
+    ['how', /(^| )(ازاي|ازاى|كيف|طريقه|خطوات|القانون|قانون|يتحسب|بيتحسب|نحسب|بنحسب|احسبها|المعادله|بيتقيد|يتقيد|القيد|الحل)( |$)/],
+    ['example', /(^| )(مثال|امثله|مثل ايه|زي ايه|مثلا|اديني مثال|هات مثال)( |$)/],
+    ['mistake', /(بيغلطوا|بغلط|اغلط|الغلطه|غلطه|الاخطاء|احذر|خلي بالي|اخلي بالي|فخ|تريكه)/],
+    ['related', /(مرتبط|علاقته|يتربط|اذاكر معاه|قبله ايه)/],
+    ['def', /(يعني ايه|^يعني|ايه هو|ايه هي|ايه هوه|ما هو|ما هي|عرف|تعريف|اشرح|اشرحلي|فهمني|فهمنى|معني|مفهوم|ايه ده|ايه دي)/]
+  ];
+  function askKind(text) { const t = norm(text); for (const [k, re] of ASK) if (re.test(t)) return k; return null; }
+  /** المعلّم: يفهم السؤال على أنهي مفهوم وبأنهي زاوية (تعريف/ليه/إزاي/مثال/فرق/مش فاهم)، ويفتكر آخر موضوع */
+  function tutor(concepts, text, ctx) {
+    ctx = ctx || {};
+    const kind = askKind(text), found = findConcepts(concepts, text), words = norm(text).split(' ').length;
+    const byKey = k => (concepts || []).find(c => c.k === k);
+    if (kind === 'diff' && found.length >= 2) return { kind: 'diff', c: found[0], c2: found[1], strong: true };
+    if (kind === 'diff' && found.length === 1 && ctx.last && byKey(ctx.last) && byKey(ctx.last) !== found[0]) return { kind: 'diff', c: byKey(ctx.last), c2: found[0], strong: true };
+    if (found.length) {
+      const c = found[0], k = kind || 'def';
+      const level = k === 'simpler' ? (ctx.last === c.k ? (ctx.level || 0) + 1 : 1) : 0;
+      return { kind: k, c, level, strong: !!kind, also: found.slice(1) };
+    }
+    const last = ctx.last && byKey(ctx.last);
+    if (last && kind && words <= 7) {
+      const level = kind === 'simpler' ? (ctx.level || 0) + 1 : 0;
+      return { kind, c: last, level, strong: true, follow: true };
+    }
+    return null;
+  }
+  const firstSentence = s => { const m = String(s || '').split(/(?<=[.:؛])\s|\n/)[0]; return m || s; };
+  /** يبني الشرح نفسه أجزاء {h, t} — الواجهة بترسمه */
+  function tutorParts(r, conceptsAll) {
+    const c = r.c, P = [], add = (h, t) => { if (t) P.push({ h, t }); };
+    const rel = (c.rel || []).filter(Boolean);
+    switch (r.kind) {
+      case 'diff': {
+        const a = c, b = r.c2;
+        add(a.k, a.def); add(b.k, b.def);
+        add('الخلاصة', 'الاتنين في نفس الموضوع، بس «' + a.k + '» ' + firstSentence(a.def).replace(/[.:]$/, '') + '، أما «' + b.k + '» ' + firstSentence(b.def).replace(/[.:]$/, '') + '.');
+        if (a.ex || b.ex) add('مثال يفرّق بينهم', [a.ex ? a.k + ': ' + a.ex : '', b.ex ? b.k + ': ' + b.ex : ''].filter(Boolean).join('\n'));
+        break;
+      }
+      case 'why':
+        add('ليه؟', c.why || ('عشان نفهمها لازم نشوف هي بتعمل إيه: ' + c.def));
+        if (c.why) add('بالمختصر', c.def);
+        add('مثال', c.ex);
+        break;
+      case 'how':
+        add('إزاي؟', c.how || c.def);
+        add('مثال محلول', c.ex);
+        add('خلي بالك', c.err);
+        break;
+      case 'example':
+        add('مثال', c.ex || c.how || c.def);
+        if (c.ex && c.how) add('القاعدة اللي ورا المثال', c.how);
+        break;
+      case 'mistake':
+        add('الغلطة المشهورة', c.err || 'مفيش غلطة مشهورة هنا، بس ركّز في التعريف: ' + c.def);
+        add('الصح', c.how || c.def);
+        break;
+      case 'related':
+        add('مرتبط بإيه؟', rel.length ? rel.join('، ') : 'ده مفهوم أساسي لوحده في الدرس.');
+        add('التعريف', c.def);
+        break;
+      case 'simpler': {
+        const lv = r.level || 1;
+        if (lv === 1) {
+          add('بص ببساطة', firstSentence(c.def));
+          add('تخيلها كده', c.ex || c.how);
+          if (c.why) add('وليه موجودة أصلًا؟', c.why);
+        } else if (lv === 2) {
+          add('نفككها خطوة خطوة', c.how || c.def);
+          add('الحتة اللي بتلخبط', c.err);
+          if (rel.length) add('لو لسه مش واضحة، اتأكد إنك فاهم الأول', rel.join('، '));
+        } else {
+          add('خلينا نجرب بطريقة تانية', 'اقرا الجزء ده في الدرس نفسه وأنا معلّم عليه، وبعدين جاوب على سؤالين صغيرين عليه. الحل بإيدك بيثبّت الفهم أكتر من أي شرح.');
+          add('الفكرة في سطر', firstSentence(c.def));
+        }
+        break;
+      }
+      default:
+        add('يعني إيه؟', c.def);
+        add('ليه؟', c.why);
+        add('إزاي؟', c.how);
+        add('مثال', c.ex);
+        add('خلي بالك', c.err);
+    }
+    return P;
+  }
+
   /* ================= التصحيح ================= */
   function gradeChoice(q, answer) { return { ok: +answer === +q.answer }; }
   function gradeTF(q, answer) { return { ok: !!answer === !!q.answer }; }
@@ -895,6 +1024,7 @@
     srsNext, srsLabel, isDue, mastery,
     detectSubject, extractCount, parseIntent, SUBJECT_KEYS,
     tokenize, search, snippet,
+    mergePlus, findConcepts, askKind, tutor, tutorParts,
     grade, gradeFill, gradeNumber, gradeJournal, netByAccount, accKey, entryBalanced,
     distributeProfit, capitalFormation, genCapital, genDistribution, describeDistribution,
     parseList, mean, median, modes, variance, sd, describeRaw, describeGrouped, indexNumbers, correlation, ranks, frequencyTable, genStats, quantile,

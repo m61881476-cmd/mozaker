@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>مذاكِر</title>
+<meta name="description" content="مذاكِر: رفيق المذاكرة لطلبة كلية التجارة — ملخصات وبطاقات حفظ بالتكرار المتباعد وامتحانات وتمارين محاسبة وإحصاء وإنتاج واقتصاد بالحل، وجدول لحد يوم الامتحان. بيفهم العامية وبيشتغل من غير نت.">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="مذاكِر">
+<meta name="application-name" content="مذاكِر">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+<script>try{var p=JSON.parse(localStorage.getItem('mz:pre')||'{}'),r=document.documentElement;if(p.theme==='light'||p.theme==='dark')r.dataset.theme=p.theme;if(p.accent)r.dataset.accent=p.accent;if(p.motion==='reduce')r.dataset.motion='reduce';if(p.fs)r.style.setProperty('--fs',p.fs+'px')}catch(e){}</script>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <nav class="side" aria-label="القائمة">
+    <div class="brand"><img src="icons/char.png" alt="">مذاكِر</div>
+    <a href="#home" data-tab="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>الرئيسية</a>
+    <a href="#subjects" data-tab="subjects"><svg class="i" viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/><path d="M8 7h7M8 10.5h5"/></svg>المواد</a>
+    <a href="#review" data-tab="review"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="15" rx="2.5"/><path d="M7 3h11.5A2.5 2.5 0 0 1 21 5.5V17"/></svg>المراجعة<span class="badge" data-badge="review" hidden></span></a>
+    <a href="#quiz" data-tab="quiz"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2.2-2.5 3.8"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>امتحني</a>
+    <a href="#plan" data-tab="plan"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>الجدول</a>
+    <a href="#chat" data-tab="chat"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>المحادثة</a>
+    <a href="#stats" data-tab="stats"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>تقدمي</a>
+    <span class="grow"></span>
+    <a href="#settings" data-tab="settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>الإعدادات</a>
+  </nav>
+  <div class="main"><main id="view" class="view" tabindex="-1"></main></div>
+</div>
+<nav class="tabbar" aria-label="التبويبات">
+  <a href="#home" data-tab="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>الرئيسية</a>
+  <a href="#subjects" data-tab="subjects"><svg class="i" viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H19v-3"/><path d="M8 7h7M8 10.5h5"/></svg>المواد</a>
+  <a href="#review" data-tab="review"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="15" rx="2.5"/><path d="M7 3h11.5A2.5 2.5 0 0 1 21 5.5V17"/></svg>المراجعة<span class="badge" data-badge="review" hidden></span></a>
+  <a href="#quiz" data-tab="quiz"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 1c0 1.8-2.5 2.2-2.5 3.8"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>امتحني</a>
+  <a href="#plan" data-tab="plan"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>الجدول</a>
+</nav>
+<noscript><p style="padding:20px;text-align:center">مذاكِر محتاج JavaScript يشتغل.</p></noscript>
+<script>self.App = {};</script>
+<script src="js/engine.js"></script>
+<script src="js/content/acc.js"></script>
+<script src="js/content/stats.js"></script>
+<script src="js/content/prod.js"></script>
+<script src="js/content/econ.js"></script>
+<script src="js/content/mkt.js"></script>
+<script src="js/content/law.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/app.js"></script>
+<script src="js/app2.js"></script>
+</body>
+</html>

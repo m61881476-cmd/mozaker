@@ -416,6 +416,74 @@
     return P;
   }
 
+  /* ================= المنهج: ميدترم / فاينال ================= */
+  /** scope = {lessonId: 'mid'|'final'|'both'} — الدرس اللي مش متحدد يحسب على الفاينال */
+  function inScope(scope, lessonId, which) {
+    if (!which || which === 'all') return true;
+    const v = (scope || {})[lessonId] || 'final';
+    return v === 'both' || v === which;
+  }
+  function scopeLessons(scope, lessonIds, which) { return (lessonIds || []).filter(l => inScope(scope, l, which)); }
+  function examScope(kind) { return /ميد/.test(kind || '') ? 'mid' : /فاينال|نهائي/.test(kind || '') ? 'final' : 'all'; }
+
+  /* ================= مشاركة امتحان بلينك ================= */
+  const b64u = {
+    enc(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); },
+    dec(str) { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; const bin = atob(str), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+  };
+  async function pipeStream(bytes, Ctor) { const st = new Blob([bytes]).stream().pipeThrough(new Ctor('deflate-raw')); return new Uint8Array(await new Response(st).arrayBuffer()); }
+  /** يحول أي object لنص قصير ينفع في لينك (مضغوط لو المتصفح يدعم) */
+  async function packData(obj) {
+    const raw = new TextEncoder().encode(JSON.stringify(obj));
+    if (typeof CompressionStream === 'function') { try { return 'z' + b64u.enc(await pipeStream(raw, CompressionStream)); } catch (e) { /* نكمل من غير ضغط */ } }
+    return 'j' + b64u.enc(raw);
+  }
+  /** يقبل الكود نفسه أو اللينك كله */
+  async function unpackData(str) {
+    str = String(str || '').trim();
+    const m = str.match(/[?&#]d=([A-Za-z0-9_-]+)/); if (m) str = m[1];
+    if (!/^[zj][A-Za-z0-9_-]+$/.test(str)) throw new Error('bad');
+    const body = b64u.dec(str.slice(1));
+    const bytes = str[0] === 'z' ? await pipeStream(body, DecompressionStream) : body;
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  const QT = { mcq: 'm', tf: 't', fill: 'f', num: 'n' }, QT_ = { m: 'mcq', t: 'tf', f: 'fill', n: 'num' };
+  /** امتحان للمشاركة: أسئلة بالإجابات والشرح عشان يتصحح عند صاحبك من غير نت */
+  function makeShareExam(questions, meta = {}) {
+    return {
+      v: 1, id: meta.id || uid('sx'), t: meta.title || 'امتحان', by: meta.by || '', at: meta.at || Date.now(),
+      m: meta.mode === 'practice' ? 'p' : 'e', lim: meta.limit || 0,
+      q: questions.map(q => [QT[q.type] || 'm', q.q, q.options || 0, q.answer, q.explain || '', q.s || '', q.l || '', q.star ? 1 : 0, q.accept || 0, q.tol || 0])
+    };
+  }
+  function shareQuestions(ex) {
+    return (ex.q || []).map((a, i) => {
+      const q = { id: 'sh:' + ex.id + ':' + i, type: QT_[a[0]] || 'mcq', q: a[1], options: a[2] || undefined, answer: a[3], explain: a[4] || '', s: a[5], l: a[6], star: !!a[7], why: '', shared: true };
+      if (a[8]) q.accept = a[8]; if (a[9]) q.tol = a[9];
+      return q;
+    });
+  }
+  function answerText(q, ans) {
+    if (ans == null || ans === '') return 'ماجاوبش';
+    if (q.type === 'tf') return ans === 0 ? 'صح' : 'غلط';
+    if (q.type === 'mcq') return q.options[ans] != null ? q.options[ans] : '—';
+    return String(ans);
+  }
+  function correctText(q) { return q.type === 'tf' ? (q.answer ? 'صح' : 'غلط') : q.type === 'mcq' ? q.options[q.answer] : q.type === 'num' ? fmt(q.answer, 4) : String(q.answer); }
+  function gradeShared(ex, answers) {
+    const qs = shareQuestions(ex);
+    const items = qs.map((q, i) => { const a = answers[i]; const ok = a == null || a === '' ? false : !!(q.type === 'tf' ? grade(q, a === 0) : grade(q, a)).ok; return { q, ans: a, ok }; });
+    return { items, ok: items.filter(x => x.ok).length, of: items.length };
+  }
+  /** نتيجة بترجع لصاحب الامتحان — فيها نص الأسئلة مختصر عشان تتقري حتى لو اتفتحت على جهاز تاني */
+  function makeShareResult(ex, answers, meta = {}) {
+    const g = gradeShared(ex, answers);
+    return {
+      v: 1, id: ex.id, t: ex.t, n: meta.name || 'صاحبك', at: meta.at || Date.now(), s: meta.secs || 0, ok: g.ok, of: g.of,
+      r: g.items.map(x => [x.ok ? 1 : 0, String(x.q.q).slice(0, 110), answerText(x.q, x.ans), correctText(x.q)])
+    };
+  }
+
   /* ================= التصحيح ================= */
   function gradeChoice(q, answer) { return { ok: +answer === +q.answer }; }
   function gradeTF(q, answer) { return { ok: !!answer === !!q.answer }; }
@@ -987,7 +1055,7 @@
     const upcoming = (exams || []).filter(e => daysBetween(now, e.date) >= 0).sort((a, b) => new Date(a.date) - new Date(b.date));
     for (const ex of upcoming) {
       const left = daysBetween(now, ex.date);
-      const todo = (lessons[ex.subject] || []).filter(l => (progress[l] || 0) < 0.8);
+      const todo = (ex.lessons || lessons[ex.subject] || []).filter(l => (progress[l] || 0) < 0.8);
       const studyDays = Math.max(1, left); // اليوم الأخير قبل الامتحان = مراجعة
       const slots = [];
       for (let i = 0; i < studyDays; i++) slots.push(ymd(addDays(now, i)));
@@ -1025,6 +1093,7 @@
     detectSubject, extractCount, parseIntent, SUBJECT_KEYS,
     tokenize, search, snippet,
     mergePlus, findConcepts, askKind, tutor, tutorParts,
+    inScope, scopeLessons, examScope, packData, unpackData, makeShareExam, shareQuestions, gradeShared, makeShareResult, answerText, correctText,
     grade, gradeFill, gradeNumber, gradeJournal, netByAccount, accKey, entryBalanced,
     distributeProfit, capitalFormation, genCapital, genDistribution, describeDistribution,
     parseList, mean, median, modes, variance, sd, describeRaw, describeGrouped, indexNumbers, correlation, ranks, frequencyTable, genStats, quantile,

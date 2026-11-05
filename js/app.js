@@ -11,6 +11,9 @@
   const S = id => SUBJ.find(s => s.id === id);
   const LESSONS = {}; SUBJ.forEach(s => s.lessons.forEach((l, i) => { LESSONS[l.id] = Object.assign(l, { s: s.id, i }); }));
   const D = () => Store.data;
+  const SCN = { mid: 'ميدترم', final: 'فاينال', both: 'ميدترم وفاينال', all: 'كل المنهج' };
+  const inSc = (lid, sc) => E.inScope(D().scope, lid, sc);
+  const hasMid = sid => S(sid).lessons.some(l => inSc(l.id, 'mid'));
   const today = () => E.ymd(new Date());
   const now = () => Date.now();
 
@@ -48,8 +51,8 @@
   function streakNow() { return E.streak(new Set(Object.keys(D().days).filter(k => { const d = D().days[k]; return d.min || d.cards || d.q; }))); }
   function upcomingExams() { const t = E.startOfDay(new Date()); return (D().exams || []).filter(e => new Date(e.date) >= t).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))); }
   function plan() {
-    const exams = upcomingExams().map(e => ({ id: e.id, subject: e.subject, date: new Date(e.date) }));
     const lessons = {}; SUBJ.forEach(s => { lessons[s.id] = s.lessons.map(l => l.id); });
+    const exams = upcomingExams().filter(e => S(e.subject)).map(e => { const sc = E.examScope(e.kind), ls = sc === 'all' || (sc === 'mid' && !hasMid(e.subject)) ? null : E.scopeLessons(D().scope, lessons[e.subject], sc); return { id: e.id, subject: e.subject, date: new Date(e.date), lessons: ls && ls.length ? ls : null }; });
     const prog = {}; Object.keys(LESSONS).forEach(l => { prog[l] = lessonProgress(l); });
     return E.buildPlan(exams, lessons, prog, { perDay: D().settings.perDay || 3 });
   }
@@ -96,8 +99,8 @@
       html += '<div class="group-h">الامتحانات الجاية <a href="#plan?tab=exams">الكل</a></div><div class="group">';
       exs.slice(0, 3).forEach(e => { const s = S(e.subject), left = E.daysBetween(new Date(), new Date(e.date)); html += '<a class="row tap" href="#subject/' + e.subject + '"><span class="countdown"><span class="d"><b>' + left + '</b><small>' + (left === 1 ? 'يوم' : 'أيام') + '</small></span></span><span class="tx"><b>' + esc((e.kind || 'امتحان') + ' ' + (s ? s.name : '')) + '</b><small>' + esc(E.prettyDate(e.date)) + (e.time ? ' — الساعة ' + esc(e.time) : '') + (e.note ? ' — ' + esc(e.note) : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; });
       html += '</div>';
-      const e0 = exs[0], s0 = S(e0.subject), ns = s0 ? questionsOf(s0.id).filter(q => q.star).length : 0;
-      if (ns) html += '<a class="card tap starcard mb" style="display:flex;gap:12px;align-items:center;margin-top:-6px" href="#quiz?s=' + s0.id + '&star=1&n=' + Math.min(10, ns) + '&go=1">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ الأسئلة المتوقعة في ' + esc(s0.short) + '</b><span class="note" style="display:block">' + ns + ' سؤال هام بشرحهم، ابدأ بيهم قبل الامتحان.</span></span>' + icon('chev', 'chev') + '</a>';
+      const e0 = exs[0], s0 = S(e0.subject), sc0 = E.examScope(e0.kind), sc1 = sc0 === 'mid' && s0 && !hasMid(s0.id) ? 'all' : sc0, ns = s0 ? questionsOf(s0.id).filter(q => q.star && (sc1 === 'all' || inSc(q.l, sc1))).length : 0;
+      if (ns) html += '<a class="card tap starcard mb" style="display:flex;gap:12px;align-items:center;margin-top:-6px" href="#quiz?s=' + s0.id + '&star=1&sc=' + sc1 + '&n=' + Math.min(10, ns) + '&go=1">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ الأسئلة المتوقعة في ' + esc(s0.short) + (sc1 !== 'all' ? ' (' + SCN[sc1] + ')' : '') + '</b><span class="note" style="display:block">' + ns + ' سؤال هام بشرحهم، ابدأ بيهم قبل الامتحان.</span></span>' + icon('chev', 'chev') + '</a>';
     }
     html += '<div class="group-h">خطة النهارده <a href="#plan">الجدول</a></div><div class="group">';
     if (due) html += '<a class="row tap" href="#review"><span class="ic bg-blue">' + icon('cards') + '</span><span class="tx"><b>راجع البطاقات المستحقة</b><small>' + due + ' بطاقة — حوالي ' + Math.max(1, Math.round(due * 0.25)) + ' دقيقة</small></span>' + icon('chev', 'chev') + '</a>';
@@ -173,7 +176,11 @@
     $$('[data-tab2]').forEach(b => b.onclick = () => Router.go('subject/' + s.id + '?tab=' + b.dataset.tab2, { replace: true }));
     const body = $('#tabBody');
     if (tab === 'lessons') {
-      body.innerHTML = '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id); return '<a class="row tap" href="#lesson/' + l.id + '">' + ring(lp, 34, 'var(--' + s.color + ')') + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>';
+      const nMid = s.lessons.filter(l => inSc(l.id, 'mid')).length, nFin = s.lessons.filter(l => inSc(l.id, 'final')).length;
+      body.innerHTML = '<div class="card mb scopecard"><div style="display:flex;gap:10px;align-items:center"><div style="flex:1"><b>منهج الميدترم والفاينال</b><div class="note">' + (nMid ? 'الميدترم: ' + nMid + ' درس · الفاينال: ' + nFin + ' درس' : 'لسه ماحددتش الميدترم. كل الدروس محسوبة على الفاينال.') + '</div></div><button class="btn sm tint" id="scopeBtn">حدد</button></div>'
+        + (nMid ? '<div class="btns mt"><a class="btn sm" href="#quiz?s=' + s.id + '&sc=mid">امتحني ميدترم</a><a class="btn sm gray" href="#quiz?s=' + s.id + '&sc=final">امتحني فاينال</a></div>' : '') + '</div>'
+        + '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id), v = D().scope[l.id]; return '<a class="row tap" href="#lesson/' + l.id + '">' + ring(lp, 34, 'var(--' + s.color + ')') + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + (v === 'mid' || v === 'both' ? ' <span class="pill sc-mid">ميدترم</span>' : '') + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>';
+      $('#scopeBtn').onclick = () => scopeSheet(s);
     } else if (tab === 'tools') {
       body.innerHTML = '<div class="group">' + s.tools.map(t => { const T = self.Tools && Tools.meta[t]; if (!T) return ''; return '<a class="row tap" href="#tool/' + t + '"><span class="ic bg-' + s.color + '">' + icon(T.icon) + '</span><span class="tx"><b>' + esc(T.title) + '</b><small>' + esc(T.desc) + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div><p class="group-f">كل حاسبة بتطلعلك الحل بالخطوات زي ما بيتكتب في الامتحان، وفيه تمارين متولدة تحلها وأنا أصححها.</p>';
     } else if (tab === 'cards') {
@@ -196,6 +203,17 @@
       $('#addQ').onclick = () => App.questionSheet({ s: s.id });
     }
   });
+  function scopeSheet(s) {
+    const d = D(), tmp = Object.assign({}, d.scope);
+    const body = U.el('<div><p class="note" style="margin:0 0 12px">اختار كل درس داخل في إيه. الامتحانات اللي نوعها «ميدتيرم» هتذاكرلك الدروس اللي محددها ميدترم بس، وكذلك الفاينال.</p><div class="btns mb"><button class="btn sm gray" data-all="mid">كله ميدترم</button><button class="btn sm gray" data-all="both">كله الاتنين</button><button class="btn sm gray" data-all="final">كله فاينال</button></div><div id="scL"></div></div>');
+    const draw = () => {
+      body.querySelector('#scL').innerHTML = s.lessons.map((l, i) => { const v = tmp[l.id] || 'final'; return '<div class="sc-row"><b>' + (i + 1) + '. ' + esc(l.title) + '</b><div class="seg sm">' + ['mid', 'both', 'final'].map(k => '<button type="button" data-l="' + l.id + '" data-v="' + k + '" class="' + (v === k ? 'on' : '') + '">' + (k === 'both' ? 'الاتنين' : SCN[k]) + '</button>').join('') + '</div></div>'; }).join('');
+      $$('[data-v]', body).forEach(b => b.onclick = () => { tmp[b.dataset.l] = b.dataset.v; haptic(); draw(); });
+    };
+    $$('[data-all]', body).forEach(b => b.onclick = () => { s.lessons.forEach(l => tmp[l.id] = b.dataset.all); draw(); });
+    draw();
+    sheet({ title: 'منهج ' + s.short, body, doneText: 'حفظ', done: () => { s.lessons.forEach(l => { if (tmp[l.id] && tmp[l.id] !== 'final') d.scope[l.id] = tmp[l.id]; else delete d.scope[l.id]; }); Store.save(); toast('المنهج اتحفظ، والخطة اتحدثت', 'check'); Router.render(); } });
+  }
   function rightAnswer(q) { return q.type === 'tf' ? (q.answer ? 'صح' : 'غلط') : q.type === 'mcq' ? q.options[q.answer] : String(q.type === 'num' ? E.fmt(q.answer, 4) : q.answer); }
   function bankRow(q) {
     return '<div class="row noicon bq' + (q.star ? ' starred' : '') + '" data-bq="' + esc(q.id) + '" role="button" tabindex="0"><span class="tx"><b>' + (q.star ? '<span class="star-i" aria-label="متوقع">⭐</span> ' : '') + esc(q.q) + '</b>'
@@ -307,8 +325,8 @@
 
   /* ---------- الامتحان ---------- */
   let QZ = null;
-  function pickQuestions(sids, lid, n, star) {
-    const d = D(); let pool = allQuestions().filter(q => (lid ? q.l === lid : sids.includes(q.s)) && (!star || q.star));
+  function pickQuestions(sids, lid, n, star, sc) {
+    const d = D(); let pool = allQuestions().filter(q => (lid ? q.l === lid : sids.includes(q.s)) && (!star || q.star) && (lid || !sc || sc === 'all' || inSc(q.l, sc)));
     const stat = {}; for (const a of d.attempts) { const x = stat[a.q] || (stat[a.q] = { n: 0, bad: 0, last: 0 }); x.n++; if (!a.ok) x.bad++; x.last = Math.max(x.last, a.t); }
     const weighted = pool.map(q => { const st = stat[q.id]; let w = 1; if (!st) w += 1.5; else { w += st.bad * 2 - (st.n - st.bad) * 0.6; if (now() - st.last < 3600e3) w -= 1; } w += (1 - lessonProgress(q.l)) * 1.5; if (q.star) w += 0.8; return { q, w: Math.max(0.15, w) * (0.6 + Math.random()) }; });
     weighted.sort((a, b) => b.w - a.w);
@@ -320,34 +338,41 @@
     const pre = r.q;
     if (pre.go) {
       const lid0 = pre.l && LESSONS[pre.l] ? pre.l : null, sel0 = lid0 ? [LESSONS[lid0].s] : pre.s ? pre.s.split(',').filter(S) : SUBJ.map(s => s.id);
-      const st0 = !!pre.star; return startQuiz(pickQuestions(sel0, lid0, +pre.n || D().settings.quizCount || 10, st0), pre.mode === 'exam' ? 'exam' : 'practice', { lid: lid0, sel: sel0, star: st0 });
+      const st0 = !!pre.star, sc0 = pre.sc || 'all'; return startQuiz(pickQuestions(sel0, lid0, +pre.n || D().settings.quizCount || 10, st0, sc0), pre.mode === 'exam' ? 'exam' : 'practice', { lid: lid0, sel: sel0, star: st0, sc: sc0 });
     }
     header(view, 'امتحني', { sub: 'أسئلة اختيار وصح وغلط وأكمل ومسائل، وبتركز على الحاجات اللي بتغلط فيها' });
     const lid = pre.l && LESSONS[pre.l] ? pre.l : null;
     let sel = lid ? [LESSONS[lid].s] : pre.s ? pre.s.split(',').filter(S) : SUBJ.map(s => s.id);
-    let n = +pre.n || D().settings.quizCount || 10, mode = pre.mode || (D().settings.timer ? 'exam' : 'practice'), star = !!pre.star;
+    let n = +pre.n || D().settings.quizCount || 10, mode = pre.mode || (D().settings.timer ? 'exam' : 'practice'), star = !!pre.star, sc = pre.sc || 'all';
     const box = document.createElement('div'); view.appendChild(box);
     const draw = () => {
-      const avail = (lid ? questionsOf(null, lid) : allQuestions().filter(q => sel.includes(q.s))).filter(q => !star || q.star).length;
+      const avail = (lid ? questionsOf(null, lid) : allQuestions().filter(q => sel.includes(q.s) && (sc === 'all' || inSc(q.l, sc)))).filter(q => !star || q.star).length;
+      const noMid = !lid && sc === 'mid' && sel.some(x => !hasMid(x));
       box.innerHTML = (lid ? '<div class="card mb"><b>' + esc(LESSONS[lid].title) + '</b><div class="note">' + esc(S(LESSONS[lid].s).name) + ' — ' + avail + ' سؤال</div></div>' :
         '<div class="group-h">المواد</div><div class="group">' + SUBJ.map(s => '<label class="row tap">' + subjIcon(s) + '<span class="tx"><b>' + esc(s.name) + '</b><small>' + questionsOf(s.id).length + ' سؤال</small></span><span class="switch"><input type="checkbox" data-s="' + s.id + '" ' + (sel.includes(s.id) ? 'checked' : '') + '><span></span></span></label>').join('') + '</div>')
+        + (lid ? '' : '<div class="group-h">المنهج</div><div class="seg">' + ['all', 'mid', 'final'].map(k => '<button data-sc="' + k + '" class="' + (k === sc ? 'on' : '') + '">' + (k === 'all' ? 'الكل' : SCN[k]) + '</button>').join('') + '</div>'
+          + (noMid ? '<p class="group-f warn-t" style="margin-top:-8px">فيه مواد لسه ماحددتش منهج الميدترم بتاعها. حدده من صفحة المادة ← الدروس ← «حدد الميدترم والفاينال».</p>' : ''))
         + '<div class="group-h">نوع الأسئلة</div><div class="seg"><button data-st="0" class="' + (star ? '' : 'on') + '">كل الأسئلة</button><button data-st="1" class="' + (star ? 'on' : '') + '">⭐ المتوقع بس</button></div>'
         + (star ? '<p class="group-f" style="margin-top:-8px">الأسئلة اللي عليها نجمة: متكررة في المحاضرات والسكاشن أو أمثلة الدكتور نفسها، وكل واحد معاه سبب أهميته وشرح مفصل.</p>' : '')
         + '<div class="group-h">عدد الأسئلة</div><div class="seg">' + [5, 10, 20, 30].map(k => '<button data-n="' + k + '" class="' + (k === n ? 'on' : '') + '">' + k + '</button>').join('') + '</div>'
         + '<div class="group-h">النظام</div><div class="seg"><button data-m="practice" class="' + (mode === 'practice' ? 'on' : '') + '">تدريب (تصحيح فوري)</button><button data-m="exam" class="' + (mode === 'exam' ? 'on' : '') + '">امتحان بوقت</button></div>'
         + '<p class="group-f" style="margin-top:-8px">' + (mode === 'exam' ? 'دقيقة ونص لكل سؤال، والتصحيح في الآخر زي الامتحان الحقيقي.' : 'بعد كل سؤال هتعرف الصح والشرح.') + '</p>'
-        + '<button class="btn block" id="go" ' + (avail ? '' : 'disabled') + '>' + icon('play') + 'ابدأ (' + Math.min(n, avail) + ' سؤال)</button>';
+        + '<button class="btn block" id="go" ' + (avail ? '' : 'disabled') + '>' + icon('play') + 'ابدأ (' + Math.min(n, avail) + ' سؤال)</button>'
+        + '<button class="btn block tint mt" id="shareX" ' + (avail ? '' : 'disabled') + '>' + icon('share') + 'ابعت الامتحان ده لصاحبك بلينك</button>'
+        + App.sentListHTML();
       $$('[data-s]', box).forEach(i => i.onchange = () => { sel = $$('[data-s]', box).filter(x => x.checked).map(x => x.dataset.s); draw(); });
       $$('[data-n]', box).forEach(b => b.onclick = () => { n = +b.dataset.n; draw(); });
       $$('[data-m]', box).forEach(b => b.onclick = () => { mode = b.dataset.m; draw(); });
       $$('[data-st]', box).forEach(b => b.onclick = () => { star = b.dataset.st === '1'; draw(); });
-      $('#go').onclick = () => startQuiz(pickQuestions(sel, lid, n, star), mode, { lid, sel, star });
+      $$('[data-sc]', box).forEach(b => b.onclick = () => { sc = b.dataset.sc; draw(); });
+      $('#shareX').onclick = () => App.shareSheet({ sel, lid, n, star, sc, mode });
+      $('#go').onclick = () => startQuiz(pickQuestions(sel, lid, n, star, sc), mode, { lid, sel, star, sc });
     };
     draw();
   });
   function startQuiz(qs, mode, meta) {
     if (!qs.length) return toast('مفيش أسئلة');
-    QZ = { qs: qs.map(q => ({ q, ans: null, res: null, shown: false })), i: 0, mode, meta, start: now(), limit: mode === 'exam' ? qs.length * 90 : 0, finished: false, streak: 0 };
+    QZ = { qs: qs.map(q => ({ q, ans: null, res: null, shown: false })), i: 0, mode, meta, start: now(), limit: mode === 'exam' ? ((meta && meta.limit) || qs.length * 90) : 0, finished: false, streak: 0 };
     Router.go('quiz?run=1');
   }
   App.startQuiz = startQuiz;
@@ -363,7 +388,7 @@
       const it = QZ.qs[QZ.i], q = it.q, l = LESSONS[q.l];
       const opts = q.type === 'tf' ? ['صح', 'غلط'] : q.options;
       let html = '<div class="progress-top"><span class="num">' + (QZ.i + 1) + '/' + QZ.qs.length + '</span><div class="bar"><i style="width:' + (QZ.i / QZ.qs.length * 100) + '%"></i></div></div>';
-      html += '<div class="qcard' + (q.star ? ' starred' : '') + '"><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill acc">' + esc(S(q.s).short) + '</span><span class="pill">' + esc(l ? l.title : '') + '</span>' + (q.star ? '<span class="pill star">⭐ هام</span>' : '') + '</div>';
+      html += '<div class="qcard' + (q.star ? ' starred' : '') + '"><div style="display:flex;gap:6px;flex-wrap:wrap">' + (S(q.s) ? '<span class="pill acc">' + esc(S(q.s).short) + '</span>' : '') + (l ? '<span class="pill">' + esc(l.title) + '</span>' : '') + (q.star ? '<span class="pill star">⭐ هام</span>' : '') + '</div>';
       if (q.star) html += '<div class="star-say">' + Char.html('', 40) + '<div class="bubble"><b>ركّز هنا، ده سؤال هام ⭐</b>' + (q.why ? '<br>' + esc(q.why) : '') + '</div></div>';
       html += '<div class="q">' + esc(q.q) + '</div>';
       if (q.type === 'mcq' || q.type === 'tf') html += '<div class="opts">' + opts.map((o, i) => '<button class="opt" data-o="' + i + '"><span class="k">' + (q.type === 'tf' ? (i ? '✗' : '✓') : 'أبجد'[i]) + '</span><span>' + esc(o) + '</span></button>').join('') + '</div>';
@@ -377,7 +402,7 @@
         if (q.type === 'tf') res = E.grade(q, val === 0);
         else res = E.grade(q, val);
         it.res = res;
-        const d = D(); d.attempts.push({ q: q.id, s: q.s, l: q.l, ok: !!res.ok, t: now() }); logDay({ q: 1, ok: res.ok ? 1 : 0 });
+        const d = D(); if (S(q.s) && LESSONS[q.l]) d.attempts.push({ q: q.id, s: q.s, l: q.l, ok: !!res.ok, t: now() }); logDay({ q: 1, ok: res.ok ? 1 : 0 });
         if (QZ.mode === 'exam') { it.shown = true; return next(); }
         it.shown = true; reveal();
         if (res.ok) { QZ.streak++; beep('ok'); haptic('success'); if (QZ.streak === 3 || QZ.streak === 6 || QZ.streak === 10) buddy(['3 ورا بعض! 🔥', '6 صح ورا بعض، إيه الحلاوة دي', '10 صح! أنت جاهز للامتحان 💪'][[3, 6, 10].indexOf(QZ.streak)], 'fire', 2200); }
@@ -417,17 +442,20 @@
     const msg = p >= 0.9 ? 'إيه ده! ممتاز جدًا 🏆' : p >= 0.75 ? 'شغل حلو أوي 👏 فاضل حبة تفاصيل.' : p >= 0.5 ? 'نص الطريق. ركز على الدروس اللي تحت دي.' : 'ولا يهمك، الغلط هنا أحسن من الغلط في الامتحان. يلا نراجع الدروس دي.';
     let html = '<div class="result-big">' + ring(p, 110, p >= 0.75 ? 'var(--green)' : p >= 0.5 ? 'var(--orange)' : 'var(--red)') + '<div><div style="font-size:22px;font-weight:700"><span class="num">' + ok + '/' + tot + '</span></div><div class="note">' + (Math.round((QZ.end - QZ.start) / 60000) < 1 ? 'أقل من دقيقة' : Math.round((QZ.end - QZ.start) / 60000) + ' دقيقة') + '</div></div></div>';
     html += '<div class="hero">' + Char.html('', 70) + '<div class="bubble">' + esc(msg) + '</div></div>';
+    if (QZ.meta.share) html += App.takeResultHTML(QZ);
     html += '<div class="group-h">حسب الدرس</div><div class="group">' + Object.entries(byL).sort((a, b) => a[1].ok / a[1].n - b[1].ok / b[1].n).map(([lid, x]) => { const l = LESSONS[lid]; return '<a class="row tap" href="#lesson/' + lid + '">' + ring(x.ok / x.n, 34, x.ok / x.n >= 0.75 ? 'var(--green)' : x.ok / x.n >= 0.5 ? 'var(--orange)' : 'var(--red)') + '<span class="tx"><b>' + esc(l ? l.title : lid) + '</b><small>' + x.ok + ' من ' + x.n + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>';
     const wrong = QZ.qs.filter(x => !x.res.ok);
     if (wrong.length) {
       html += '<div class="group-h">الأسئلة اللي غلطت فيها</div><div class="group">' + wrong.map(it => { const q = it.q; const right = q.type === 'tf' ? (q.answer ? 'صح' : 'غلط') : q.type === 'mcq' ? q.options[q.answer] : (q.type === 'num' ? E.fmt(q.answer, 4) : q.answer); const mine = it.skipped ? 'ماجاوبتش' : q.type === 'tf' ? (it.ans === 0 ? 'صح' : 'غلط') : q.type === 'mcq' ? q.options[it.ans] : it.ans; return '<div class="row noicon"><span class="tx"><b style="font-size:15px">' + esc(q.q) + '</b><small><span class="check-bad">إجابتك: ' + esc(mine) + '</span> · <span class="check-ok">الصح: ' + esc(right) + '</span>' + '</small>' + explainHTML(q, true, true) + '</span></div>'; }).join('') + '</div>';
       html += '<button class="btn block" id="redo">' + icon('reset') + 'عيد الأسئلة اللي غلطت فيها</button>';
     }
-    html += '<div class="btns mt"><button class="btn tint" id="again">امتحان تاني بنفس الإعدادات</button><a class="btn gray" href="#home">الرئيسية</a></div>';
+    html += '<div class="btns mt"><button class="btn tint" id="again">' + (QZ.meta.share ? 'حله تاني' : 'امتحان تاني بنفس الإعدادات') + '</button>' + (QZ.meta.share ? '' : '<button class="btn tint" id="shareSame">' + icon('share') + 'ابعت نفس الأسئلة لصاحبك</button>') + '<a class="btn gray" href="#home">الرئيسية</a></div>';
     view.insertAdjacentHTML('beforeend', html);
     bindExplain(view);
+    if (QZ.meta.share) App.bindTakeResult(view, QZ);
+    const sS = $('#shareSame'); if (sS) sS.onclick = () => App.shareSheet({ fixed: QZ.qs.map(x => x.q), mode: QZ.mode, title: QZ.meta.lid ? 'امتحان ' + LESSONS[QZ.meta.lid].title : '' });
     const R = $('#redo'); if (R) R.onclick = () => startQuiz(wrong.map(x => x.q), QZ.mode, QZ.meta);
-    $('#again').onclick = () => startQuiz(pickQuestions(QZ.meta.sel || [], QZ.meta.lid, QZ.qs.length, QZ.meta.star), QZ.mode, QZ.meta);
+    $('#again').onclick = () => startQuiz(QZ.meta.share ? QZ.qs.map(x => x.q) : pickQuestions(QZ.meta.sel || [], QZ.meta.lid, QZ.qs.length, QZ.meta.star, QZ.meta.sc), QZ.mode, QZ.meta);
     setTimeout(() => { Char.act(view.querySelector('.hero .char'), p >= 0.75 ? 'cheer' : p >= 0.5 ? 'nod' : 'sad'); if (p >= 0.75) beep('done'); }, 300);
   }
 
@@ -644,5 +672,5 @@
   };
   App.Brain = Brain;
 
-  Object.assign(App, { SUBJ, S, LESSONS, allCards, allQuestions, cardsOf, questionsOf, dueCards, newCards, lessonProgress, subjectProgress, lessonAcc, logDay, streakNow, upcomingExams, plan, subjIcon, ring });
+  Object.assign(App, { SUBJ, S, LESSONS, pickQuestions, startQuiz, inSc, SCN, allCards, allQuestions, cardsOf, questionsOf, dueCards, newCards, lessonProgress, subjectProgress, lessonAcc, logDay, streakNow, upcomingExams, plan, subjIcon, ring });
 })();

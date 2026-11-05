@@ -303,13 +303,13 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '1.1.0';
+  App.VERSION = '1.2.0';
   App.after = (fresh) => {
     document.removeEventListener('keydown', Lock.keyH);
-    if (!location.hash || fresh) history.replaceState(null, '', '#home');
+    if (!location.hash || (fresh && !/^#(take|res)\b/.test(location.hash))) history.replaceState(null, '', '#home');
     Router.cur = null; Router.render();
     renderBadges();
-    if (fresh) setTimeout(() => buddy('أنا ' + esc(D().charName) + '! لو عايز حاجة اكتبلي في الخانة اللي فوق بالعامية 😉', 'happy', 5200), 700);
+    if (fresh && !/^#(take|res)\b/.test(location.hash)) setTimeout(() => buddy('أنا ' + esc(D().charName) + '! لو عايز حاجة اكتبلي في الخانة اللي فوق بالعامية 😉', 'happy', 5200), 700);
     if (Pomo.st) Pomo.ensureTick();
   };
   function renderBadges() {

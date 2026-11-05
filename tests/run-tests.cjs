@@ -267,5 +267,41 @@ t('عدد الأسئلة ≥ 200', nQ >= 200, nQ); t('عدد البطاقات �
 // كل الأسئلة الرقمية بتتصحح صح بإجابتها
 for (const s of C) for (const q of s.questions) if (q.t === 'num' && !E.grade({ type: 'num', answer: q.a, tol: q.tol }, String(q.a)).ok) t('سؤال رقمي بيصحح نفسه: ' + q.q, false);
 
-console.log('\n' + (fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل' + ' — ' + nQ + ' سؤال و ' + nC + ' بطاقة');
-if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }
+/* ===== 1.2: الميدترم/الفاينال + مشاركة امتحان ===== */
+const SC = { acc1: 'mid', acc2: 'both', acc3: 'final' };
+t('النطاق: ميدترم بس', E.inScope(SC, 'acc1', 'mid') && !E.inScope(SC, 'acc1', 'final'));
+t('النطاق: الاتنين', E.inScope(SC, 'acc2', 'mid') && E.inScope(SC, 'acc2', 'final'));
+t('النطاق: اللي مش متحدد = فاينال', !E.inScope(SC, 'acc4', 'mid') && E.inScope(SC, 'acc4', 'final') && E.inScope(SC, 'acc4', 'all'));
+t('دروس الميدترم', E.scopeLessons(SC, ['acc1', 'acc2', 'acc3', 'acc4'], 'mid').join() === 'acc1,acc2');
+t('نوع الامتحان ← النطاق', E.examScope('ميدتيرم') === 'mid' && E.examScope('فاينال') === 'final' && E.examScope('امتحان') === 'all' && E.examScope('كويز') === 'all');
+{
+  const nowP = new Date(2026, 10, 5);
+  const pl = E.buildPlan([{ id: 'm', subject: 'acc', date: new Date(2026, 10, 9), lessons: ['acc1', 'acc2'] }], { acc: ['acc1', 'acc2', 'acc3', 'acc4'] }, {}, { now: nowP, perDay: 5 });
+  const ls = [].concat(...Object.values(pl)).filter(x => x.type === 'lesson').map(x => x.lesson);
+  t('خطة الميدترم بتذاكر دروس الميدترم بس', ls.sort().join() === 'acc1,acc2', ls.join());
+}
+const accS = C.find(x => x.id === 'acc');
+const shQ = accS.questions.slice(0, 12).map((q, i) => ({ id: 'acc:' + q.k, s: 'acc', l: q.l, type: q.t, q: q.q, options: q.o, answer: q.a, explain: q.e, star: !!q.x, accept: q.accept, tol: q.tol }));
+const shEx = E.makeShareExam(shQ, { title: 'تجربة', by: 'محمد', mode: 'exam', limit: 600 });
+const back = E.shareQuestions(shEx);
+t('مشاركة: الأسئلة بترجع زي ما هي', back.length === 12 && back.every((q, i) => q.q === shQ[i].q && q.type === shQ[i].type && JSON.stringify(q.answer) === JSON.stringify(shQ[i].answer) && q.explain === shQ[i].explain));
+const rightAns = back.map(q => q.type === 'tf' ? (q.answer ? 0 : 1) : q.type === 'mcq' ? q.answer : String(q.answer));
+t('مشاركة: الإجابات الصح = الدرجة كاملة', E.gradeShared(shEx, rightAns).ok === 12);
+const halfAns = rightAns.map((a, i) => i % 2 ? null : a);
+t('مشاركة: نص الإجابات = 6', E.gradeShared(shEx, halfAns).ok === 6);
+const tfIdx = back.findIndex(q => q.type === 'tf');
+if (tfIdx >= 0) { const wrongTf = rightAns.slice(); wrongTf[tfIdx] = 1 - wrongTf[tfIdx]; t('مشاركة: صح/غلط الغلط بيتحسب غلط', E.gradeShared(shEx, wrongTf).ok === 11); }
+const shRes = E.makeShareResult(shEx, halfAns, { name: 'عمر', secs: 95 });
+t('نتيجة: فيها الاسم والدرجة والتفاصيل', shRes.n === 'عمر' && shRes.ok === 6 && shRes.of === 12 && shRes.r.length === 12 && shRes.r[1][2] === 'ماجاوبش' && shRes.r[0][0] === 1);
+
+(async () => {
+  const code = await E.packData(shEx);
+  t('لينك: مضغوط ومن حروف آمنة', /^[zj][A-Za-z0-9_-]+$/.test(code), code.length + ' حرف');
+  t('لينك: فك الكود = نفس الامتحان', JSON.stringify(await E.unpackData(code)) === JSON.stringify(shEx));
+  t('لينك: بيقبل اللينك كله', JSON.stringify(await E.unpackData('https://x.github.io/mozaker/#take?d=' + code)) === JSON.stringify(shEx));
+  t('لينك: 30 سؤال بشرحهم أقل من 12 ألف حرف', (await E.packData(E.makeShareExam(C.flatMap(x => x.questions).slice(0, 30).map(q => ({ type: q.t, q: q.q, options: q.o, answer: q.a, explain: q.e }))))).length < 12000);
+  let bad = false; try { await E.unpackData('zنص-بايظ'); } catch (e) { bad = true; } t('لينك بايظ بيرفض', bad);
+  const rc = await E.unpackData(await E.packData(shRes)); t('لينك النتيجة بيرجع سليم', rc.n === 'عمر' && rc.ok === 6);
+  console.log('\n' + (fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل' + ' — ' + nQ + ' سؤال و ' + nC + ' بطاقة');
+  if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }
+})();

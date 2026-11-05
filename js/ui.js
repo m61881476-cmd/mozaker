@@ -70,7 +70,7 @@
   const DEFAULT_DATA = () => ({
     v: 1, name: '', charName: 'سَنَد', created: Date.now(),
     settings: { goal: 30, quizCount: 10, timer: false, haptics: true, sound: true, pomo: 25, brk: 5, buddy: true, perDay: 3 },
-    srs: {}, attempts: [], lessonsDone: {}, lessonsRead: {}, exams: [], sessions: [], days: {}, notes: [], custom: { cards: [], questions: [] }, chat: [], dismissed: {}
+    srs: {}, attempts: [], lessonsDone: {}, lessonsRead: {}, exams: [], sessions: [], days: {}, notes: [], custom: { cards: [], questions: [] }, chat: [], dismissed: {}, scope: {}, sent: {}, takes: {}
   });
   const Store = {
     profiles() { return LS.get('mz:profiles', []); },
@@ -292,7 +292,7 @@
       onScroll();
     }
   };
-  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
+  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', sent: 'quiz', take: 'quiz', res: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
   addEventListener('hashchange', () => Router.render());
   function onScroll() { const n = $('.nav'); if (n) n.classList.toggle('scrolled', scrollY > 30); }
   addEventListener('scroll', onScroll, { passive: true });

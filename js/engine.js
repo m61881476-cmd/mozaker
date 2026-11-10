@@ -176,14 +176,19 @@
   function mastery(state) { if (!state || !state.seen) return 0; return Math.max(0, Math.min(1, (state.ivl || 0) / 21)); }
 
   /* ================= فهم العامية ================= */
-  const SUBJECT_KEYS = {
-    acc: ['محاسبه', 'محاسبة', 'شركات اشخاص', 'شركات الاشخاص', 'تضامن', 'توصيه', 'شركات', 'توزيع ارباح', 'توزيع الارباح', 'ارباح', 'جاري الشركاء', 'جاري', 'شريك', 'شركاء', 'راس المال', 'قيد', 'قيود', 'حسابات جاريه', 'شهره المحل', 'شهره', 'احتياطي راسمالي', 'مسحوبات', 'المسحوبات', 'صافي الاصول', 'اكونتنج', 'accounting'],
-    stats: ['احصا', 'احصاء', 'الاحصاء', 'احصائي', 'وسط حسابي', 'الوسط', 'الوسيط', 'المنوال', 'انحراف', 'تشتت', 'ارتباط', 'انحدار', 'تكراري', 'ستات', 'statistics'],
-    prod: ['انتاج', 'الانتاج', 'اداره انتاج', 'اداره الانتاج', 'جوده', 'الجوده', 'رقابه', 'خرائط', 'قرارات', 'نظريه القرارات', 'عمليات', 'production'],
-    law: ['قانون', 'القانون', 'تجاري', 'قانون تجاري', 'التاجر', 'تاجر', 'الاعمال التجاريه', 'احتراف', 'سمسره', 'law'],
-    mkt: ['تسويق', 'التسويق', 'ماركتنج', 'مارکتنج', 'سوق مستهدف', 'المزيج', 'marketing'],
-    econ: ['اقتصاد', 'الاقتصاد', 'كلي', 'اقتصاد كلي', 'كينز', 'الكينزي', 'مضاعف', 'الدخل القومي', 'ناتج', 'is lm', 'is', 'lm', 'نقود', 'macro', 'ماكرو']
-  };
+  /** كلمات كل مادة — بتتملا من المواد اللي المستخدم ضافها (setSubjects) */
+  let SUBJECT_KEYS = {};
+  function setSubjects(list) {
+    SUBJECT_KEYS = {};
+    for (const s of list || []) {
+      const words = new Set();
+      for (const n of [s.name, s.short].concat(s.keys || [])) {
+        if (!n) continue; const t = norm(n); if (t.length < 2) continue;
+        words.add(t); const b = t.split(' ').map(w => w.replace(/^(ال)(?=..)/, '')).join(' '); if (b.length >= 2) words.add(b);
+      }
+      SUBJECT_KEYS[s.id] = [...words];
+    }
+  }
   function detectSubject(text) {
     const t = ' ' + norm(text) + ' ';
     let best = null, bestLen = 0;
@@ -1090,7 +1095,7 @@
     toLatinDigits, norm, round, sum, fmt, uid, hashStr, rng, shuffle, lev, parseNumber,
     ymd, startOfDay, daysBetween, addDays, parseDate, parseTime, prettyDate, inDaysText, WEEKDAY_NAMES, MONTH_NAMES,
     srsNext, srsLabel, isDue, mastery,
-    detectSubject, extractCount, parseIntent, SUBJECT_KEYS,
+    detectSubject, extractCount, parseIntent, setSubjects,
     tokenize, search, snippet,
     mergePlus, findConcepts, askKind, tutor, tutorParts,
     inScope, scopeLessons, examScope, packData, unpackData, makeShareExam, shareQuestions, gradeShared, makeShareResult, answerText, correctText,

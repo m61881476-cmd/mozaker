@@ -1,11 +1,9 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-1.2.0';
+const VERSION = 'mozaker-2.0.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',
-  './js/engine.js', './js/ui.js', './js/tools.js', './js/app.js', './js/share.js', './js/app2.js',
-  './js/content/acc.js', './js/content/stats.js', './js/content/prod.js', './js/content/econ.js', './js/content/mkt.js', './js/content/law.js',
-  './js/content/acc-plus.js', './js/content/stats-plus.js', './js/content/prod-plus.js', './js/content/econ-plus.js', './js/content/mkt-plus.js', './js/content/law-plus.js',
+  './js/engine.js', './js/ui.js', './js/app.js', './js/share.js', './js/app2.js',
   './icons/char.png', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/badge-96.png'
 ];
 const CDN = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

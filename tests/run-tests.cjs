@@ -3,8 +3,14 @@
 const path = require('path');
 const E = require(path.join(__dirname, '..', 'js', 'engine.js'));
 global.self = global;
-['acc', 'stats', 'prod', 'econ', 'mkt', 'law'].forEach(f => require(path.join(__dirname, '..', 'js', 'content', f + '.js')));
-const C = global.MZ_CONTENT;
+// المنهج اتشال من البرنامج: المواد بيضيفها المستخدم، فالاختبارات بتستخدم مواد تجريبية زي ما المستخدم هيضيفها
+const MY_SUBJECTS = [
+  { id: 'acc', name: 'محاسبة شركات أشخاص', short: 'محاسبة' }, { id: 'stats', name: 'مبادئ إحصاء', short: 'إحصاء' },
+  { id: 'prod', name: 'إدارة إنتاج', short: 'إنتاج' }, { id: 'econ', name: 'اقتصاد كلي', short: 'اقتصاد' },
+  { id: 'mkt', name: 'تسويق', short: 'تسويق' }, { id: 'law', name: 'قانون تجاري', short: 'قانون' },
+  { id: 'tax', name: 'تشريعات ضريبية', short: 'ضرائب' }
+];
+E.setSubjects(MY_SUBJECTS);
 
 let pass = 0, fail = 0; const fails = [];
 function t(name, cond, info) { if (cond) pass++; else { fail++; fails.push(name + (info !== undefined ? ' → ' + JSON.stringify(info) : '')); } }
@@ -58,11 +64,11 @@ const cases = [
   ['ابدأ بإيه', 'plan', null],
   ['شغل بومودورو 25 دقيقة', 'pomodoro', null, { minutes: 25 }],
   ['عايز استراحة 10 دقايق', 'break', null, { minutes: 10 }],
-  ['يعني ايه شهرة المحل', 'summary', 'acc'],
-  ['اشرحلي المضاعف', 'summary', 'econ'],
+  ['يعني ايه شهرة المحل', 'summary', null],
+  ['اشرحلي المضاعف', 'summary', null],
   ['ايه الفرق بين البيع والتسويق', 'summary', 'mkt'],
-  ['احسب الوسط ل 4 8 15', 'calc', 'stats'],
-  ['وزع ارباح', 'calc', 'acc'],
+  ['احسب الوسط ل 4 8 15', 'calc', null],
+  ['وزع ارباح', 'calc', null],
   ['سجل ملاحظة: اراجع قيود الشهرة', 'note', null],
   ['ضيف بطاقة: الإنتاجية = المخرجات ÷ المدخلات', 'add_card', null],
   ['تعبت وزهقت', 'tired', null],
@@ -72,7 +78,9 @@ const cases = [
   ['امتحاناتي امتى', 'next_exam', null],
   ['فاضل كام يوم على الامتحان', 'next_exam', null],
   ['تقدمي عامل ايه', 'progress', null],
-  ['عايز احل تمارين قيود', 'practice', 'acc'],
+  ['عايز احل تمارين قيود', 'practice', null],
+  ['امتحني تشريعات ضريبية 5 اسئلة', 'quiz', 'tax', { count: 5 }],
+  ['امتحان الضرائب يوم 20', 'add_exam', 'tax'],
   ['بتعمل ايه', 'help', null],
   ['امتحان تجريبي في القانون', 'quiz', 'law'],
   ['كويز سريع ادارة انتاج 5 اسئلة', 'quiz', 'prod', { count: 5 }]
@@ -89,6 +97,7 @@ t('ميدتيرم: النوع', pi('الميدتيرم بتاع الاحصاء �
 t('ملاحظة: النص', pi('سجل ملاحظة: اراجع قيود الشهرة').body === 'اراجع قيود الشهرة', pi('سجل ملاحظة: اراجع قيود الشهرة').body);
 const ac = pi('ضيف بطاقة: الإنتاجية = المخرجات ÷ المدخلات');
 t('بطاقة: الوش', ac.front === 'الإنتاجية', ac.front); t('بطاقة: الضهر', ac.back === 'المخرجات ÷ المدخلات', ac.back);
+E.setSubjects([]); t('من غير مواد: مفيش مادة بتتخمن', pi('امتحني محاسبة').subject === null && pi('امتحني محاسبة').intent === 'quiz'); E.setSubjects(MY_SUBJECTS);
 t('أرقام الحساب', JSON.stringify(pi('احسب الوسط ل 4 8 15').numbers) === '[4,8,15]');
 
 /* ===== التصحيح ===== */
@@ -186,86 +195,29 @@ const wk = E.weakness([{ subject: 'acc', lesson: 'a', ok: false }, { subject: 'a
 t('نقط الضعف مرتبة', wk[0].lesson === 'a');
 
 /* ===== البحث ===== */
-const docs = []; C.forEach(s => s.lessons.forEach(l => docs.push({ id: l.id, title: l.title, text: l.summary })));
+const docs = [
+  { id: 'l1', title: 'محاضرة 3 — تقييم الأصول', text: 'لو صافي الأصول أقل من الحصة يتعلّى الفرق شهرة محل. لو أكبر يبقى احتياطي رأسمالي.' },
+  { id: 'l2', title: 'النموذج الكينزي', text: 'المضاعف يساوي واحد على الميل الحدي للتسرب.' },
+  { id: 'l3', title: 'السمسرة', text: 'السمسار بيقرب بين المتعاقدين ويستحق العمولة لو الصفقة تمت.' }
+];
 const top = q => (E.search(docs, q)[0] || {}).doc || {};
-t('بحث: شهرة المحل', ['acc3', 'acc4'].includes(top('شهرة المحل').id), top('شهرة المحل').id);
-t('بحث: المضاعف', top('المضاعف').id === 'ec3', top('المضاعف').id);
-t('بحث: لاسبير', top('رقم لاسبير').id === 'st7', top('رقم لاسبير').id);
-t('بحث: السمسرة', top('السمسرة').id === 'lw3', top('السمسرة').id);
-t('بحث: تجزئة السوق', top('تجزئة السوق').id === 'mk5', top('تجزئة السوق').id);
+t('بحث: شهرة المحل', top('شهرة المحل').id === 'l1', top('شهرة المحل').id);
+t('بحث: المضاعف', top('المضاعف').id === 'l2', top('المضاعف').id);
+t('بحث: السمسرة', top('السمسرة').id === 'l3', top('السمسرة').id);
+t('بحث: من غير نتايج', E.search(docs, 'زلزال').length === 0);
 
-/* ===== 1.1: الشرح + المتوقع ⭐ + المعلّم ===== */
-const RAW = {}; C.forEach(s => RAW[s.id] = s.questions.length);
-['acc', 'stats', 'prod', 'econ', 'mkt', 'law'].forEach(f => require(path.join(__dirname, '..', 'js', 'content', f + '-plus.js')));
-const PLUS = global.self.MZ_PLUS;
-for (const s of C) {
-  const P = PLUS[s.id];
-  t('ملف شرح لكل مادة: ' + s.id, !!P);
-  t('شرح لكل سؤال أصلي: ' + s.id, P.explain.length === RAW[s.id], P.explain.length + ' / ' + RAW[s.id]);
-  t('أرقام النجوم سليمة: ' + s.id, Object.keys(P.star).every(k => +k >= 0 && +k < RAW[s.id] && P.star[k]));
-  E.mergePlus(s, P);
-}
-const CONCEPTS = [].concat(...C.map(s => s.concepts));
-for (const s of C) {
-  const L = new Set(s.lessons.map(l => l.id)), ids = new Set();
-  for (const q of s.questions) {
-    if (ids.has(q.k)) t('مفتاح سؤال مكرر: ' + s.id + ':' + q.k, false); ids.add(q.k);
-    if (!q.e || q.e.length < 15) t('كل سؤال ليه شرح: ' + s.id + ' — ' + q.q, false);
-    if (q.x && !q.w) t('كل سؤال متوقع ليه سبب أهمية: ' + q.q, false);
-  }
-  for (const l of s.lessons) { const n = s.questions.filter(q => q.l === l.id && q.x).length; if (n < 2) t('كل درس فيه سؤالين متوقعين على الأقل: ' + l.id, false, n); }
-  for (const c of s.concepts) {
-    if (!c.k || !c.def || !L.has(c.l)) t('مفهوم سليم: ' + s.id + ' ' + c.k, false);
-    for (const r of c.rel || []) if (!E.findConcepts(CONCEPTS, r).length) t('مفهوم مرتبط موجود: ' + c.k + ' ← ' + r, false);
-  }
-  for (const q of s.questions.filter(q => q.x)) if (!E.findConcepts(s.concepts, q.q + ' ' + q.e).length && !s.concepts.some(c => c.l === q.l)) t('السؤال المتوقع ليه مفهوم يشرحه: ' + q.q, false);
-}
-t('مفاهيم كفاية لسَنَد (≥ 100)', CONCEPTS.length >= 100, CONCEPTS.length);
-const TU = (txt, kind, key, ctx, key2) => { const r = E.tutor(CONCEPTS, txt, ctx); t('المعلّم: ' + txt, !!r && r.kind === kind && r.c.k === key && (!key2 || (r.c2 && r.c2.k === key2)), r ? r.kind + ' ' + r.c.k + (r.c2 ? ' / ' + r.c2.k : '') : 'null'); return r; };
-TU('يعني ايه شهرة المحل', 'def', 'شهرة المحل');
-TU('ليه بنعمل احتياطي رأسمالي؟', 'why', 'احتياطي رأسمالي');
-TU('الفرق بين الشهرة والاحتياطي الرأسمالي', 'diff', 'شهرة المحل', null, 'احتياطي رأسمالي');
-TU('ايه الفرق بين لاسبير وباش', 'diff', 'لاسبير', null, 'باش');
-TU('الفرق بين IS و LM', 'diff', 'منحنى IS', null, 'منحنى LM');
-TU('ازاي احسب الانحراف المعياري', 'how', 'الانحراف المعياري');
-TU('اديني مثال على مقياس الفترة', 'example', 'مقياس الفترة');
-TU('ازاي احسب نقطة السواء', 'how', 'نقطة السواء التشغيلي');
-TU('يعني ايه GDP', 'def', 'الناتج المحلي الإجمالي');
-TU('ليه الموصي مش بيدير', 'why', 'الشريك الموصي');
+/* ===== المعلّم (بيشتغل لو فيه مفاهيم) ===== */
+const CONCEPTS = [
+  { k: 'المضاعف', alt: ['مضاعف'], l: 'x1', def: 'رقم بيوضح الزيادة في الإنفاق بتكبّر الدخل كام مرة.', why: 'لأن إنفاقك دخل لحد تاني.', how: 'k = 1 ÷ MLR', ex: 'MLR 0.4 ← 2.5', err: 'تفتكره أقل من 1.', rel: ['الميل الحدي للتسرب'] },
+  { k: 'الميل الحدي للتسرب', alt: ['MLR'], l: 'x1', def: 'من كل جنيه دخل زيادة، قد إيه بيخرج من الدورة.', how: '1 − b + bt' }
+];
+const TU = (txt, kind, key, ctx, key2) => { const r = E.tutor(CONCEPTS, txt, ctx); t('المعلّم: ' + txt, !!r && r.kind === kind && r.c.k === key && (!key2 || (r.c2 && r.c2.k === key2)), r ? r.kind + ' ' + r.c.k : 'null'); return r; };
 TU('اشرحلي المضاعف', 'def', 'المضاعف');
 TU('طب ليه؟', 'why', 'المضاعف', { last: 'المضاعف' });
-TU('مثال', 'example', 'المضاعف', { last: 'المضاعف' });
-const tz1 = TU('مش فاهم', 'simpler', 'المضاعف', { last: 'المضاعف', level: 0 }); t('مش فاهم أول مرة = مستوى 1', tz1 && tz1.level === 1);
-const tz2 = TU('برضو مش فاهم', 'simpler', 'المضاعف', { last: 'المضاعف', level: 1 }); t('مش فاهم تاني = مستوى 2', tz2 && tz2.level === 2);
-const tz3 = E.tutor(CONCEPTS, 'لسه مش فاهم', { last: 'المضاعف', level: 2 }); t('مش فاهم تالت = طريقة تانية', tz3 && tz3.level === 3 && E.tutorParts(tz3)[0].h.includes('طريقة'));
-TU('والفرق بينه وبين الميل الحدي للتسرب', 'diff', 'المضاعف', { last: 'المضاعف' }, 'الميل الحدي للتسرب');
-t('المعلّم: «امتحني محاسبة» مش شرح', !E.tutor(CONCEPTS, 'امتحني محاسبة 10 اسئله'));
-t('المعلّم: من غير موضوع سابق «ليه» مش بيخترع', !E.tutor(CONCEPTS, 'ليه', {}));
-const tpd = E.tutorParts(E.tutor(CONCEPTS, 'يعني ايه شهرة المحل'));
-t('شرح التعريف فيه يعني إيه + ليه + مثال + الغلطة', ['يعني إيه؟', 'ليه؟', 'مثال', 'خلي بالك'].every(h => tpd.some(x => x.h === h)), tpd.map(x => x.h).join(','));
-const pdf = E.tutorParts(E.tutor(CONCEPTS, 'الفرق بين لاسبير وباش'));
-t('شرح الفرق فيه الخلاصة', pdf.some(x => x.h === 'الخلاصة'));
-// كل الأسئلة الجديدة اللي فيها حساب بتطلع صح بالمحرك
-
-/* ===== سلامة المحتوى ===== */
-const subjects = C.map(s => s.id); t('6 مواد', subjects.length === 6);
-let nQ = 0, nC = 0;
-for (const s of C) {
-  const L = new Set(s.lessons.map(l => l.id));
-  for (const c of s.cards) { nC++; if (!L.has(c[2]) || !c[0] || !c[1]) t('بطاقة سليمة: ' + s.id + ' ' + c[0], false); }
-  for (const q of s.questions) {
-    nQ++;
-    if (!L.has(q.l)) t('سؤال درسه موجود: ' + q.q, false);
-    if (q.t === 'mcq' && !(Array.isArray(q.o) && q.o.length >= 2 && q.a >= 0 && q.a < q.o.length)) t('اختيار سليم: ' + q.q, false);
-    if (q.t === 'tf' && typeof q.a !== 'boolean') t('صح/غلط سليم: ' + q.q, false);
-    if (q.t === 'num' && typeof q.a !== 'number') t('رقم سليم: ' + q.q, false);
-    if (q.t === 'fill' && !q.a) t('أكمل سليم: ' + q.q, false);
-  }
-  for (const l of s.lessons) if (!s.questions.some(q => q.l === l.id) || !s.cards.some(c => c[2] === l.id)) t('كل درس ليه أسئلة وبطاقات: ' + l.id, false);
-}
-t('عدد الأسئلة ≥ 200', nQ >= 200, nQ); t('عدد البطاقات ≥ 200', nC >= 200, nC);
-// كل الأسئلة الرقمية بتتصحح صح بإجابتها
-for (const s of C) for (const q of s.questions) if (q.t === 'num' && !E.grade({ type: 'num', answer: q.a, tol: q.tol }, String(q.a)).ok) t('سؤال رقمي بيصحح نفسه: ' + q.q, false);
+TU('الفرق بين المضاعف و MLR', 'diff', 'المضاعف', null, 'الميل الحدي للتسرب');
+const tz = E.tutor(CONCEPTS, 'مش فاهم', { last: 'المضاعف', level: 1 }); t('مش فاهم تاني = مستوى 2', tz && tz.level === 2);
+t('المعلّم: من غير مفاهيم مايردش', !E.tutor([], 'يعني ايه المضاعف'));
+t('دمج من غير ملف شرح', E.mergePlus({ id: 'z', questions: [{ t: 'tf', q: 'س', a: true }] }, null).questions[0].k === 'q0');
 
 /* ===== 1.2: الميدترم/الفاينال + مشاركة امتحان ===== */
 const SC = { acc1: 'mid', acc2: 'both', acc3: 'final' };
@@ -280,11 +232,14 @@ t('نوع الامتحان ← النطاق', E.examScope('ميدتيرم') === 
   const ls = [].concat(...Object.values(pl)).filter(x => x.type === 'lesson').map(x => x.lesson);
   t('خطة الميدترم بتذاكر دروس الميدترم بس', ls.sort().join() === 'acc1,acc2', ls.join());
 }
-const accS = C.find(x => x.id === 'acc');
-const shQ = accS.questions.slice(0, 12).map((q, i) => ({ id: 'acc:' + q.k, s: 'acc', l: q.l, type: q.t, q: q.q, options: q.o, answer: q.a, explain: q.e, star: !!q.x, accept: q.accept, tol: q.tol }));
+// أسئلة زي اللي المستخدم بيكتبها بنفسه
+const shQ = Array.from({ length: 12 }, (_, i) => i % 4 === 0 ? { id: 'c' + i, s: 'acc', l: 'l1', type: 'tf', q: 'جملة صح ولا غلط رقم ' + i, answer: i % 8 === 0, explain: 'شرح ' + i }
+  : i % 4 === 1 ? { id: 'c' + i, s: 'acc', l: 'l1', type: 'mcq', q: 'اختار الصح ' + i, options: ['أ', 'ب', 'ج', 'د'], answer: i % 4, explain: '' , star: true }
+  : i % 4 === 2 ? { id: 'c' + i, s: 'acc', l: 'l2', type: 'num', q: 'احسب ' + i, answer: i * 1000, tol: 0.5 }
+  : { id: 'c' + i, s: 'acc', l: 'l2', type: 'fill', q: 'أكمل ' + i, answer: 'شهرة المحل' });
 const shEx = E.makeShareExam(shQ, { title: 'تجربة', by: 'محمد', mode: 'exam', limit: 600 });
 const back = E.shareQuestions(shEx);
-t('مشاركة: الأسئلة بترجع زي ما هي', back.length === 12 && back.every((q, i) => q.q === shQ[i].q && q.type === shQ[i].type && JSON.stringify(q.answer) === JSON.stringify(shQ[i].answer) && q.explain === shQ[i].explain));
+t('مشاركة: الأسئلة بترجع زي ما هي', back.length === 12 && back.every((q, i) => q.q === shQ[i].q && q.type === shQ[i].type && JSON.stringify(q.answer) === JSON.stringify(shQ[i].answer) && (q.explain || '') === (shQ[i].explain || '')));
 const rightAns = back.map(q => q.type === 'tf' ? (q.answer ? 0 : 1) : q.type === 'mcq' ? q.answer : String(q.answer));
 t('مشاركة: الإجابات الصح = الدرجة كاملة', E.gradeShared(shEx, rightAns).ok === 12);
 const halfAns = rightAns.map((a, i) => i % 2 ? null : a);
@@ -299,9 +254,9 @@ t('نتيجة: فيها الاسم والدرجة والتفاصيل', shRes.n =
   t('لينك: مضغوط ومن حروف آمنة', /^[zj][A-Za-z0-9_-]+$/.test(code), code.length + ' حرف');
   t('لينك: فك الكود = نفس الامتحان', JSON.stringify(await E.unpackData(code)) === JSON.stringify(shEx));
   t('لينك: بيقبل اللينك كله', JSON.stringify(await E.unpackData('https://x.github.io/mozaker/#take?d=' + code)) === JSON.stringify(shEx));
-  t('لينك: 30 سؤال بشرحهم أقل من 12 ألف حرف', (await E.packData(E.makeShareExam(C.flatMap(x => x.questions).slice(0, 30).map(q => ({ type: q.t, q: q.q, options: q.o, answer: q.a, explain: q.e }))))).length < 12000);
+  t('لينك: 30 سؤال بشرحهم أقل من 12 ألف حرف', (await E.packData(E.makeShareExam(Array.from({ length: 30 }, (_, i) => ({ type: 'mcq', q: 'في شركة التوصية البسيطة، الشريك الموصي مسئوليته إيه؟ سؤال رقم ' + i, options: ['مسئوليته في حدود حصته وليس له حق الإدارة', 'مسئولية مطلقة', 'ليس مسئولًا', 'يدير الشركة'], answer: 0, explain: 'الموصي بيخسر في حدود حصته بس، ومالوش يدير لأن الإدارة للمتضامن.' }))))).length < 12000);
   let bad = false; try { await E.unpackData('zنص-بايظ'); } catch (e) { bad = true; } t('لينك بايظ بيرفض', bad);
   const rc = await E.unpackData(await E.packData(shRes)); t('لينك النتيجة بيرجع سليم', rc.n === 'عمر' && rc.ok === 6);
-  console.log('\n' + (fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل' + ' — ' + nQ + ' سؤال و ' + nC + ' بطاقة');
+  console.log('\n' + (fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
   if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }
 })();

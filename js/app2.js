@@ -9,6 +9,7 @@
   /* ---------- ورقة الامتحان ---------- */
   App.examSheet = (ex = {}) => {
     const isEdit = !!ex.id, SUBJ = App.SUBJ;
+    if (!SUBJ.length) { toast('ضيف مادة الأول، وبعدين سجل امتحانها'); return Router.go('subjects'); }
     const kinds = ['امتحان', 'ميدتيرم', 'فاينال', 'كويز', 'شفوي', 'سكشن'];
     const body = U.el('<div><div class="group" style="margin-bottom:14px">'
       + '<label class="row noicon"><span class="tx"><b>المادة</b></span><select id="es">' + SUBJ.map(s => '<option value="' + s.id + '"' + (s.id === ex.subject ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') + '</select></label>'
@@ -40,7 +41,7 @@
       const all = D().exams.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)), t0 = E.startOfDay(new Date());
       const up = all.filter(e => new Date(e.date) >= t0), past = all.filter(e => new Date(e.date) < t0);
       pb.innerHTML = (up.length ? '<div class="group">' + up.map(examRow).join('') + '</div>' : '<div class="empty">' + Char.html('', 80) + '<p>مفيش امتحانات متسجلة. ضيفها وأنا أوزعلك المذاكرة على الأيام اللي فاضلة.</p></div>')
-        + '<button class="btn block" id="addE2">' + icon('plus') + 'ضيف امتحان</button><p class="group-f mt" style="margin-top:10px">أو قولّي في المحادثة: «امتحان الإحصاء يوم الاتنين الساعة 1:15».</p>'
+        + '<button class="btn block" id="addE2">' + icon('plus') + 'ضيف امتحان</button><p class="group-f mt" style="margin-top:10px">أو قولّي في المحادثة: «امتحان <اسم المادة> يوم الاتنين الساعة 1:15».</p>'
         + (past.length ? '<div class="group-h">امتحانات فاتت</div><div class="group">' + past.map(examRow).join('') + '</div>' : '');
       $('#addE2').onclick = () => App.examSheet();
       $$('[data-ex]', pb).forEach(b => b.onclick = () => App.examSheet(D().exams.find(x => x.id === b.dataset.ex)));
@@ -201,7 +202,7 @@
     $('#sSwitch').onclick = () => Lock.show(true);
     const lk = $('#sLock'); if (lk) lk.onclick = () => Lock.show();
     $('#sExp').onclick = () => download('مذاكر-' + (d.name || 'نسخة') + '-' + E.ymd(new Date()) + '.json', { app: 'mozaker', kind: 'backup', v: 1, at: new Date().toISOString(), data: d });
-    $('#sShare').onclick = () => { if (!d.custom.cards.length && !d.custom.questions.length) return toast('لسه ماضفتش بطاقات أو أسئلة'); download('بطاقات-وأسئلة-' + (d.name || '') + '.json', { app: 'mozaker', kind: 'pack', v: 1, by: d.name, cards: d.custom.cards, questions: d.custom.questions }); };
+    $('#sShare').onclick = () => { if (!(d.subjects || []).length && !d.custom.cards.length && !d.custom.questions.length) return toast('لسه ماضفتش مواد أو بطاقات أو أسئلة'); download('مواد-' + (d.name || '') + '.json', { app: 'mozaker', kind: 'pack', v: 2, by: d.name, subjects: (d.subjects || []).map(x => ({ id: x.id, name: x.name, short: x.short, kind: x.kind, color: x.color, lessons: x.lessons.map(l => ({ id: l.id, title: l.title, source: l.source, summary: l.summary })) })), cards: d.custom.cards, questions: d.custom.questions }); };
     $('#sImp').onclick = () => $('#fileIn').click();
     $('#fileIn').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { importFile(JSON.parse(await f.text())); } catch (err) { toast('الملف ده مش مفهوم'); } e.target.value = ''; };
     $('#sReset').onclick = async () => { if (await confirmBox('هتتمسح حالة البطاقات وإجاباتك وإحصائياتك. متأكد؟', { ok: 'صفّر', danger: true })) { Object.assign(d, { srs: {}, attempts: [], lessonsDone: {}, lessonsRead: {}, days: {}, sessions: [] }); Store.save(true); toast('اتصفّر'); Router.go('home'); } };
@@ -222,14 +223,22 @@
     const d = D();
     if (o && o.app === 'mozaker' && o.kind === 'backup' && o.data) {
       if (!await confirmBox('هترجع النسخة دي مكان بيانات البروفايل الحالي. متأكد؟', { ok: 'استرجع' })) return;
-      Store.data = Object.assign(d, o.data); Store.save(true); toast('النسخة رجعت', 'check'); Router.go('home'); return;
+      Store.data = Object.assign(d, o.data); App.refreshSubjects(); App.migrate(); Store.save(true); toast('النسخة رجعت', 'check'); Router.go('home'); return;
     }
     if (o && o.app === 'mozaker' && o.kind === 'pack') {
       const have = new Set(d.custom.cards.map(c => c.front + '|' + c.back)), haveQ = new Set(d.custom.questions.map(q => q.q));
-      let nc = 0, nq = 0;
+      let nc = 0, nq = 0, ns = 0, nl = 0;
+      d.subjects = d.subjects || [];
+      (o.subjects || []).forEach(x => {
+        if (!x || !x.id || !x.name) return;
+        let mine = d.subjects.find(y => y.id === x.id);
+        if (!mine) { mine = { id: x.id, name: x.name, short: x.short || x.name, kind: x.kind || 'نظري', color: x.color || 'blue', lessons: [] }; d.subjects.push(mine); ns++; }
+        (x.lessons || []).forEach(l => { if (l && l.id && l.title && !mine.lessons.some(y => y.id === l.id)) { mine.lessons.push({ id: l.id, title: l.title, source: l.source || '', summary: l.summary || '' }); nl++; } });
+      });
+      App.refreshSubjects();
       (o.cards || []).forEach(c => { if (c && c.front && c.back && !have.has(c.front + '|' + c.back)) { d.custom.cards.push(Object.assign({}, c, { id: E.uid('cc') })); nc++; } });
       (o.questions || []).forEach(q => { if (q && q.q && !haveQ.has(q.q)) { d.custom.questions.push(Object.assign({}, q, { id: E.uid('cq') })); nq++; } });
-      Store.save(true); toast('اتضاف ' + nc + ' بطاقة و ' + nq + ' سؤال' + (o.by ? ' من ' + o.by : ''), 'check'); return;
+      Store.save(true); App.refreshSubjects(); toast('اتضاف ' + (ns ? ns + ' مادة و ' : '') + (nl ? nl + ' محاضرة و ' : '') + nc + ' بطاقة و ' + nq + ' سؤال' + (o.by ? ' من ' + o.by : ''), 'check'); Router.render(); return;
     }
     toast('الملف ده مش من مذاكِر');
   }
@@ -278,7 +287,7 @@
     onboard(adding) {
       this.open();
       const step1 = () => {
-        this.el.innerHTML = Char.html('', 130) + '<h2>أهلًا بيك في مذاكِر 👋</h2><p class="note" style="max-width:420px;font-size:15.5px">أنا <b>سَنَد</b>، هكون معاك طول الترم: ملخصات المواد الست، بطاقات حفظ بتفتكر إمتى تراجعها، امتحانات بتركز على اللي بتغلط فيه، تمارين محاسبة وإحصاء وإنتاج واقتصاد بالحل، وجدول لحد يوم الامتحان. وكله شغال من غير نت.</p><input class="input" id="obName" placeholder="اسمك إيه؟" maxlength="30" style="max-width:320px;text-align:center" autocomplete="given-name"><label class="row" style="max-width:320px;background:var(--bg2);border-radius:12px"><span class="tx"><b>اقفل البروفايل برقم سري</b><small>لو حد تاني بيستخدم الجهاز</small></span><span class="switch"><input type="checkbox" id="obPin"><span></span></span></label><button class="btn" id="obGo" style="min-width:220px">يلا نبدأ</button>' + (adding ? '<button class="btn gray sm" id="obBack">رجوع</button>' : '');
+        this.el.innerHTML = Char.html('', 130) + '<h2>أهلًا بيك في مذاكِر 👋</h2><p class="note" style="max-width:420px;font-size:15.5px">أنا <b>سَنَد</b>، هكون معاك طول الترم: تضيف موادك ومحاضراتك، تعمل بطاقات حفظ بتفتكر إمتى تراجعها، وأسئلة تمتحن بيها نفسك وتبعتها لصحابك، وجدول لحد يوم الامتحان. وكله شغال من غير نت.</p><input class="input" id="obName" placeholder="اسمك إيه؟" maxlength="30" style="max-width:320px;text-align:center" autocomplete="given-name"><label class="row" style="max-width:320px;background:var(--bg2);border-radius:12px"><span class="tx"><b>اقفل البروفايل برقم سري</b><small>لو حد تاني بيستخدم الجهاز</small></span><span class="switch"><input type="checkbox" id="obPin"><span></span></span></label><button class="btn" id="obGo" style="min-width:220px">يلا نبدأ</button>' + (adding ? '<button class="btn gray sm" id="obBack">رجوع</button>' : '');
         setTimeout(() => { const c = this.el.querySelector('.char'); Char.act(c, 'happy'); }, 300);
         const go = async () => {
           const name = $('#obName').value.trim(); if (!name) { $('#obName').focus(); $('#obName').classList.add('shake'); setTimeout(() => $('#obName').classList.remove('shake'), 400); return; }
@@ -305,11 +314,12 @@
   /* ---------- التشغيل ---------- */
   App.VERSION = '1.2.0';
   App.after = (fresh) => {
+    App.refreshSubjects(); App.migrate();
     document.removeEventListener('keydown', Lock.keyH);
     if (!location.hash || (fresh && !/^#(take|res)\b/.test(location.hash))) history.replaceState(null, '', '#home');
     Router.cur = null; Router.render();
     renderBadges();
-    if (fresh && !/^#(take|res)\b/.test(location.hash)) setTimeout(() => buddy('أنا ' + esc(D().charName) + '! لو عايز حاجة اكتبلي في الخانة اللي فوق بالعامية 😉', 'happy', 5200), 700);
+    if (fresh && App.SUBJ.length && !/^#(take|res)\b/.test(location.hash)) setTimeout(() => buddy('أنا ' + esc(D().charName) + '! لو عايز حاجة اكتبلي في الخانة اللي فوق بالعامية 😉', 'happy', 5200), 700);
     if (Pomo.st) Pomo.ensureTick();
   };
   function renderBadges() {
@@ -318,7 +328,7 @@
     $$('[data-badge="review"]').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.hidden = !n; });
   }
   App.renderBadges = renderBadges;
-  App.beforeLeave = (prev, next) => { App.keys = null; if (prev && prev.name === 'review') renderBadges(); };
+  App.beforeLeave = (prev, next) => { App.keys = null; if (Store.data) App.refreshSubjects(); if (prev && prev.name === 'review') renderBadges(); };
   document.addEventListener('keydown', e => { if (App.keys && !document.querySelector('.sheet.on') && !Lock.el) App.keys(e); });
   // قفل تلقائي بعد 5 دقايق في الخلفية لو فيه رقم سري
   let hiddenAt = 0;

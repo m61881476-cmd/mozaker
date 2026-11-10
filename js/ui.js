@@ -68,9 +68,9 @@
     del(k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
   const DEFAULT_DATA = () => ({
-    v: 1, name: '', charName: 'سَنَد', created: Date.now(),
+    v: 2, name: '', charName: 'سَنَد', created: Date.now(),
     settings: { goal: 30, quizCount: 10, timer: false, haptics: true, sound: true, pomo: 25, brk: 5, buddy: true, perDay: 3 },
-    srs: {}, attempts: [], lessonsDone: {}, lessonsRead: {}, exams: [], sessions: [], days: {}, notes: [], custom: { cards: [], questions: [] }, chat: [], dismissed: {}, scope: {}, sent: {}, takes: {}
+    srs: {}, attempts: [], lessonsDone: {}, lessonsRead: {}, exams: [], sessions: [], days: {}, notes: [], custom: { cards: [], questions: [] }, chat: [], dismissed: {}, scope: {}, sent: {}, takes: {}, subjects: []
   });
   const Store = {
     profiles() { return LS.get('mz:profiles', []); },

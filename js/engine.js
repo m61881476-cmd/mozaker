@@ -296,7 +296,7 @@
   /** يدمج ملف الشرح (MZ_PLUS) في المادة: شرح لكل سؤال + نجمة للمتوقع + أسئلة جديدة + مفاهيم */
   function mergePlus(s, plus) {
     s.questions = s.questions.map((q, i) => {
-      const o = Object.assign({}, q, { k: q.k || 'q' + i });
+      const o = Object.assign({}, q, { k: typeof q.k === 'string' ? q.k : 'q' + i, kw: Array.isArray(q.k) ? q.k : q.kw });
       if (plus) {
         if (plus.explain && plus.explain[i]) o.e = plus.explain[i];
         if (plus.star && plus.star[i] != null) { o.x = 1; o.w = plus.star[i]; }
@@ -340,6 +340,23 @@
     ['related', /(مرتبط|علاقته|يتربط|اذاكر معاه|قبله ايه)/],
     ['def', /(يعني ايه|^يعني|ايه هو|ايه هي|ايه هوه|ما هو|ما هي|عرف|تعريف|اشرح|اشرحلي|فهمني|فهمنى|معني|مفهوم|ايه ده|ايه دي)/]
   ];
+  /* أوامر المذاكرة: ارسم / ذاكرلي / مراجعة نهائية / أهم الأسئلة */
+  const ORD = [['مقدمه', 0], ['اول', 1], ['تاني', 2], ['ثاني', 2], ['تالت', 3], ['ثالث', 3], ['رابع', 4], ['خامس', 5], ['سادس', 6], ['سابع', 7], ['تامن', 8], ['ثامن', 8], ['تاسع', 9], ['عاشر', 10]];
+  const STUDY = [
+    ['final', /(مراجعه (ال)?نهاييه|المراجعه النهاييه|مراجعه (ال)?شامله|ليله الامتحان|راجعلي المنهج كله|مراجعه كامله)/],
+    ['draw', /(ارسم|ارسملي|رسمه|رسمة|الرسمه|رسومات|الرسومات|الرسم|وريني (ال)?(شكل|هرم|جدول)|(^| )هرم( |$)|شكل (ال)?(هرم|منحني|دوره)|منحني)/],
+    ['important', /(اهم (ال)?اسيله|الاسيله (ال)?مهمه|اسيله مهمه|المتوقع|متوقعه|هييجي في الامتحان|هيجي في الامتحان|هتيجي في الامتحان|حتما|اكيد (هيجي|هييجي|هتيجي|جاي)|كلمات (ال)?مفتاحيه|الكلمات المفتاحيه|مضمونه|ليله امتحان)/],
+    ['teach', /(ذاكرلي|ذاكر لي|ذاكر معايا|ذاكر معي|درسلي|درس لي|علمني|اشرحلي (ال)?(فصل|درس|محاضره|منهج|مقدمه)|اشرح (ال)?(فصل|درس|محاضره|منهج|مقدمه)|ابدا (ال)?شرح|فهمني (ال)?(فصل|درس|محاضره|منهج)|نذاكر|يلا نبدا)/]
+  ];
+  /** يرجع {kind, ord} لو الكلام أمر مذاكرة، وإلا null. ord: رقم الفصل لو اتذكر (0 للمقدمة) */
+  function studyIntent(text) {
+    const t = norm(text); let kind = null;
+    for (const [k, re] of STUDY) if (re.test(t)) { kind = k; break; }
+    if (!kind) return null;
+    let ord = null; const m = t.match(/(?:فصل|درس|محاضره|شابتر|جزء) (?:رقم )?(\d{1,2})( |$)/);
+    if (m) ord = +m[1]; else for (const [w, n] of ORD) if (new RegExp('(^| )(ال)?' + w + '( |$)').test(t)) { ord = n; break; }
+    return { kind, ord };
+  }
   function askKind(text) { const t = norm(text); for (const [k, re] of ASK) if (re.test(t)) return k; return null; }
   /** المعلّم: يفهم السؤال على أنهي مفهوم وبأنهي زاوية (تعريف/ليه/إزاي/مثال/فرق/مش فاهم)، ويفتكر آخر موضوع */
   function tutor(concepts, text, ctx) {
@@ -1097,7 +1114,7 @@
     srsNext, srsLabel, isDue, mastery,
     detectSubject, extractCount, parseIntent, setSubjects,
     tokenize, search, snippet,
-    mergePlus, findConcepts, askKind, tutor, tutorParts,
+    mergePlus, findConcepts, askKind, studyIntent, tutor, tutorParts,
     inScope, scopeLessons, examScope, packData, unpackData, makeShareExam, shareQuestions, gradeShared, makeShareResult, answerText, correctText,
     grade, gradeFill, gradeNumber, gradeJournal, netByAccount, accKey, entryBalanced,
     distributeProfit, capitalFormation, genCapital, genDistribution, describeDistribution,

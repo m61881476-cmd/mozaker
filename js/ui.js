@@ -214,6 +214,7 @@
   let buddyT = 0;
   function buddy(text, mood = 'happy', ms = 3200) {
     if (Store.data && Store.data.settings.buddy === false) return;
+    if (self.Pal && Pal.on()) return Pal.say(text, mood, ms);
     let b = $('#buddy');
     if (!b) { b = document.createElement('div'); b.id = 'buddy'; b.className = 'buddy'; b.setAttribute('role', 'status'); document.body.appendChild(b); b.onclick = () => b.classList.remove('on'); }
     b.innerHTML = Char.html() + '<div class="bubble">' + text + '</div>';
@@ -226,22 +227,27 @@
     return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<kbd>$1</kbd>');
   }
   function md(src, hl) {
-    const lines = String(src || '').split('\n'); let out = '', list = null, li = false, sub = false, tbl = null, pre = null;
+    const lines = String(src || '').split('\n'); let out = '', list = null, li = false, sub = false, tbl = null, pre = null, bq = null; const figs = [];
+    const BQ = [['📝', 'docq'], ['📘', 'ext'], ['💡', 'tip'], ['⚠️', 'trap']];
+    const closeBq = () => { if (bq) { const k = BQ.find(x => bq[0].startsWith(x[0])); out += '<blockquote' + (k ? ' class="' + k[1] + '"' : '') + '>' + bq.map(inline).join('<br>') + '</blockquote>'; bq = null; } };
     const closeSub = () => { if (sub) { out += '</ul>'; sub = false; } };
     const closeLi = () => { closeSub(); if (li) { out += '</li>'; li = false; } };
     const closeList = () => { closeLi(); if (list) { out += '</' + list + '>'; list = null; } };
-    const closeTbl = () => { if (tbl) { out += '<div class="tblwrap"><table class="tbl">' + tbl.map(r => '<tr>' + r.map(c => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('') + '</table></div>'; tbl = null; } };
+    const closeTbl = () => { if (tbl) { out += '<div class="tblwrap"><table class="tbl">' + tbl.map((r, ri) => '<tr>' + r.map(c => (ri ? '<td>' : '<th>') + inline(c) + (ri ? '</td>' : '</th>')).join('') + '</tr>').join('') + '</table></div>'; tbl = null; } };
     for (let raw of lines) {
       const l = raw.replace(/\s+$/, '');
       if (l.trim().startsWith('```')) { if (pre != null) { out += '<pre>' + esc(pre.join('\n')) + '</pre>'; pre = null; } else { closeList(); closeTbl(); pre = []; } continue; }
       if (pre != null) { pre.push(l); continue; }
       const t = l.trim();
+      if (!/^>/.test(t)) closeBq();
+      let fm = t.match(/^\[\[fig:([\w-]+)\]\]$/);
+      if (fm) { closeList(); closeTbl(); if (self.Figs && Figs.get(fm[1])) { out += '<i data-figslot="' + figs.length + '"></i>'; figs.push(fm[1]); } continue; }
       if (t.startsWith('|')) { closeList(); (tbl || (tbl = [])).push(t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim())); continue; } else closeTbl();
       if (!t) { continue; }
       let m;
       if ((m = t.match(/^(#{2,3})\s+(.*)/))) { closeList(); out += '<h' + m[1].length + '>' + inline(m[2]) + '</h' + m[1].length + '>'; continue; }
       const indented = /^\s{2,}/.test(l);
-      if ((m = t.match(/^>\s?(.*)/))) { if (indented && li) { out += '<blockquote>' + inline(m[1]) + '</blockquote>'; continue; } closeList(); out += '<blockquote>' + inline(m[1]) + '</blockquote>'; continue; }
+      if ((m = t.match(/^>\s?(.*)/))) { if (indented && li) { out += '<blockquote>' + inline(m[1]) + '</blockquote>'; continue; } closeList(); if (bq && BQ.some(x => m[1].startsWith(x[0]))) closeBq(); (bq || (bq = [])).push(m[1]); continue; }
       if ((m = t.match(/^[-•]\s+(.*)/))) {
         if (indented && li) { if (!sub) { out += '<ul>'; sub = true; } out += '<li>' + inline(m[1]) + '</li>'; continue; }
         if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; } else closeLi();
@@ -253,8 +259,9 @@
       }
       closeList(); out += '<p>' + inline(t) + '</p>';
     }
-    closeList(); closeTbl(); if (pre) out += '<pre>' + esc(pre.join('\n')) + '</pre>';
+    closeBq(); closeList(); closeTbl(); if (pre) out += '<pre>' + esc(pre.join('\n')) + '</pre>';
     if (hl) { const words = E.tokenize(hl).filter(w => w.length > 2); if (words.length) out = highlight(out, words); }
+    if (figs.length) out = out.replace(/<i data-figslot="(\d+)"><\/i>/g, (a, i) => Figs.html(figs[+i]));
     return out;
   }
   function highlight(html, words) {
@@ -286,13 +293,14 @@
       view.className = 'view ' + (prev ? (depth >= pdepth ? 'enter' : 'back') : '');
       view.innerHTML = '';
       fn(view, r);
+      if (self.Pal) Pal.route(r, prev);
       if (!prev || prev.raw !== r.raw) window.scrollTo(0, 0);
       $$('[data-tab]').forEach(a => a.classList.toggle('on', a.dataset.tab === tabOf(r.name)));
       document.title = (view.dataset.title ? view.dataset.title + ' · ' : '') + 'مذاكِر';
       onScroll();
     }
   };
-  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', sent: 'quiz', take: 'quiz', res: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
+  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', fig: 'subjects', teach: 'subjects', final: 'subjects', marathon: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', sent: 'quiz', take: 'quiz', res: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
   addEventListener('hashchange', () => Router.render());
   function onScroll() { const n = $('.nav'); if (n) n.classList.toggle('scrolled', scrollY > 30); }
   addEventListener('scroll', onScroll, { passive: true });

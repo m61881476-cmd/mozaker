@@ -173,7 +173,7 @@
       + '<label class="row noicon"><span class="tx"><b>تقليل الحركة</b></span>' + sw('sMotion', pre.motion === 'reduce') + '</label>'
       + '<label class="row noicon"><span class="tx"><b>الأصوات</b></span>' + sw('sSound', d.settings.sound) + '</label>'
       + '<label class="row noicon"><span class="tx"><b>الاهتزاز</b></span>' + sw('sHap', d.settings.haptics) + '</label>'
-      + '<label class="row noicon"><span class="tx"><b>تعليقات ' + esc(d.charName) + ' الطايرة</b></span>' + sw('sBuddy', d.settings.buddy !== false) + '</label></div>';
+      + '<label class="row noicon"><span class="tx"><b>' + esc(d.charName) + ' يتحرك ويشجعك على الشاشة</b><small>بيتمشى، تدوس عليه يطلعلك قايمة، وتسحبه لأي مكان</small></span>' + sw('sBuddy', d.settings.buddy !== false) + '</label></div>';
     html += '<div class="group-h">الحساب والخصوصية</div><div class="group">'
       + '<button class="row" id="sPin"><span class="ic bg-indigo">' + icon('lock') + '</span><span class="tx"><b>' + (prof.pin ? 'تغيير الرقم السري' : 'رقم سري للبروفايل') + '</b><small>' + (prof.pin ? 'البروفايل مقفول برقم سري' : 'عشان محدش غيرك يفتح مذاكرتك') + '</small></span>' + icon('chev', 'chev') + '</button>'
       + (prof.pin ? '<button class="row" id="sPinX"><span class="ic bg-gray">' + icon('lock') + '</span><span class="tx"><b>شيل الرقم السري</b></span></button>' : '')
@@ -191,7 +191,7 @@
     view.insertAdjacentHTML('beforeend', html);
     const set = (k, v) => { d.settings[k] = v; Store.save(); };
     $('#sGoal').onchange = e => set('goal', +e.target.value); $('#sQc').onchange = e => set('quizCount', +e.target.value); $('#sBrk').onchange = e => set('brk', +e.target.value);
-    $('#sTimer').onchange = e => set('timer', e.target.checked); $('#sSound').onchange = e => set('sound', e.target.checked); $('#sHap').onchange = e => set('haptics', e.target.checked); $('#sBuddy').onchange = e => set('buddy', e.target.checked);
+    $('#sTimer').onchange = e => set('timer', e.target.checked); $('#sSound').onchange = e => set('sound', e.target.checked); $('#sHap').onchange = e => set('haptics', e.target.checked); $('#sBuddy').onchange = e => { set('buddy', e.target.checked); if (self.Pal) Pal.sync(); };
     $$('[data-th]').forEach(b => b.onclick = () => { Pre.set({ theme: b.dataset.th === 'system' ? null : b.dataset.th }); Router.render(); });
     $$('[data-ac]').forEach(b => b.onclick = () => { Pre.set({ accent: b.dataset.ac || null }); Router.render(); });
     $('#sFs').onchange = e => Pre.set({ fs: +e.target.value }); $('#sMotion').onchange = e => Pre.set({ motion: e.target.checked ? 'reduce' : null });
@@ -312,12 +312,13 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '1.2.0';
+  App.VERSION = '2.1.0';
   App.after = (fresh) => {
     App.refreshSubjects(); App.migrate();
     document.removeEventListener('keydown', Lock.keyH);
     if (!location.hash || (fresh && !/^#(take|res)\b/.test(location.hash))) history.replaceState(null, '', '#home');
     Router.cur = null; Router.render();
+    if (self.Pal) { Pal.mount(); Pal.sync(); }
     renderBadges();
     if (fresh && App.SUBJ.length && !/^#(take|res)\b/.test(location.hash)) setTimeout(() => buddy('أنا ' + esc(D().charName) + '! لو عايز حاجة اكتبلي في الخانة اللي فوق بالعامية 😉', 'happy', 5200), 700);
     if (Pomo.st) Pomo.ensureTick();

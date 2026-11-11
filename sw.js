@@ -1,9 +1,9 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-2.0.0';
+const VERSION = 'mozaker-2.1.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',
-  './js/engine.js', './js/ui.js', './js/app.js', './js/share.js', './js/app2.js',
+  './js/engine.js', './js/ui.js', './js/figs.js', './js/content/mkt.js', './js/content/mkt-b.js', './js/content/mkt-q1.js', './js/content/mkt-q2.js', './js/content/mkt-kb.js', './js/app.js', './js/study.js', './js/share.js', './js/app2.js',
   './icons/char.png', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/badge-96.png'
 ];
 const CDN = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

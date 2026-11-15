@@ -21,27 +21,45 @@
       .replace(/[A-Za-z][A-Za-z0-9]*/g, w => LAT[w.toLowerCase()] || w).replace(/\s+/g, ' ').trim();
   }
   const Voice = {
-    v: null, ready: false,
+    v: null, ready: false, ok: null, fails: 0, unlocked: false,
+    has: () => 'speechSynthesis' in self && typeof SpeechSynthesisUtterance !== 'undefined',
     pick() {
-      if (!('speechSynthesis' in self)) return null;
-      const vs = speechSynthesis.getVoices().filter(v => /^ar([-_]|$)/i.test(v.lang));
-      const pref = ['ar-EG', 'ar_EG', 'ar-SA', 'ar_SA', 'ar-XA'];
-      vs.sort((a, b) => (pref.findIndex(p => a.lang.startsWith(p)) + 9) % 9 - (pref.findIndex(p => b.lang.startsWith(p)) + 9) % 9 || (b.localService ? 1 : 0) - (a.localService ? 1 : 0));
+      if (!this.has()) return null;
+      let all = []; try { all = speechSynthesis.getVoices() || []; } catch (e) {}
+      const vs = all.filter(v => /^ar([-_]|$)/i.test(v.lang || ''));
+      const pref = ['ar-EG', 'ar-SA', 'ar-001', 'ar-XA', 'ar-AE'], L = v => String(v.lang).replace('_', '-');
+      const rank = v => { const k = pref.findIndex(p => L(v).toLowerCase().startsWith(p.toLowerCase())); return k < 0 ? 9 : k; };
+      vs.sort((a, b) => rank(a) - rank(b) || (b.localService ? 1 : 0) - (a.localService ? 1 : 0));
       this.v = vs[0] || null; this.ready = true; return this.v;
     },
-    init() { if (!('speechSynthesis' in self)) { this.ready = true; return; } this.pick(); try { speechSynthesis.addEventListener('voiceschanged', () => { this.pick(); if (App.Board && App.Board.onVoices) App.Board.onVoices(); }); } catch (e) {} },
-    stop() { try { self.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} },
-    /** ينطق جملة ويرجع لما تخلص (أو بعد وقت تقديري لو المتصفح ماقالش إنها خلصت) */
+    /** لغة النطق: لو مفيش صوت عربي ظاهر في القايمة بنطلب العربي برضه، وأندرويد بيختار المحرك المناسب */
+    lang() { return this.v ? String(this.v.lang).replace('_', '-') : 'ar-SA'; },
+    init() { if (!this.has()) { this.ready = true; return; } this.pick(); try { speechSynthesis.addEventListener('voiceschanged', () => { this.pick(); this.note(); }); } catch (e) {} setTimeout(() => this.pick(), 800); },
+    note() { if (App.Board && App.Board.onVoices) App.Board.onVoices(); },
+    usable() { return this.has() && this.ok !== false; },
+    stop() { try { this.has() && speechSynthesis.cancel(); } catch (e) {} },
+    /** آيفون وأندرويد مابيسمحوش بالنطق إلا لو أول جملة اتطلبت جوه ضغطة المستخدم نفسها */
+    unlock() {
+      if (!this.has()) return;
+      try { if (!this.v) this.pick(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = this.lang(); if (this.v) u.voice = this.v; speechSynthesis.resume && speechSynthesis.resume(); speechSynthesis.speak(u); this.unlocked = true; } catch (e) {}
+    },
+    fail() { this.fails++; if (this.ok !== true && this.fails >= 2) { this.ok = false; this.note(); } },
+    /** ينطق جملة ويرجع لما تخلص. لو النطق ماشتغلش بيستنى الوقت التقديري عشان الشرح المكتوب يمشي بنفس الإيقاع */
     say(text, rate) {
       const est = Board.estimate(text, rate);
-      if (!this.v || !text) return wait(est);
+      if (!this.usable() || !text) return wait(est);
       return new Promise(res => {
-        let done = false; const fin = () => { if (!done) { done = true; clearTimeout(tm); res(); } };
+        const t0 = Date.now(); let done = false, started = false;
+        const fin = () => { if (done) return; done = true; clearTimeout(tm); clearTimeout(wd); const left = est * (started ? 0.5 : 1) - (Date.now() - t0); if (left > 0) setTimeout(res, left); else res(); };
         const tm = setTimeout(fin, est * 1.9 + 2500);
+        const wd = setTimeout(() => { if (!started && !done) { let sp = false; try { sp = speechSynthesis.speaking || speechSynthesis.pending; } catch (e) {} if (!sp) { this.fail(); fin(); } } }, 3500);
         try {
-          const u = new SpeechSynthesisUtterance(speakable(text)); u.voice = this.v; u.lang = this.v.lang; u.rate = Math.min(2, Math.max(0.5, rate)); u.pitch = 1;
-          u.onend = fin; u.onerror = fin; Voice.cur = u; speechSynthesis.speak(u);
-        } catch (e) { fin(); }
+          const u = new SpeechSynthesisUtterance(speakable(text)); if (this.v) u.voice = this.v; u.lang = this.lang(); u.rate = Math.min(2, Math.max(0.5, rate)); u.pitch = 1; u.volume = 1;
+          u.onstart = () => { started = true; if (this.ok !== true) { this.ok = true; this.fails = 0; this.note(); } };
+          u.onend = () => { if (!started && Date.now() - t0 < 400) this.fail(); fin(); };
+          u.onerror = e => { const k = e && e.error; if (k !== 'interrupted' && k !== 'canceled' && !started) this.fail(); fin(); };
+          Voice.cur = u; speechSynthesis.resume && speechSynthesis.resume(); speechSynthesis.speak(u);
+        } catch (e) { this.fail(); fin(); }
       });
     }
   };
@@ -155,7 +173,7 @@
         + '<div class="bar bd-bar"><i id="bdBar" style="width:0"></i></div>'
         + '<div class="bd-cap">' + Char.html('', 46) + '<div class="bd-capt" id="bdCap" aria-live="polite"></div></div>'
         + '<div class="bd-ctl"><button data-b="sprev" aria-label="المشهد اللي قبله">⏮</button><button data-b="back" aria-label="خطوة لورا">◀</button><button data-b="play" class="pp" id="bdPP" aria-label="تشغيل أو إيقاف">' + icon('play') + '</button><button data-b="fwd" aria-label="خطوة لقدام">▶</button><button data-b="snext" aria-label="المشهد اللي بعده">⏭</button></div>'
-        + '<div class="bd-opt"><button id="bdRate" class="chip"></button><button id="bdMute" class="chip"></button><span class="note" id="bdVoice"></span></div>'
+        + '<div class="bd-opt"><button id="bdRate" class="chip"></button><button id="bdMute" class="chip"></button><button id="bdTest" class="chip">🔈 جرّب الصوت</button><button id="bdHelp" class="chip">الصوت مش شغال؟</button></div><p class="note center" id="bdVoice" style="margin:-4px 0 10px"></p>'
         + '<div id="bdEnd"></div>');
       const ctl = { sprev: () => this.scene(P.si - 1), snext: () => this.scene(P.si + 1), back: () => this.step(-1), fwd: () => this.step(1), play: () => this.toggle() };
       $$('[data-b]', view).forEach(b => b.onclick = () => { haptic(); ctl[b.dataset.b](); });
@@ -165,6 +183,8 @@
       $('#bdRate').onclick = () => { const R = [0.8, 1, 1.2, 1.5], i = (R.indexOf(P.rate) + 1) % R.length; P.rate = R[i]; D().settings.boardRate = P.rate; Store.save(); this.ui(); if (P.playing) { this.pause(); this.play(); } };
       $('#bdMute').onclick = () => { P.mute = !P.mute; D().settings.boardMute = P.mute; Store.save(); this.ui(); if (P.playing) { this.pause(); this.play(); } };
       this.onVoices = () => this.ui();
+      $('#bdTest').onclick = () => { this.pause(); Voice.ok = null; Voice.fails = 1; Voice.stop(); Voice.unlock(); this.caption('ده اختبار للصوت. لو سامعني يبقى كله تمام.'); setTimeout(() => Voice.say('ده اختبار للصوت. لو سامعني يبقى كله تمام.', P.rate).then(() => this.ui()), 120); };
+      $('#bdHelp').onclick = () => { this.pause(); U.sheet({ title: 'تشغيل الصوت العربي', body: '<div class="prose" style="font-size:15.5px"><p>الشرح بيتنطق بالصوت العربي اللي في موبايلك نفسه. لو مش سامع حاجة جرّب بالترتيب:</p><h3>في الأول (أي موبايل)</h3><ol><li>علّي صوت <b>الميديا</b> وشيل الوضع الصامت (في الآيفون زرار الجنب).</li><li>دوس <b>«🔈 جرّب الصوت»</b> تحت البورد.</li></ol><h3>أندرويد</h3><ol><li>الإعدادات ← النظام ← اللغات والإدخال ← <b>تحويل النص إلى كلام</b> (أو دوّر في الإعدادات على «تحويل النص»).</li><li>اختار المحرك <b>Speech Services by Google</b> (خدمات النطق من Google). لو مش موجود نزّله من Google Play.</li><li>دوس ⚙️ ← <b>تثبيت بيانات الصوت</b> ← <b>العربية</b> ونزّلها.</li><li>اقفل مذاكِر وافتحه تاني من <b>Chrome</b>.</li></ol><h3>آيفون</h3><ol><li>الإعدادات ← تسهيلات الاستخدام ← <b>المحتوى المنطوق</b> ← الأصوات ← <b>العربية</b> ونزّل صوت (ماجد مثلًا).</li><li>افتح مذاكِر من <b>Safari</b> أو من الأيقونة اللي على الشاشة الرئيسية.</li></ol><p class="note">ولو الصوت ماشتغلش برضه، الشرح كله مكتوب تحت البورد وماشي بنفس السرعة.</p></div>' }); };
       this.clear(); this.ui();
       $('#bdCap').innerHTML = 'دوس ▶ وأنا أشرحلك <b>«' + esc(l.title) + '»</b> على البورد: هكتب وأرسم وأتكلم، وإنت تقدر توقفني أو ترجّع في أي وقت.';
       App.keys = e => { if (e.target.matches('input,textarea')) return; if (e.key === ' ') { e.preventDefault(); this.toggle(); } else if (e.key === 'ArrowLeft') this.step(1); else if (e.key === 'ArrowRight') this.step(-1); };
@@ -179,9 +199,10 @@
       $('#bdPP').innerHTML = icon(P.playing ? 'pause' : 'play'); $('#bdPP').classList.toggle('on', P.playing);
       $('#bdBig').hidden = P.playing || P.drawn > 0 || P.ended;
       $('#bdRate').textContent = 'السرعة ×' + P.rate;
-      const hasV = !!Voice.v;
+      const hasV = Voice.usable();
       $('#bdMute').textContent = P.mute || !hasV ? '🔇 الصوت مقفول' : '🔊 الصوت شغال'; $('#bdMute').disabled = !hasV;
-      $('#bdVoice').textContent = hasV ? '' : (Voice.ready ? 'جهازك مفيهوش صوت عربي متسطّب، فالشرح هيظهر مكتوب تحت البورد.' : '');
+      $('#bdTest').hidden = !Voice.has();
+      $('#bdVoice').textContent = !Voice.has() ? 'المتصفح ده مابيدعمش النطق. افتح البرنامج من Chrome أو Safari. الشرح هيظهر مكتوب تحت البورد.' : Voice.ok === false ? 'الصوت العربي ماشتغلش على الجهاز ده، فالشرح ماشي مكتوب. دوس «الصوت مش شغال؟» وشوف الخطوات.' : '';
       view_wake(P.playing);
     },
     toggle() { this.P.playing ? this.pause() : this.play(); },
@@ -191,7 +212,7 @@
       if (P.ended) { P.ended = false; P.si = 0; P.ki = 0; this.clear(); $('#bdEnd').innerHTML = ''; }
       P.playing = true; const my = ++P.tok; this.ui();
       const dead = () => my !== P.tok || this.P !== P;
-      Voice.stop(); await wait(60);
+      Voice.stop(); if (!P.mute) Voice.unlock(); await wait(90);
       while (!dead()) {
         const sc = P.scenes[P.si], st = sc.s[P.ki];
         if (!st) {
@@ -204,6 +225,7 @@
         if (say) this.caption(say);
         const p1 = P.ki >= P.drawn ? render(this.box(), st, dur, dead).then(() => { if (P.drawn <= P.ki) P.drawn = P.ki + 1; }) : Promise.resolve();
         const p2 = say ? (P.mute ? wait(est) : Voice.say(say, P.rate)) : Promise.resolve();
+        if (say && !P.mute && P.ki % 6 === 0) this.ui();
         this.talk(!!say);
         await Promise.all([p1, p2]); this.talk(false);
         if (dead()) return;

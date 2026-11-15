@@ -373,4 +373,51 @@
     hideMenu() { if (!this.el) return; this.menuOn = false; this.el.classList.remove('menu'); const m = this.el.querySelector('.pal-menu'); if (m) m.hidden = true; }
   };
   self.Pal = Pal;
+
+  /* ---------- «Osta, let's cooking!»: عرض تخطيط وتنفيذ متحرك في المحادثة (عرض بس، مابيدخلش على أي حاجة) ---------- */
+  App.cook = {
+    busy: false,
+    match: t => /\b(osta|usta)\b[\s\S]*cook/i.test(t) || /(اسطي|اسطى|أسطى)[\s\S]*(كوكينج|cook|نطبخ)/i.test(t),
+    steps(subj, name) {
+      return [
+        { t: 'بفتح الواتساب وبقرا جروب الدفعة', logs: ['بدوّر على رسايل الدكتور…', 'لقيت تفاصيل الأسايمنت والميعاد'], ms: 2600 },
+        { t: 'بدخل على موقع ابن الهيثم', logs: ['غيّرت الإيميل ودخلت الباسورد…', 'تسجيل الدخول تم ✓', 'جبت الاسم الكامل والكود' + (name ? ' بتاع ' + name : '')], ms: 3400 },
+        { t: 'براجع منهج ' + subj + ' بتاع الجامعة', logs: ['المحاضرات والسكاشن…', 'حددت الأجزاء اللي الأسايمنت هييجي منها'], ms: 2800 },
+        { t: 'بجهز مراجعة ' + subj + ' بنظام سَنَد', logs: ['ملخصات…', 'شرح بالعامية…', 'أسئلة متوقعة بتفرعاتها…'], ms: 3600 },
+        { t: 'بستخرج خطك الشخصي', logs: ['بحلل شكل الحروف…', 'خط Human جاهز'], ms: 2600 },
+        { t: 'بجهز قالب Word نظيف ونسخة PDF', logs: ['الاسم الكامل والكود في أول صفحة…', 'فحص: 0% AI ✓'], ms: 2800 },
+        { t: 'براقب نزول ملف أسئلة الدكتور', logs: ['أول ما ينزل هاخد الـ PDF أو الأسئلة وأحلها كلها فورًا'], ms: 2200 }
+      ];
+    },
+    run(text, box, save) {
+      if (this.busy) return; this.busy = true;
+      const d = D(), m = E.norm(text).match(/(?:اسيمنت|اسايمنت|اساينمنت|واجب|تكليف) (?:في |بتاع |ماده )?(\S+)/), subj = m ? m[1].replace(/^ال/, '') : 'اقتصاد', name = esc(d.name || '');
+      const steps = this.steps(esc(subj), name), fast = Pal.reduced() ? 0.25 : 1;
+      const row = U.el('<div class="bot-row">' + Char.html('', 34) + '<div class="msg bot cook"><div class="cook-h">🍳 <b>Let\'s cook يا اسطى!</b></div><div class="cook-think">بفكّر في الخطة<span class="dots"><i></i><i></i><i></i></span></div><ol class="cook-l"></ol><div class="bar cook-bar"><i style="width:0"></i></div><div class="cook-end"></div></div></div>');
+      box.appendChild(row);
+      const ol = $('.cook-l', row), bar = $('.cook-bar i', row), think = $('.cook-think', row), ch = row.querySelector('.char');
+      const down = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      const wait = ms => new Promise(r => setTimeout(r, ms * fast));
+      Char.act(ch, 'think'); down();
+      (async () => {
+        await wait(1800);
+        think.innerHTML = 'الخطة جاهزة: ' + steps.length + ' مهام. ببدأ التنفيذ 👇';
+        ol.innerHTML = steps.map(s => '<li class="wait"><span class="cook-i"></span><div><b>' + s.t + '</b><small></small></div></li>').join(''); down();
+        await wait(900);
+        for (let i = 0; i < steps.length; i++) {
+          const li = ol.children[i], sm = $('small', li), s = steps[i];
+          li.className = 'run'; li.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (i % 2 === 0) Char.act(ch, 'think');
+          for (const lg of s.logs) { sm.textContent = lg; await wait(s.ms / s.logs.length); }
+          li.className = 'done'; bar.style.width = ((i + 1) / steps.length * 100) + '%'; haptic(); beep('tick');
+          await wait(350);
+        }
+        think.remove();
+        $('.cook-end', row).innerHTML = '<b>كله جاهز يا اسطى ✅</b><br>أول ما الدكتور ينزّل الأسايمنت هحل كل الأسئلة فورًا، وأكتب <b>اسمك الكامل وكودك</b>، وأسلّمك ملف <b>Word نظيف بخط إيدك</b> ومعاه نسخة <b>PDF — 0% AI</b>.<br>ولحد ما ينزل، مراجعة ' + esc(subj) + ' (ملخصات وشرح وأسئلة) متجهزة بنظام سَنَد.';
+        Char.act(ch, 'cheer'); beep('done'); haptic('success'); down();
+        const msg = $('.msg', row).cloneNode(true); const b2 = msg.querySelector('.cook-bar'); if (b2) b2.remove();
+        save(msg.innerHTML); this.busy = false;
+      })();
+    }
+  };
 })();

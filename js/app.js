@@ -674,6 +674,7 @@
     }
     const say = text => {
       addMe(text);
+      if (App.cook && App.cook.match(text)) return App.cook.run(text, box, html => { d.chat.push({ who: 'bot', text: html, t: now() }); Store.save(); });
       const thinking = U.el('<div class="bot-row">' + Char.html('', 34) + '<div class="msg bot" style="letter-spacing:3px">…</div></div>'); box.appendChild(thinking);
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       setTimeout(() => { thinking.remove(); const r = Brain.reply(text); addBot(r.text, r.acts || [], true, r.mood); if (r.after) r.after(); }, 380 + Math.random() * 300);

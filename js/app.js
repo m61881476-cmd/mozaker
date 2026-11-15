@@ -249,6 +249,7 @@
     if (isFinal) html += '<a class="btn block mb" href="#final/' + s.id + '">🏁 افتح صفحة المراجعة النهائية (رسومات وماراثون وامتحان)</a>';
     else if (canTeach) html += '<a class="card tap teachcard mb" href="#teach/' + l.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🎓 ذاكر معايا الدرس ده</b><span class="note" style="display:block">' + esc(d.charName) + ' يشرحهولك حتة حتة ويسألك بعد كل جزء.</span></span>' + icon('chev', 'chev') + '</a>';
     html += l.summary && l.summary.trim() ? '<article class="card prose">' + md(l.summary, r.q.hl) + '</article>' : '<div class="empty" style="padding:16px 0">' + Char.html('', 70) + '<p>المحاضرة دي لسه فاضية. اضغط ✏️ فوق واكتب الشرح أو الملخص.</p></div>';
+    if (App.Board && App.Board.has(l.id)) html += '<a class="boardbar tap" href="#board/' + l.id + '" id="boardBar"><span><b>🎬 عايز شرح على البورد؟</b><span class="s">' + esc(d.charName) + ' يكتب ويرسم ويشرح بصوته، خطوة خطوة (' + App.Board.count(l.id) + ' مشاهد)</span></span><span class="go">' + icon('play') + '</span></a>';
     if (s.custom) html += '<div class="btns mt"><button class="btn sm tint" id="addLC">' + icon('plus') + 'بطاقة</button><button class="btn sm tint" id="addLQ">' + icon('plus') + 'سؤال</button></div>';
     const myNotes = d.notes.filter(n => n.l === l.id);
     if (myNotes.length) html += '<div class="group-h">ملاحظاتي على الدرس</div><div class="group">' + myNotes.map(n => '<div class="row noicon"><span class="tx"><small style="color:var(--fg);font-size:15px">' + esc(n.text) + '</small></span></div>').join('') + '</div>';
@@ -722,9 +723,13 @@
     ctx: null,
     /** أوامر المذاكرة: ارسملي / ذاكرلي / المراجعة النهائية / أهم الأسئلة */
     study(si, p, text) {
-      const d = D(), s = (p.subject && S(p.subject)) || SUBJ.find(x => x.final) || SUBJ.find(x => questionsOf(x.id).length) || SUBJ[0];
+      const T = E.norm(text), rich = SUBJ.filter(x => x.final);
+      const titleHit = l => E.tokenize(l.title).filter(w => w.length >= 4 && !/^(ال)?(فصل|درس|محاضره|اول|تاني|ثاني|تالت|ثالث|رابع|خامس|مقدمه|نهاييه|مراجعه)$/.test(w) && T.includes(w)).length;
+      const bestOf = ls => ls.map(l => [titleHit(l), l]).filter(x => x[0]).sort((x, y) => y[0] - x[0]).map(x => x[1])[0];
+      const byLesson = !p.subject && si.kind === 'teach' ? (bl => bl && S(bl.s))(bestOf([].concat(...rich.map(x => x.lessons.filter(l => l.id !== x.final))))) : null;
+      const d = D(), s = (p.subject && S(p.subject)) || byLesson || SUBJ.find(x => x.final) || SUBJ.find(x => questionsOf(x.id).length) || SUBJ[0];
       if (!s) return null;
-      const T = E.norm(text);
+      if (!p.subject && !byLesson && rich.length > 1 && si.kind !== 'draw') return { text: 'في أنهي مادة؟', acts: rich.map(x => ({ say: text.replace(/[؟?]\s*$/, '') + ' في ' + x.short, label: x.name })), mood: 'think' };
       if (si.kind === 'final') {
         if (!s.final) return null;
         return { text: 'يلا المراجعة النهائية بتاعة <b>' + esc(s.name) + '</b> 🏁<br>هنمشيها 5 خطوات: الملخص الشامل، الرسومات، ماراثون المتوقع ⭐، أسئلة الدكتور، وبعدين امتحان تجريبي. وأنا معاك في كل خطوة 💪', acts: [{ label: 'افتح المراجعة النهائية', href: '#final/' + s.id }, { label: '⭐ ماراثون المتوقع', href: '#marathon/' + s.id }], mood: 'happy' };
@@ -746,11 +751,11 @@
         const ls = s.lessons.filter(l => l.id !== s.final && l.summary && /^##\s/m.test(l.summary)); if (!ls.length) return null;
         const ordOf = l => { const x = E.studyIntent('ذاكرلي ' + l.title); return x ? x.ord : null; };
         let l = si.ord != null ? ls.find(x => ordOf(x) === si.ord) : null;
-        if (!l) l = ls.find(x => E.tokenize(x.title).some(w => w.length >= 4 && !/^(ال)?(فصل|درس|محاضره|اول|تاني|ثاني|تالت|ثالث|رابع|خامس)$/.test(w) && T.includes(w)));
+        if (!l) l = bestOf(ls);
         const named = !!l;
         if (!l) l = ls.find(x => !d.lessonsDone[x.id] && !(d.teach || {})[x.id + ':done']) || ls[0];
         const st = (d.teach || {})[l.id];
-        return { text: (named ? 'يلا نذاكر' : 'نبدأ بـ') + ' <b>«' + esc(l.title) + '»</b> سوا 🎓<br>هشرحهولك حتة حتة، وبعد كل جزء هسألك سؤال أتأكد إنك فهمت. لو حاجة وقفت معاك دوس «مش فاهم» وأبسطهالك.' + (st && st.i ? '<br><span class="note">إنت كنت واصل للجزء ' + (st.i + 1) + '، هنكمّل منه.</span>' : ''), acts: [{ label: st && st.i ? 'كمّل' : 'ابدأ', href: '#teach/' + l.id }, { label: 'اقرا الملخص', href: '#lesson/' + l.id }].concat(named ? [] : ls.filter(x => x !== l).slice(0, 8).map(x => ({ say: 'ذاكرلي ' + x.title, label: x.title }))), mood: 'happy' };
+        return { text: (named ? 'يلا نذاكر' : 'نبدأ بـ') + ' <b>«' + esc(l.title) + '»</b> سوا 🎓<br>هشرحهولك حتة حتة، وبعد كل جزء هسألك سؤال أتأكد إنك فهمت. لو حاجة وقفت معاك دوس «مش فاهم» وأبسطهالك.' + (st && st.i ? '<br><span class="note">إنت كنت واصل للجزء ' + (st.i + 1) + '، هنكمّل منه.</span>' : ''), acts: [{ label: st && st.i ? 'كمّل' : 'ابدأ', href: '#teach/' + l.id }].concat(App.Board && App.Board.has(l.id) ? [{ label: '🎬 شرح على البورد', href: '#board/' + l.id }] : [], [{ label: 'اقرا الملخص', href: '#lesson/' + l.id }]).concat(named ? [] : ls.filter(x => x !== l).slice(0, 8).map(x => ({ say: 'ذاكرلي ' + x.title, label: x.title }))), mood: 'happy' };
       }
       return null;
     },

@@ -206,7 +206,7 @@
     let h = '<div class="hero">' + Char.html('', 80) + '<div class="bubble">' + say + '</div></div>';
     h += '<div class="group-h">الخطوات الخمسة</div><div class="group">'
       + row(1, !!d.lessonsRead[s.final], '#lesson/' + s.final, 'اقرا الملخص الشامل', 'كل المنهج في صفحة واحدة بالجداول والرسومات')
-      + row(2, figs.length && figOk === figs.length, '#subject/' + s.id + '?tab=figs', 'الرسومات (' + F.list(s.id).length + ')', 'الدكتور هيجيب واحدة · قفلت ' + figOk + ' من ' + figs.length + ' في التدريب')
+      + (F.list(s.id).length ? row(2, figs.length && figOk === figs.length, '#subject/' + s.id + '?tab=figs', 'الرسومات (' + F.list(s.id).length + ')', 'الدكتور هيجيب واحدة · قفلت ' + figOk + ' من ' + figs.length + ' في التدريب') : (() => { const bl = s.lessons.filter(l => App.Board && App.Board.has(l.id)), bd = bl.filter(l => (d.board || {})[l.id] && d.board[l.id].done).length, nx = bl.find(l => !((d.board || {})[l.id] && d.board[l.id].done)) || bl[0]; return bl.length ? row(2, bd === bl.length, '#board/' + nx.id, 'شرح البورد (' + bl.length + ' فصول)', 'كتابة ورسم وصوت خطوة خطوة · خلصت ' + bd + ' من ' + bl.length) : ''; })())
       + row(3, qs.length && okN === qs.length, '#marathon/' + s.id, 'ماراثون المتوقع ⭐ (' + qs.length + ' سؤال)', 'جاوبت صح على ' + okN + ' · بالشرح والتفرعات')
       + row(4, cards.length && cardsSeen === cards.length, '#review/' + s.id + '?mode=all', 'أسئلة الدكتور المقالية (' + cards.length + ')', 'نموذج الإجابة و🔑 الكلمات المفتاحية · شفت ' + cardsSeen)
       + row(5, false, '#quiz?s=' + s.id + '&n=30&mode=exam&go=1', 'امتحان تجريبي بوقت (30 سؤال)', 'من ' + allQ + ' سؤال في البنك · التصحيح في الآخر')
@@ -260,7 +260,7 @@
     sync() {
       if (!this.el) return;
       const r = Router.cur, d = D();
-      this.off = !d || d.settings.buddy === false || !!document.querySelector('.lock') || !r || ['chat', 'take', 'res'].includes(r.name);
+      this.off = !d || d.settings.buddy === false || !!document.querySelector('.lock') || !r || ['chat', 'take', 'res', 'board'].includes(r.name);
       this.calm = !!r && (r.name === 'quiz' && (r.q.run || r.q.result));
       this.el.classList.toggle('off', this.off);
       if (this.off) { this.hideMenu(); this.hush(); }

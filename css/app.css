@@ -592,3 +592,75 @@ small.pre,.flash .a{white-space:pre-line}
 .cook-bar i{transition:width .5s var(--ease)}
 .cook-end:empty{display:none}
 .cook-end{margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep);line-height:1.7}
+
+/* ===== 2.2: البورد ===== */
+.boardview{max-width:1040px}
+.bd-top{display:flex;margin:-4px 0 8px}
+.bd-sc{display:flex;align-items:center;gap:8px;justify-content:space-between;width:100%;padding:9px 14px;border-radius:12px;background:var(--bg2);box-shadow:var(--shadow);font-size:14.5px;font-weight:600;text-align:start;color:var(--fg)}
+.bd-sc svg{color:var(--accent);flex:none}
+.bd{position:relative;height:min(58vh,560px);min-height:300px;border-radius:14px;overflow-y:auto;overflow-x:hidden;background:radial-gradient(120% 90% at 30% 10%,#2b5546 0%,#1f4336 55%,#17352b 100%);box-shadow:inset 0 0 0 6px #6b4a2f,inset 0 0 0 8px #4a321e,inset 0 0 40px rgba(0,0,0,.35),var(--shadow);color:#f6f3ea;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.bd-in{padding:20px 18px 26px;font-size:clamp(16.5px,2.5vw,22px);line-height:1.75;min-height:100%}
+.bd-l{margin:0 0 .45em;text-shadow:0 0 1px rgba(255,255,255,.35);word-break:break-word}
+.bd-l.h{font-size:1.28em;font-weight:700;color:#ffe27a;border-bottom:2px solid rgba(255,226,122,.55);padding-bottom:.15em;margin-bottom:.6em;display:table}
+.bd-l.w.li{padding-inline-start:1.1em;position:relative}
+.bd-l.w.li::before{content:"•";position:absolute;inset-inline-start:.1em;color:#ffe27a}
+.bd-l.eq{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-style:italic;font-weight:700;font-size:1.12em;text-align:center;letter-spacing:.3px;unicode-bidi:isolate;margin:.2em 0 .55em}
+.bd-l.sm{font-size:.86em;opacity:.92}
+.bd-l.ce{text-align:center}
+.bd-l.sp{height:.5em;border-bottom:1.5px dashed rgba(255,255,255,.22);margin-bottom:.8em}
+.bd-l.nt{border:1.5px solid rgba(255,226,122,.7);border-radius:10px;padding:.35em .7em;background:rgba(255,226,122,.09);font-size:.92em}
+.bd-l .hi,.bd-l.c-y{color:#ffe27a}
+.bd-l.c-r,.bd-l.c-r .hi{color:#ffa697}.bd-l.c-b{color:#a9daff}.bd-l.c-g{color:#aeeba6}.bd-l.c-p{color:#e6beff}
+.bd-l.eq .hi{color:#ffe27a;text-decoration:underline;text-underline-offset:.2em}
+.bd-cur{display:inline-block;width:.5em;height:1em;vertical-align:-.12em;background:rgba(255,255,255,.85);border-radius:2px;margin-inline-start:2px;animation:bdcur .5s steps(2) infinite}
+@keyframes bdcur{50%{opacity:.2}}
+.bd-l.flow{display:flex;flex-wrap:wrap;gap:.5em 1.5em;justify-content:center;margin:.3em 0 .7em}
+.fl{position:relative;border:2px solid #f6f3ea;border-radius:999px;padding:.12em .8em;font-weight:600;animation:pop .35s var(--spring) both}
+.fl.ar::before{content:"←";position:absolute;inset-inline-start:-1.2em;top:50%;transform:translateY(-55%);color:#ffe27a}
+.bd-l.tw{overflow-x:auto;margin:.3em 0 .8em}
+.bd-t{border-collapse:collapse;margin:0 auto;font-size:.86em;line-height:1.5;min-width:60%}
+.bd-t th,.bd-t td{border:1.5px solid rgba(246,243,234,.75);padding:.28em .6em;text-align:center;white-space:nowrap}
+.bd-t th{color:#ffe27a;font-weight:700}
+.bd-t td{color:transparent;transition:color .25s,background .3s}
+.bd-t td.on{color:#f6f3ea}
+.bd-t td.mark{color:#ffe27a!important;background:rgba(255,226,122,.13);font-weight:700}
+.bd-l.gw{margin:.2em auto .8em;max-width:460px}
+svg.bd-g{display:block;width:100%;height:auto;overflow:visible;font-family:var(--font)}
+.bd-g .ax{stroke:#f6f3ea;stroke-width:2;stroke-linecap:round}
+.bd-g .ln{stroke:currentColor;stroke-width:3;stroke-linecap:round;fill:none}
+.bd-g .ln.dash{stroke-width:1.4;stroke-dasharray:4 4;opacity:.85}
+.bd-g .ln.thin{stroke-width:1.8}
+.bd-g .pt,.bd-g .ah{fill:currentColor;stroke:none}
+.bd-g .tx{fill:currentColor;font-size:12px;stroke:none}
+.bd-g .tx.b{font-weight:700;font-size:13px}.bd-g .tx.sm{font-size:10.5px}
+.bd-g .c-w{color:#f6f3ea}.bd-g .c-y{color:#ffe27a}.bd-g .c-r{color:#ffa697}.bd-g .c-b{color:#a9daff}.bd-g .c-g{color:#aeeba6}.bd-g .c-p{color:#e6beff}
+.bd-g .ax+text,.bd-g>text.tx:not([class*="c-"]){color:#f6f3ea}
+.bd-big{position:absolute;inset:0;margin:auto;width:max-content;height:max-content;display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 26px;border-radius:20px;background:rgba(0,0,0,.35);color:#fff;font-size:17px;font-weight:700;backdrop-filter:blur(4px)}
+.bd-big svg{width:46px;height:46px}
+.bd-big[hidden]{display:none}
+.bd-bar{margin:8px 2px 10px;height:5px}
+.bd-cap{display:flex;gap:10px;align-items:flex-end;min-height:74px}
+.bd-cap .char{flex:none}
+.bd-cap .char.talk{animation:talk .42s ease-in-out infinite}
+@keyframes talk{50%{transform:translateY(-3px) scale(1.03,.97)}}
+.bd-capt{flex:1;background:var(--bg2);border-radius:16px;padding:10px 14px;box-shadow:var(--shadow);font-size:15.5px;line-height:1.7;margin-bottom:8px;min-height:58px}
+.bd-capt b{color:var(--accent)}
+.bd-ctl{display:flex;justify-content:center;align-items:center;gap:10px;margin:8px 0 10px;direction:ltr}
+.bd-ctl button{width:48px;height:48px;border-radius:50%;background:var(--bg2);box-shadow:var(--shadow);font-size:18px;color:var(--fg);display:grid;place-items:center}
+.bd-ctl button:active{transform:scale(.93)}
+.bd-ctl .pp{width:64px;height:64px;background:var(--accent);color:var(--accent-ink)}
+.bd-ctl .pp svg{width:28px;height:28px}
+.bd-opt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-bottom:12px}
+.bd-opt .chip[disabled]{opacity:.5}
+.bd-end{margin-top:6px;text-align:center}
+.bd-end .btns{justify-content:center}
+@media (min-width:900px){.bd{height:min(62vh,620px)}.bd-in{padding:28px 34px}}
+@media (orientation:landscape) and (max-height:520px){.bd{height:78vh}.boardview h1.big{display:none}}
+/* شريط «عايز شرح على البورد؟» */
+.boardbar{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,#1f4336,#2b5546);color:#f6f3ea;box-shadow:inset 0 0 0 3px #6b4a2f,var(--shadow)}
+.boardbar b{display:block;font-size:17px;color:#ffe27a}
+.boardbar span.s{font-size:13.5px;opacity:.9}
+.boardbar .go{margin-inline-start:auto;flex:none;width:44px;height:44px;border-radius:50%;background:#ffe27a;color:#1f4336;display:grid;place-items:center}
+.boardbar .go svg{width:22px;height:22px}
+.boardbar::after{content:"";position:absolute;top:0;bottom:0;width:38%;inset-inline-start:-45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);animation:shine 3.2s ease-in-out infinite}
+@keyframes shine{0%,55%{inset-inline-start:-45%}100%{inset-inline-start:110%}}

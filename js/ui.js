@@ -300,7 +300,7 @@
       onScroll();
     }
   };
-  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', fig: 'subjects', teach: 'subjects', final: 'subjects', marathon: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', sent: 'quiz', take: 'quiz', res: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
+  function tabOf(n) { return ({ home: 'home', chat: 'home', notes: 'home', subjects: 'subjects', subject: 'subjects', lesson: 'subjects', tool: 'subjects', fig: 'subjects', board: 'subjects', teach: 'subjects', final: 'subjects', marathon: 'subjects', search: 'subjects', review: 'review', quiz: 'quiz', sent: 'quiz', take: 'quiz', res: 'quiz', plan: 'plan', stats: 'plan', settings: 'settings' })[n] || 'home'; }
   addEventListener('hashchange', () => Router.render());
   function onScroll() { const n = $('.nav'); if (n) n.classList.toggle('scrolled', scrollY > 30); }
   addEventListener('scroll', onScroll, { passive: true });

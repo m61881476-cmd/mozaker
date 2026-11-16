@@ -293,6 +293,7 @@
       view.className = 'view ' + (prev ? (depth >= pdepth ? 'enter' : 'back') : '');
       view.innerHTML = '';
       fn(view, r);
+      if (self.App && App.afterRender) App.afterRender(view, r);
       if (self.Pal) Pal.route(r, prev);
       if (!prev || prev.raw !== r.raw) window.scrollTo(0, 0);
       $$('[data-tab]').forEach(a => a.classList.toggle('on', a.dataset.tab === tabOf(r.name)));

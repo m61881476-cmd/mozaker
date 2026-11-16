@@ -162,7 +162,7 @@
     has: lid => !!scenesOf(lid),
     count(lid) { const sc = scenesOf(lid); return sc ? sc.length : 0; },
     open(view, lid) {
-      const scenes = scenesOf(lid), l = App.LESSONS[lid]; if (!scenes || !l) return Router.go('subjects', { replace: true });
+      const scenes = scenesOf(lid), l = App.LESSONS[lid]; if (!scenes || !l) return Router.go(l ? 'lesson/' + lid : 'subjects', { replace: true });
       const d = D(); d.board = d.board || {}; const saved = d.board[lid] || {};
       const P = this.P = { lid, scenes: scenes.map(s => ({ t: s.t, s: s.s.map(norm) })), si: Math.min(saved.si || 0, scenes.length - 1), ki: 0, drawn: 0, playing: false, tok: 0, rate: (d.settings.boardRate || 1), mute: !!d.settings.boardMute, t0: Date.now(), ended: false };
       header(view, 'شرح على البورد', { back: { to: 'lesson/' + lid, label: 'الملخص' } });

@@ -330,6 +330,24 @@
     }
     return out.sort((a, b) => a.at - b.at).map(h => h.c);
   }
+  /** لو مفيش تطابق مظبوط: يدوّر بالتقريب (غلطة إملائية حرف أو اتنين) */
+  function fuzzyConcepts(concepts, text) {
+    const T = bare(text).trim().split(' ').filter(w => w.length >= 4);
+    if (!T.length) return [];
+    const tol = n => n >= 8 ? 2 : n >= 5 ? 1 : 0;
+    const hits = [];
+    for (const c of concepts || []) {
+      let best = 0;
+      for (const name of [c.k].concat(c.alt || [])) {
+        const ws = bare(name).trim().split(' ').filter(w => w.length >= 2); if (!ws.length) continue;
+        let ok = 0, tot = 0;
+        for (const w of ws) { tot += w.length; if (w.length < 3) { if (T.includes(w)) ok += w.length; continue; } if (T.some(t => Math.abs(t.length - w.length) <= tol(w.length) && lev(t, w) <= tol(w.length))) ok += w.length; }
+        if (ok === tot && tot > best && tot >= 5) best = tot;
+      }
+      if (best) hits.push({ c, len: best });
+    }
+    return hits.sort((a, b) => b.len - a.len).slice(0, 2).map(h => h.c);
+  }
   const ASK = [
     ['diff', /(الفرق بين|ايه الفرق|فرق بين|بيفرق ايه|يفرق ايه|قارن|مقارنه|ولا ايه الفرق)/],
     ['simpler', /(مش فاهم|مش فاهمه|مفهمتش|ما فهمتش|مافهمتش|مش واضح|مش واضحه|ابسط|بسطها|بسطلي|بسط|وضح|وضحلي|بطريقه تانيه|بالبلدي|مش مستوعب|مستوعبتش|تاني كده|مش داخل دماغي)/],
@@ -361,7 +379,9 @@
   /** المعلّم: يفهم السؤال على أنهي مفهوم وبأنهي زاوية (تعريف/ليه/إزاي/مثال/فرق/مش فاهم)، ويفتكر آخر موضوع */
   function tutor(concepts, text, ctx) {
     ctx = ctx || {};
-    const kind = askKind(text), found = findConcepts(concepts, text), words = norm(text).split(' ').length;
+    const kind = askKind(text), words = norm(text).split(' ').length;
+    let found = findConcepts(concepts, text); const fz = fuzzyConcepts(concepts, text), blen = c => c ? bare(c.k).length : 0;
+    if (fz.length && blen(fz[0]) > blen(found[0]) + 2 && !found.includes(fz[0])) found = [fz[0]].concat(found);
     const byKey = k => (concepts || []).find(c => c.k === k);
     if (kind === 'diff' && found.length >= 2) return { kind: 'diff', c: found[0], c2: found[1], strong: true };
     if (kind === 'diff' && found.length === 1 && ctx.last && byKey(ctx.last) && byKey(ctx.last) !== found[0]) return { kind: 'diff', c: byKey(ctx.last), c2: found[0], strong: true };
@@ -1114,7 +1134,7 @@
     srsNext, srsLabel, isDue, mastery,
     detectSubject, extractCount, parseIntent, setSubjects,
     tokenize, search, snippet,
-    mergePlus, findConcepts, askKind, studyIntent, tutor, tutorParts,
+    mergePlus, findConcepts, fuzzyConcepts, askKind, studyIntent, tutor, tutorParts,
     inScope, scopeLessons, examScope, packData, unpackData, makeShareExam, shareQuestions, gradeShared, makeShareResult, answerText, correctText,
     grade, gradeFill, gradeNumber, gradeJournal, netByAccount, accKey, entryBalanced,
     distributeProfit, capitalFormation, genCapital, genDistribution, describeDistribution,

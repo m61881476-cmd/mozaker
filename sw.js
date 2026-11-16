@@ -1,9 +1,9 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-2.2.1';
+const VERSION = 'mozaker-3.0.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',
-  './js/engine.js', './js/ui.js', './js/figs.js', './js/content/mkt.js', './js/content/mkt-b.js', './js/content/mkt-q1.js', './js/content/mkt-q2.js', './js/content/mkt-kb.js', './js/content/eco.js', './js/content/eco-b1.js', './js/content/eco-q.js', './js/board.js', './js/app.js', './js/study.js', './js/share.js', './js/app2.js',
+  './js/engine.js', './js/ui.js', './js/figs.js', './js/license.js', './js/keys.js', './js/content/free.js', './js/sub.js', './content/paid.mz', './js/extra.js', './data/news.json', './js/board.js', './js/app.js', './js/study.js', './js/share.js', './js/app2.js',
   './icons/char.png', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/badge-96.png'
 ];
 const CDN = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
@@ -20,6 +20,10 @@ self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
+    if (/\/data\/[^/]+\.json$/.test(url.pathname) || /\/content\/paid\.mz$/.test(url.pathname)) {
+      e.respondWith((async () => { try { const res = await fetch(req, { cache: 'no-store' }); if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(url.pathname.endsWith('.mz') ? './content/paid.mz' : req.url.split('?')[0], copy)); } return res; } catch (err) { return (await caches.match(req, { ignoreSearch: true })) || new Response('{}', { status: 504 }); } })());
+      return;
+    }
     if (req.mode === 'navigate') { e.respondWith((async () => (await caches.match('./index.html')) || fetch(req))()); return; }
     e.respondWith((async () => {
       const hit = await caches.match(req, { ignoreSearch: true }); if (hit) return hit;

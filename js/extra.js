@@ -1,0 +1,392 @@
+/* مذاكِر — القايمة الرئيسية، المواد الجاية، آخر الأخبار والأسايمنت، الجوايز، وكلام سَنَد ووضعياته */
+(function () {
+  'use strict';
+  const E = self.Engine, U = self.UI;
+  const { $, $$, esc, icon, Store, Router, header, toast, Char, haptic, beep } = U;
+  const D = () => Store.data;
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const now = () => Date.now();
+  const cname = () => esc((D() && D().charName) || 'سَنَد');
+  const isF = () => !!(self.Sub && Sub.who() === 'fatma');
+
+  /* ================= آخر الأخبار ================= */
+  const DRIVE = 'https://drive.google.com/drive/folders/1Was38RzlLQnV1eFczQIZ25l9QeBCmHWJ?usp=drive_link';
+  const NEWS_DEFAULT = [
+    {
+      id: 'asg-eco-1', kind: 'asg', date: '2026-11-15', icon: '📝', title: 'أسايمنت الاقتصاد نزل!', short: 'بـ 15 درجة بدل الميدترم، تيم من 5 لـ 6، ويترفع PDF على الدرايف.',
+      say: 'خبر عاجل 🎤 فيه أسايمنت اقتصاد بـ 15 درجة بدل الميدترم! تعالى أقولك التفاصيل',
+      points: [
+        ['🎯', 'الأسايمنت عليه <b>15 درجة</b> بدل الميدترم.'],
+        ['👥', 'التيم من <b>4 لـ 6</b> طلاب (الأحسن 5 أو 6).'],
+        ['📄', 'يتكتب على <b>ورق عادي</b>.'],
+        ['🪪', 'أول صفحة: <b>أسامي كل التيم وأكوادهم</b>، واللي محوّل يتكتب جنب اسمه <b>«محوّل»</b>.'],
+        ['📨', 'الدكتور هيبعت الأسئلة PDF، وأول ما توصل هتلاقيها هنا.'],
+        ['🖨️', 'الأسايمنت كله يتعمل <b>ملف PDF واحد</b>.'],
+        ['☝️', '<b>واحد بس</b> من التيم يرفعه، <b>مرة واحدة</b> بس، على لينك الدرايف.'],
+        ['📅', 'التسليم <b>آخر أسبوع في الدراسة</b>، والأفضل تسلّم قبل الميعاد.'],
+        ['ℹ️', 'الدمج مش هيخضع للامتحان، بس اللي عايز يحله يحله عادي.']
+      ],
+      checks: ['كوّنت تيم (5–6)', 'جمعت أسامي وأكواد التيم', 'عملت صفحة الغلاف', 'وصلت أسئلة الدكتور', 'حلّينا الأسئلة على ورق', 'صوّرنا وعملناه PDF واحد', 'واحد بس رفعه على الدرايف']
+    },
+    {
+      id: 'eco-plan-1', kind: 'info', date: '2026-11-15', icon: '📚', title: 'خطة الاقتصاد لآخر الترم', short: '7 فصول: 4 اتشرحوا، الخامس اتلغى، والسادس والسابع في المحاضرتين الجايين.',
+      say: 'خبر مهم في الاقتصاد 🎤 الفصل الخامس اتلغى! وفاضل حوالي 3 أسابيع',
+      points: [
+        ['📘', 'المنهج <b>7 فصول</b>، اتشرح منهم <b>4</b>.'],
+        ['❌', '<b>الفصل الخامس اتلغى.</b>'],
+        ['⏭️', 'الفصل <b>السادس والسابع</b> هيتشرحوا في المحاضرتين الجايين.'],
+        ['🔁', 'آخر محاضرة <b>مراجعة</b>.'],
+        ['✂️', 'حالات انتقال المنحنيات في التوازن <b>مش مطلوبة</b> في الامتحان، المطلوب <b>وضع التوازن</b> بس.'],
+        ['⏳', 'فاضل حوالي <b>3 أسابيع</b> على آخر الدراسة.']
+      ]
+    }
+  ];
+  const News = {
+    list: NEWS_DEFAULT.slice(),
+    async load() {
+      try { const r = await fetch('data/news.json', { cache: 'no-cache' }); if (!r.ok) return; const j = await r.json(); if (Array.isArray(j.items) && j.items.length) { this.list = j.items; if (Router.cur && ['home', 'news'].includes(Router.cur.name)) Router.render(); } } catch (e) { /* أوفلاين: النسخة اللي جوه */ }
+    },
+    seen() { const d = D(); return (d && d.newsSeen) || {}; },
+    unseen() { const s = this.seen(); return this.list.filter(n => !s[n.id]); },
+    mark(id) { const d = D(); d.newsSeen = d.newsSeen || {}; if (!d.newsSeen[id]) { d.newsSeen[id] = now(); Store.save(); } },
+    get(id) { return this.list.find(n => n.id === id); }
+  };
+  App.News = News;
+
+  const asg = () => { const d = D(); return d.asg || (d.asg = { chk: {}, team: [] }); };
+
+  Router.on('news', (view, r) => {
+    const id = r.args[0], n = id && News.get(id);
+    if (!n) {
+      header(view, 'آخر الأخبار', { back: { to: 'home', label: 'الرئيسية' } });
+      let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + (News.unseen().length ? 'معايا ' + News.unseen().length + ' ' + (News.unseen().length === 1 ? 'خبر جديد' : 'أخبار جديدة') + ' 🎤 دوس على أي خبر' : 'دي كل الأخبار لحد دلوقتي 🎤 أول ما يجي جديد هقولك') + '</div></div>';
+      h += '<div class="group">' + News.list.map(x => '<a class="row tap" href="#news/' + esc(x.id) + '"><span class="ic newsic">' + x.icon + '</span><span class="tx"><b>' + esc(x.title) + (News.seen()[x.id] ? '' : ' <span class="pill red">جديد</span>') + '</b><small>' + esc(x.short) + '</small></span>' + icon('chev', 'chev') + '</a>').join('') + '</div>';
+      view.insertAdjacentHTML('beforeend', h);
+      setTimeout(() => { const c = $('.newshead .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 200);
+      return;
+    }
+    header(view, n.title, { back: { to: 'news', label: 'الأخبار' } });
+    News.mark(n.id);
+    let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + esc(n.say || n.short) + '</div></div>';
+    h += '<div class="card mb newsbody"><ul class="pts">' + n.points.map(p => '<li><span>' + p[0] + '</span><div>' + p[1] + '</div></li>').join('') + '</ul></div>';
+    if (n.kind === 'asg') {
+      const A = asg(), done = n.checks.filter((_, i) => A.chk[i]).length;
+      h += '<div class="btns mb"><a class="btn green" href="' + DRIVE + '" target="_blank" rel="noopener">📤 لينك الدرايف للتسليم</a><a class="btn tint" href="#cover">🪪 اعمل صفحة الغلاف</a></div>';
+      h += '<div class="group-h">جهّزت إيه؟ (' + done + ' من ' + n.checks.length + ')</div><div class="group">' + n.checks.map((c, i) => '<label class="row noicon chk"><input type="checkbox" data-ck="' + i + '"' + (A.chk[i] ? ' checked' : '') + '><span class="tx"><b>' + esc(c) + '</b></span></label>').join('') + '</div>';
+      h += '<div class="card mb note">📨 أسئلة الدكتور لسه ماوصلتش. أول ما توصل هتنزل هنا، و' + cname() + ' هيذاكرها معاك.</div>';
+    }
+    view.insertAdjacentHTML('beforeend', h);
+    setTimeout(() => { const c = $('.newshead .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 200);
+    $$('[data-ck]', view).forEach(b => b.onchange = () => { const A = asg(); A.chk[b.dataset.ck] = b.checked; Store.save(); if (b.checked) { haptic('success'); if (n.checks.every((_, i) => A.chk[i])) { toast('الأسايمنت جاهز 🎉', 'spark'); Awards.check(); } } Router.render(); });
+  });
+
+  /* صفحة الغلاف للأسايمنت */
+  Router.on('cover', view => {
+    header(view, 'صفحة الغلاف', { back: { to: 'news/asg-eco-1', label: 'الأسايمنت' } });
+    const A = asg(); if (!A.team.length) A.team = [{ n: D().name || '', c: '', t: false }];
+    const draw = () => {
+      let h = '<div class="card mb note">اكتب أسامي التيم وأكوادهم، وعلّم على «محوّل» للي محوّل. بعدها دوس «اطبع / احفظ PDF» وهتطلع صفحة أولى جاهزة.</div>';
+      h += '<div class="group cover-in">' + A.team.map((m, i) => '<div class="row noicon cm"><span class="cm-n">' + (i + 1) + '</span><input class="input" data-f="n" data-i="' + i + '" placeholder="الاسم بالكامل" value="' + esc(m.n) + '"><input class="input" data-f="c" data-i="' + i + '" placeholder="الكود" inputmode="numeric" dir="ltr" value="' + esc(m.c) + '"><label class="cm-t"><input type="checkbox" data-f="t" data-i="' + i + '"' + (m.t ? ' checked' : '') + '> محوّل</label>' + (A.team.length > 1 ? '<button class="btn-x" data-del="' + i + '" aria-label="شيل">✕</button>' : '') + '</div>').join('') + '</div>';
+      h += '<div class="btns mb">' + (A.team.length < 6 ? '<button class="btn tint" id="cvAdd">' + icon('plus') + 'ضيف طالب</button>' : '') + '<button class="btn" id="cvPrint">🖨️ اطبع / احفظ PDF</button></div>';
+      h += '<div class="cover-sheet" id="cvSheet"><div class="cv-t">Assignment</div><div class="cv-s">مبادئ الاقتصاد</div><table><thead><tr><th>#</th><th>الاسم</th><th>الكود</th><th></th></tr></thead><tbody>' + A.team.filter(m => m.n.trim()).map((m, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(m.n) + '</td><td dir="ltr">' + esc(m.c) + '</td><td>' + (m.t ? 'محوّل' : '') + '</td></tr>').join('') + '</tbody></table></div>';
+      view.querySelectorAll('.cvx').forEach(x => x.remove());
+      const w = document.createElement('div'); w.className = 'cvx'; w.innerHTML = h; view.appendChild(w);
+      $$('[data-f]', w).forEach(inp => inp.oninput = inp.onchange = () => { const m = A.team[+inp.dataset.i]; if (inp.dataset.f === 't') m.t = inp.checked; else m[inp.dataset.f] = inp.value; Store.save(); const sh = $('#cvSheet'); if (sh && inp.dataset.f === 't') draw(); else if (sh) sh.querySelector('tbody').innerHTML = A.team.filter(x => x.n.trim()).map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(x.n) + '</td><td dir="ltr">' + esc(x.c) + '</td><td>' + (x.t ? 'محوّل' : '') + '</td></tr>').join(''); });
+      $$('[data-del]', w).forEach(b => b.onclick = () => { A.team.splice(+b.dataset.del, 1); Store.save(); draw(); });
+      const ad = $('#cvAdd'); if (ad) ad.onclick = () => { A.team.push({ n: '', c: '', t: false }); Store.save(); draw(); const ins = $$('[data-f="n"]', w); setTimeout(() => { const l = $$('.cover-in [data-f="n"]'); l[l.length - 1].focus(); }, 30); };
+      $('#cvPrint').onclick = () => { if (!A.team.some(m => m.n.trim())) return toast('اكتب اسم واحد على الأقل', 'info'); const ch = asg().chk; ch[2] = true; Store.save(); document.body.classList.add('printing'); setTimeout(() => { print(); setTimeout(() => document.body.classList.remove('printing'), 500); }, 50); };
+    };
+    draw();
+  });
+
+  /* ================= الجوايز ================= */
+  const LEVELS = [[0, 'مبتدئ 🌱'], [200, 'شاطر 📗'], [600, 'متفوق 🚀'], [1500, 'نجم ⭐'], [3000, 'عبقري 🧠'], [6000, 'أسطورة 👑']];
+  function facts() {
+    const d = D(), at = d.attempts || [], ok = at.filter(a => a.ok).length, days = d.days || {};
+    const teachDone = Object.keys(d.teach || {}).filter(k => /:done$/.test(k) && d.teach[k]).length;
+    const boards = Object.values(d.board || {}).filter(b => b && b.done).length;
+    const figs = Object.values(d.figs || {}).filter(f => f && f.best >= f.n).length;
+    const lessons = Object.keys(d.lessonsDone || {}).filter(k => d.lessonsDone[k]).length;
+    const cards = Object.values(days).reduce((s, x) => s + (x.cards || 0), 0);
+    const maxMin = Object.values(days).reduce((m, x) => Math.max(m, x.min || 0), 0);
+    const mar = Object.values(d.marathon || {}).reduce((s, m) => s + Object.keys((m && m.r) || {}).length, 0);
+    const hours = at.map(a => new Date(a.t).getHours());
+    const stars = new Set((App.allQuestions ? App.allQuestions() : []).filter(q => q.star).map(q => q.id));
+    const starOk = new Set(at.filter(a => a.ok && stars.has(a.q)).map(a => a.q)).size;
+    let fixed = 0; const wrong = {}; for (const a of at) { if (!a.ok) wrong[a.q] = 1; else if (wrong[a.q]) { fixed++; delete wrong[a.q]; } }
+    const dk = Object.keys(days).filter(k => days[k].min || days[k].cards || days[k].q).sort();
+    let comeback = false; for (let i = 1; i < dk.length; i++) if ((new Date(dk[i]) - new Date(dk[i - 1])) / 864e5 >= 3) comeback = true;
+    const chat = (d.chat || []).filter(m => m.me || m.who === 'me' || m.from === 'me' || m.role === 'user').length;
+    const n0 = (NEWS_DEFAULT[0].checks || []).length, A = d.asg || { chk: {} };
+    return { q: at.length, ok, teachDone, boards, figs, lessons, cards, maxMin, mar, night: hours.some(h => h >= 0 && h < 4), early: hours.some(h => h >= 4 && h < 7), starOk, fixed, comeback, chat, streak: Math.max(App.streakNow ? App.streakNow() : 0, d.bestStreak || 0), perfect: d.perfect || 0, asg: Object.keys(A.chk || {}).filter(k => A.chk[k]).length >= n0, sub: !!(self.Sub && Sub.on()) };
+  }
+  const AW = [
+    ['first', '🐣', 'أول خطوة', 'حلّيت أول سؤال', f => [f.q, 1]],
+    ['q50', '✏️', 'إيد سخنة', 'حلّيت 50 سؤال', f => [f.q, 50]],
+    ['q200', '📚', 'دودة كتب', 'حلّيت 200 سؤال', f => [f.q, 200]],
+    ['q500', '🏋️', 'وحش الأسئلة', 'حلّيت 500 سؤال', f => [f.q, 500]],
+    ['ok100', '🎯', 'نشّان', '100 إجابة صح', f => [f.ok, 100]],
+    ['star10', '⭐', 'صايد المتوقع', 'جاوبت 10 أسئلة متوقعة صح', f => [f.starOk, 10]],
+    ['star50', '🌟', 'ملك المتوقع', 'جاوبت 50 سؤال متوقع صح', f => [f.starOk, 50]],
+    ['perfect', '💯', 'العلامة الكاملة', 'امتحان 10 أسئلة أو أكتر من غير ولا غلطة', f => [f.perfect, 1]],
+    ['fixed', '🩹', 'اتعلمت من غلطي', 'جاوبت صح سؤال كنت غلطت فيه قبل كده', f => [f.fixed, 1]],
+    ['fixed20', '🛠️', 'مصلّح الأخطاء', 'صححت 20 غلطة قديمة', f => [f.fixed, 20]],
+    ['lesson1', '📖', 'أول درس', 'قفلت درس كامل', f => [f.lessons, 1]],
+    ['lesson5', '🗂️', 'خمسة على خمسة', 'قفلت 5 دروس', f => [f.lessons, 5]],
+    ['teach1', '🎓', 'تلميذ سَنَد', 'ذاكرت درس كامل في «ذاكر معايا»', f => [f.teachDone, 1]],
+    ['board1', '🎬', 'قدام البورد', 'تابعت شرح البورد لحد الآخر', f => [f.boards, 1]],
+    ['board3', '🧑‍🏫', 'مدمن البورد', 'خلّصت 3 شروحات بورد', f => [f.boards, 3]],
+    ['fig1', '🖼️', 'رسام', 'قفلت التدريب على رسمة', f => [f.figs, 1]],
+    ['cards50', '🃏', 'ذاكرة حديد', 'راجعت 50 بطاقة', f => [f.cards, 50]],
+    ['mar25', '🏃', 'عدّاء الماراثون', 'خلّصت 25 سؤال في الماراثون', f => [f.mar, 25]],
+    ['streak3', '🔥', 'ولّعت', '3 أيام مذاكرة ورا بعض', f => [f.streak, 3]],
+    ['streak7', '☄️', 'أسبوع نار', '7 أيام ورا بعض', f => [f.streak, 7]],
+    ['streak14', '🌋', 'مابيقفش', '14 يوم ورا بعض', f => [f.streak, 14]],
+    ['hour', '⏱️', 'ساعة تركيز', 'ذاكرت ساعة في يوم واحد', f => [f.maxMin, 60]],
+    ['night', '🦉', 'بومة الليل', 'ذاكرت بعد نص الليل', f => [f.night ? 1 : 0, 1]],
+    ['early', '🐓', 'صاحي بدري', 'ذاكرت قبل 7 الصبح', f => [f.early ? 1 : 0, 1]],
+    ['comeback', '🔄', 'رجعت أقوى', 'رجعت تذاكر بعد غياب', f => [f.comeback ? 1 : 0, 1]],
+    ['chat10', '💬', 'صاحب سَنَد', 'بعت 10 رسايل لسَنَد', f => [f.chat, 10]],
+    ['asg', '📝', 'تيم الأسايمنت', 'جهّزت الأسايمنت كله', f => [f.asg ? 1 : 0, 1]],
+    ['sub', '💎', 'مشترك مميز', 'فتحت كل الفصول', f => [f.sub ? 1 : 0, 1]]
+  ];
+  const Awards = {
+    all() { const f = facts(), got = D().awards || {}; return AW.map(([id, ic, t, dsc, fn]) => { const [v, n] = fn(f); return { id, ic, t, d: dsc, v: Math.min(v, n), n, got: got[id] || (v >= n ? -1 : 0) }; }); },
+    xp() { const f = facts(), d = D(); return f.q + f.ok * 2 + f.lessons * 15 + f.teachDone * 25 + f.boards * 20 + f.figs * 15 + Math.round(f.cards / 2) + Object.keys(d.awards || {}).length * 30; },
+    level() { const x = this.xp(); let i = 0; while (i + 1 < LEVELS.length && x >= LEVELS[i + 1][0]) i++; const nx = LEVELS[i + 1]; return { i, name: LEVELS[i][1], xp: x, next: nx ? nx[0] : null, from: LEVELS[i][0] }; },
+    check(quiet) {
+      const d = D(); if (!d) return; d.awards = d.awards || {};
+      const st = App.streakNow ? App.streakNow() : 0; if (st > (d.bestStreak || 0)) d.bestStreak = st;
+      const fresh = this.all().filter(a => a.got === -1);
+      if (!fresh.length) return;
+      fresh.forEach(a => d.awards[a.id] = now()); Store.save();
+      if (quiet || !d.awardsInit) { d.awardsInit = 1; Store.save(); return; }
+      this.pop(fresh[0], fresh.length - 1);
+    },
+    pop(a, more) {
+      if ($('.award-pop')) return;
+      const w = document.createElement('div'); w.className = 'award-pop'; w.setAttribute('role', 'dialog');
+      w.innerHTML = '<div class="ap-in"><div class="ap-ic">' + a.ic + '</div><div class="ap-k">جايزة جديدة!</div><b>' + esc(a.t) + '</b><small>' + esc(a.d) + '</small>' + (more > 0 ? '<small>و' + more + ' كمان 🎁</small>' : '') + '<div class="btns"><a class="btn" href="#awards">شوف الرف 🏆</a><button class="btn gray" data-x>حلو</button></div></div>';
+      document.body.appendChild(w); requestAnimationFrame(() => w.classList.add('on')); beep('ok'); haptic('success');
+      const close = () => { w.classList.remove('on'); setTimeout(() => w.remove(), 300); };
+      w.onclick = e => { if (e.target === w || e.target.closest('[data-x]') || e.target.closest('a')) close(); };
+      if (self.Pal && Pal.on()) { Props.pal('trophy', 4500); Pal.say(pick(isF() ? ['برافو عليكي يا فاطمة 🏆', 'جايزة جديدة على الرف 🤍'] : ['جايزة جديدة على الرف 🏆', 'إيه الحلاوة دي! كسبت «' + esc(a.t) + '»', 'فخور بيك 🏆']), 'cheer', 3600, true); }
+    }
+  };
+  App.Awards = Awards;
+  Router.on('awards', view => {
+    Awards.check(true);
+    const L = Awards.level(), list = Awards.all(), got = list.filter(a => a.got);
+    header(view, 'جوايزي', { back: { to: 'home', label: 'الرئيسية' }, sub: got.length + ' من ' + list.length + ' جايزة' });
+    const pct = L.next ? Math.round((L.xp - L.from) / (L.next - L.from) * 100) : 100;
+    let h = '<div class="card mb lvl"><div class="lvl-r">' + Char.html('', 64) + '<div style="flex:1"><div class="lvl-n">' + L.name + '</div><div class="note">' + L.xp + ' نقطة' + (L.next ? ' · فاضل ' + (L.next - L.xp) + ' للمستوى الجاي' : ' · أعلى مستوى 👑') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div></div></div></div>';
+    const rows = []; for (let i = 0; i < list.length; i += 4) rows.push(list.slice(i, i + 4));
+    h += '<div class="shelf">' + rows.map(r => '<div class="shelf-row">' + r.map(a => '<button class="aw' + (a.got ? ' got' : '') + '" data-aw="' + a.id + '"><span class="aw-ic">' + a.ic + '</span><span class="aw-t">' + esc(a.t) + '</span>' + (a.got ? '' : '<span class="aw-p"><i style="width:' + Math.round(a.v / a.n * 100) + '%"></i></span>') + '</button>').join('') + '</div><div class="plank"></div>').join('') + '</div>';
+    view.insertAdjacentHTML('beforeend', h);
+    $$('[data-aw]', view).forEach(b => b.onclick = () => { const a = list.find(x => x.id === b.dataset.aw); toast((a.got ? a.ic + ' ' : '🔒 ') + a.t + ': ' + a.d + (a.got ? '' : ' (' + a.v + '/' + a.n + ')'), a.got ? 'spark' : 'info'); });
+    setTimeout(() => { const c = $('.lvl .char', view); if (c) { Props.put(c, 'trophy'); Char.act(c, 'happy'); } }, 250);
+  });
+  // نتيجة الامتحان: علامة كاملة
+  const prevFinish = App.onQuizFinish;
+  App.onQuizFinish = QZ => {
+    if (prevFinish) prevFinish(QZ);
+    const its = (QZ.qs || []).filter(it => !it.skipped && it.res);
+    if (its.length >= 10 && its.every(it => it.res.ok)) { D().perfect = (D().perfect || 0) + 1; Store.save(); }
+    setTimeout(() => Awards.check(), 600);
+  };
+
+  /* ================= وضعيات الشخصية (عصاية، مايك، نضارة، كاس، تاج) ================= */
+  const PROP_SVG = {
+    stick: '<g class="pp-stick"><line x1="214" y1="300" x2="330" y2="150" stroke="#7a4a21" stroke-width="10" stroke-linecap="round"/><line x1="214" y1="300" x2="330" y2="150" stroke="#a8693a" stroke-width="4" stroke-linecap="round"/><circle cx="332" cy="147" r="9" fill="#e53935"/><circle cx="222" cy="290" r="13" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/></g>',
+    mic: '<g class="pp-mic"><rect x="214" y="222" width="14" height="74" rx="6" fill="#333"/><circle cx="221" cy="214" r="20" fill="#9aa0a6" stroke="#444" stroke-width="4"/><path d="M207 206h28M207 216h28" stroke="#666" stroke-width="3"/><circle cx="222" cy="290" r="13" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/></g>',
+    glasses: '<g class="pp-gl" fill="rgba(255,255,255,.18)" stroke="#111" stroke-width="5"><rect x="50" y="116" width="40" height="36" rx="8"/><rect x="152" y="116" width="40" height="36" rx="8"/><path d="M90 130h62" fill="none"/></g>',
+    trophy: '<g class="pp-tr"><path d="M104 196h64v26a32 32 0 0 1-64 0z" fill="#ffc107" stroke="#b8860b" stroke-width="4"/><path d="M104 204h-14a14 14 0 0 0 14 22M168 204h14a14 14 0 0 1-14 22" fill="none" stroke="#b8860b" stroke-width="5"/><rect x="128" y="252" width="16" height="22" fill="#ffb300"/><rect x="112" y="272" width="48" height="12" rx="3" fill="#8d6e63"/><text x="136" y="232" font-size="26" text-anchor="middle">★</text></g>',
+    crown: '<g class="pp-cr"><path d="M84 40l18-36 30 28 30-28 18 36z" fill="#ffc107" stroke="#b8860b" stroke-width="4"/><circle cx="132" cy="20" r="6" fill="#e53935"/></g>',
+    heart: '<g class="pp-ht"><path d="M300 90c-12-22-44-10-30 16l30 26 30-26c14-26-18-38-30-16z" fill="#ff5c8a"/></g>'
+  };
+  const Props = {
+    put(charEl, name) {
+      if (!charEl) return; this.clear(charEl); if (!PROP_SVG[name]) return;
+      charEl.insertAdjacentHTML('beforeend', '<svg class="prop prop-' + name + '" viewBox="0 0 268 360" aria-hidden="true">' + PROP_SVG[name] + '</svg>');
+    },
+    clear(charEl) { if (charEl) charEl.querySelectorAll('.prop').forEach(p => p.remove()); },
+    pal(name, ms) { if (!self.Pal || !Pal.el) return; const c = Pal.char(); this.put(c, name); clearTimeout(this.t); if (ms) this.t = setTimeout(() => { this.clear(c); Pal.base(); }, ms); }
+  };
+  App.Props = Props;
+
+  /* ================= كلام سَنَد وقواعده ================= */
+  const LINES = {
+    m: ['كمّل، إنت ماشي صح 💪', 'كل سؤال بتحله دلوقتي درجة في الامتحان ✨', 'أنا شايف مجهودك، برافو عليك 👏', 'خطوة خطوة وهنقفل المنهج كله', 'لو تعبت خد دقيقتين واشرب مية وارجعلي 💧', 'اللي بتذاكره النهارده هتلاقيه في الورقة', 'دماغك شغالة حلو النهارده 🔥', 'ماتستعجلش، الفهم أهم من السرعة', 'فخور بيك والله 🤍', 'ركّز في الكلمات المفتاحية 🔑 هي اللي بتجيب الدرجة',
+      'إنت أشطر مما إنت فاكر 😉', 'كل دقيقة دلوقتي بترتاح بيها ليلة الامتحان', 'الغلط هنا ببلاش، في الامتحان بدرجات 😅 فاغلط براحتك هنا', 'بطل! يلا حاجة كمان صغيرة', 'افتكر: الدكتور بيحب الكلمات المفتاحية', 'إنت كده بتبني الأساس صح 🧱', 'مافيش حد بيفهم كل حاجة من أول مرة، حتى أنا 😄', 'الاستمرار أهم من الكتير', 'حلو أوي التركيز ده 👌', 'كمان شوية وهتلاقي نفسك فاهم الفصل كله',
+      'ابقى اشرح اللي فهمته لصاحبك، هتثبت معاك أكتر', 'لو حاجة مش واضحة اسألني، ماتكسفش 😄', 'الامتحان مش هيبقى صعب على اللي ذاكر زيك', 'ماشي بثقة 😎', 'نفسك طويل النهارده ماشاء الله', 'خليك فاكر الرسمة، بتيجي كتير', 'أنا معاك للآخر 🤝', 'وشك فيه نور المذاكرة 😂', 'شوية كمان وتستاهل استراحة حلوة ☕', 'الدرجة الكاملة بتبتدي من هنا 💯'],
+    f: ['كمّلي، إنتي ماشية صح 💪', 'كل سؤال بتحليه دلوقتي درجة في الامتحان ✨', 'شايف مجهودك يا فاطمة، برافو عليكي 👏', 'خطوة خطوة وهنقفل المنهج كله 🤍', 'لو تعبتي خدي دقيقتين واشربي مية وارجعيلي 💧', 'اللي بتذاكريه النهارده هتلاقيه في الورقة', 'دماغك شغالة حلو النهارده 🔥', 'ماتستعجليش، الفهم أهم من السرعة', 'فخور بيكي والله 🤍', 'ركّزي في الكلمات المفتاحية 🔑',
+      'إنتي أشطر مما إنتي فاكرة 😉', 'محمد قالي أخلّي بالي منك في المذاكرة 🤍', 'الغلط هنا ببلاش، اغلطي براحتك 😄', 'بطلة! يلا حاجة صغيرة كمان', 'كمان شوية وهتلاقي نفسك فاهمة الفصل كله', 'أنا معاكي للآخر 🤝', 'شوية كمان وتستاهلي استراحة حلوة ☕', 'الدرجة الكاملة بتبتدي من هنا 💯', 'ماشاء الله عليكي النهارده 🌸', 'لو حاجة مش واضحة اسأليني 😄'],
+    bad_m: ['ولا يهمك، الغلط هنا بيعلّم 🤍', 'اقرا الشرح على مهلك، دي بتتكرر', 'عادي، المرة الجاية هتيجي صح', 'بص على «باقي الاختيارات» تحت، هتفرق معاك', 'دي بالذات كتير بيغلطوا فيها، إنت مش لوحدك 😅'],
+    bad_f: ['ولا يهمك، الغلط هنا بيعلّم 🤍', 'اقري الشرح على مهلك، دي بتتكرر', 'عادي، المرة الجاية هتيجي صح', 'بصي على «باقي الاختيارات» تحت 👇', 'دي كتير بيغلطوا فيها، مش إنتي لوحدك 😅'],
+    point: ['📌 دي مهمة! ركّز هنا', '👉 خد بالك من دي، بتيجي في الامتحان', '⚠️ الحتة دي بيغلطوا فيها كتير', '🔑 الكلمة المفتاحية هنا'],
+    point_f: ['📌 دي مهمة! ركّزي هنا', '👉 خدي بالك من دي، بتيجي في الامتحان', '⚠️ الحتة دي بيغلطوا فيها كتير', '🔑 الكلمة المفتاحية هنا'],
+    night: ['الوقت اتأخر 🌙 متنساش تنام كويس، النوم بيثبت المذاكرة', 'سهران؟ 🦉 خلّص الجزء ده ونام'],
+    morning: ['صباح الفل ☀️ أحسن وقت للمذاكرة', 'صباح النشاط 🌞 دماغك فاضية ومستعدة'],
+    streak: n => ['سلسلة ' + n + ' أيام ورا بعض 🔥 ماتقطعهاش', n + ' أيام ورا بعض! إنت كده محترف 😎']
+  };
+  const talk = () => (D() && D().settings.palTalk) || 'normal';
+  const GAP = { more: 50000, normal: 150000, quiet: Infinity };
+  if (self.Pal) {
+    const P = self.Pal, rawSay = P.say.bind(P), rawHush = P.hush.bind(P), rawTap = P.tap.bind(P);
+    let lastChat = 0, dism = [], quietTill = 0, nearTaps = 0;
+    P.base = function () { const c = this.el && this.char(); if (!c) return; if (self.Sub && Sub.who() === 'owner') Props.put(c, 'crown'); else if (isF()) Props.put(c, 'heart'); else Props.clear(c); };
+    P.say = function (html, mood, ms, force) {
+      if (!force) {
+        if (now() < quietTill || talk() === 'quiet') return;
+        if (now() - lastChat < GAP[talk()]) return;
+        lastChat = now();
+      }
+      rawSay(html, mood, ms);
+    };
+    P.hush = function () {
+      const was = this.el && this.el.classList.contains('say');
+      rawHush();
+      if (was && now() - this.sayAt < 2500 && now() - this.sayAt > 150) { // قفل الكلام بسرعة = مضايق
+        dism = dism.filter(t => now() - t < 600000).concat(now());
+        if (dism.length >= 3) { dism = []; quietTill = now() + 20 * 60000; toast('تمام، هسكت شوية 🤐 (تقدر تغيّر كلامي من الإعدادات)', 'info'); }
+      }
+    };
+    P.cheerLine = function () {
+      const d = D(), st = App.streakNow(), h = new Date().getHours(), f = isF(), extra = [];
+      const mins = ((d.days || {})[App.today()] || {}).min || 0;
+      if (mins >= 10) extra.push((f ? 'ذاكرتي ' : 'ذاكرت ') + mins + ' دقيقة النهارده، جامد 👏');
+      if (st >= 2) extra.push(...LINES.streak(st));
+      if (h >= 0 && h < 4) extra.push(...LINES.night); else if (h >= 6 && h < 10) extra.push(...LINES.morning);
+      const ex = App.upcomingExams()[0]; if (ex) { const l = E.daysBetween(new Date(), new Date(ex.date)); if (l > 0 && l <= 10) extra.push('فاضل ' + l + ' يوم على الامتحان، و' + (f ? 'إنتي ماشية' : 'إنت ماشي') + ' كويس 💪'); }
+      // من غير تكرار: نشيل آخر 12 جملة اتقالت
+      const pool = (Math.random() < 0.35 && extra.length ? extra : LINES[f ? 'f' : 'm']);
+      P.used = P.used || []; let c = pool.filter(x => !P.used.includes(x)); if (!c.length) { P.used = []; c = pool; }
+      const line = pick(c); P.used.push(line); if (P.used.length > 12) P.used.shift();
+      return line;
+    };
+    const rawReact = P.react.bind(P);
+    P.react = function (kind, n) {
+      if (kind === 'bad' && this.on()) { this.wake(); Char.act(this.char(), 'sad'); if (Math.random() < 0.45) this.say(pick(LINES[isF() ? 'bad_f' : 'bad_m']), 'nod', 2600); return; }
+      if (kind === 'ok' && this.on() && n && n % 5 === 0) { rawReact('ok'); this.say(n + ' صح ورا بعض 🔥', 'fire', 2200, true); return; }
+      rawReact(kind);
+    };
+    P.tap = function () {
+      rawTap();
+      const m = this.el && this.el.querySelector('.pal-menu'); if (!m || m.hidden) return;
+      const extra = [['🏆 جوايزي', '#awards'], ['📰 آخر الأخبار', '#news']];
+      m.insertAdjacentHTML('beforeend', extra.map(x => '<button data-px="' + x[1] + '">' + x[0] + '</button>').join(''));
+      $$('[data-px]', m).forEach(b => b.onclick = e => { e.stopPropagation(); this.hideMenu(); Router.go(b.dataset.px.slice(1)); });
+    };
+    /** يشاور بالعصاية على حاجة مهمة في الصفحة */
+    P.point = function (el) {
+      if (!this.on() || this.calm || this.menuOn || this.dragging || talk() === 'quiet' || now() < quietTill) return;
+      if (now() - (this.pointAt || 0) < (talk() === 'more' ? 60000 : 140000)) return;
+      const r = el.getBoundingClientRect(); if (r.top < 70 || r.bottom > innerHeight - 40) return;
+      this.pointAt = now();
+      const b = this.bounds(), x = Math.max(b.x0, Math.min(b.x1, r.left - this.size * 0.95)), y = Math.max(b.y0, Math.min(b.yb, r.top + r.height / 2 - this.size * 0.55));
+      this.pinnedTill = now() + 9000; this.walkTo(x, y);
+      setTimeout(() => { if (!this.on()) return; Props.pal('stick', 6000); el.classList.add('pointed'); setTimeout(() => el.classList.remove('pointed'), 2400); rawSay(pick(LINES[isF() ? 'point_f' : 'point']), 'nod', 3800); lastChat = now(); }, this.reduced() ? 0 : 900);
+    };
+    // يبعد لو بيضايق: لو المستخدم داس جنبه مرتين يروح الناحية التانية
+    document.addEventListener('pointerdown', e => {
+      if (!P.on() || e.target.closest('#pal')) return;
+      const r = P.el.getBoundingClientRect();
+      if (e.clientX > r.left - 30 && e.clientX < r.right + 30 && e.clientY > r.top - 30 && e.clientY < r.bottom + 30) {
+        if (++nearTaps >= 2) { nearTaps = 0; const bb = P.bounds(); P.pinnedTill = 0; P.walkTo(P.x < innerWidth / 2 ? bb.x1 : bb.x0, bb.yb); }
+      } else nearTaps = 0;
+    }, true);
+    // صامت تمامًا جوه الامتحان
+    const rawSync = P.sync.bind(P);
+    P.sync = function () { rawSync(); if (this.el) { const r = Router.cur; if (r && r.name === 'quiz' && r.q.run) this.hush(); } };
+  }
+  // العصاية على البلوكات المهمة (⚠️ / 📝 / ⭐) في الدرس
+  let io = null;
+  function watchImportant(view) {
+    if (io) io.disconnect(); if (!('IntersectionObserver' in self) || !self.Pal) return;
+    const els = $$('.md blockquote, .md .warn, .callout, .md strong', view).filter(e => /⚠️|📝|⭐|مهم|بيجي في الامتحان|خد بالك/.test(e.textContent)).slice(0, 12);
+    if (!els.length) return;
+    io = new IntersectionObserver(ents => { ents.forEach(en => { if (en.isIntersecting && en.intersectionRatio > 0.9) setTimeout(() => { const r = en.target.getBoundingClientRect(); if (r.top > 70 && r.bottom < innerHeight - 40) Pal.point(en.target); }, 1600); }); }, { threshold: [0.9] });
+    els.forEach(e => io.observe(e));
+  }
+
+  /* ================= الإعدادات: كلام سَنَد ================= */
+  function settingsExtra(view) {
+    const b = $('#sBuddy', view); if (!b) return;
+    const row = b.closest('label, .row'); if (!row) return;
+    const v = talk();
+    row.insertAdjacentHTML('afterend', '<div class="row noicon"><span class="tx"><b>كلام ' + cname() + '</b><small>كتير: بيشجع أكتر · عادي · هادي: مابيتكلمش غير لما تكلمه</small></span><select id="sTalk" class="input sel">' + [['more', 'كتير'], ['normal', 'عادي'], ['quiet', 'هادي']].map(o => '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>');
+    $('#sTalk', view).onchange = e => { D().settings.palTalk = e.target.value; Store.save(); toast(e.target.value === 'quiet' ? 'تمام، هسكت ومش هتكلم غير لما تكلمني 🤐' : e.target.value === 'more' ? 'هشجعك أكتر 💪' : 'تمام 👌', 'check'); };
+  }
+
+  /* ================= الرئيسية: القايمة في الأول ================= */
+  function homeExtra(view) {
+    const nav = view.querySelector('.nav, header, .head'), hero = $('.hero', view);
+    const on = self.Sub && Sub.on(), info = on && Sub.info(), un = News.unseen().length, aw = Object.keys(D().awards || {}).length;
+    const tiles = [
+      ['📚', 'المواد', '#subjects', ''],
+      on ? ['💎', 'مشترك ✓', '#subscribe', info && info.label ? esc(info.label) : 'كل حاجة مفتوحة'] : ['⭐', 'اشتراك الترم', '#subscribe', (self.Sub ? Sub.PRICE : 250) + ' ج بس'],
+      ['📰', 'آخر الأخبار', '#news', un ? '<span class="tbadge">' + un + '</span>' : ''],
+      ['🏆', 'جوايزي', '#awards', aw ? aw + ' جايزة' : ''],
+      ['💬', 'كلّم ' + cname(), '#chat', ''],
+      ['📅', 'الجدول', '#plan', '']
+    ];
+    const h = '<nav class="mtiles" aria-label="القايمة">' + tiles.map(t => '<a class="mtile' + (t[2] === '#subscribe' && !on ? ' hot' : '') + '" href="' + t[2] + '"><span class="mt-ic">' + t[0] + '</span><b>' + t[1] + '</b>' + (t[3] ? '<small>' + t[3] + '</small>' : '') + '</a>').join('') + '</nav>';
+    if (hero) hero.insertAdjacentHTML('beforebegin', h); else if (nav) nav.insertAdjacentHTML('afterend', h); else view.insertAdjacentHTML('afterbegin', h);
+    const nw = News.unseen()[0];
+    if (nw) {
+      const at = $('.mtiles', view);
+      at.insertAdjacentHTML('afterend', '<a class="card tap newsbar mb" href="#news/' + esc(nw.id) + '">' + Char.html('', 48) + '<span style="flex:1"><span class="nb-k">🎤 آخر الأخبار</span><b>' + esc(nw.title) + '</b><span class="note" style="display:block">' + esc(nw.short) + '</span></span>' + icon('chev', 'chev') + '</a>');
+      setTimeout(() => { const c = $('.newsbar .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 300);
+      if (self.Pal && Pal.on() && !sessionStorage.getItem('mz:newsSaid:' + nw.id)) { sessionStorage.setItem('mz:newsSaid:' + nw.id, 1); setTimeout(() => { if (!Pal.on() || !Router.cur || Router.cur.name !== 'home') return; Props.pal('mic', 6000); Pal.say('🎤 ' + esc(nw.say || nw.title), 'happy', 5500, true); }, 2600); }
+    }
+  }
+
+  /* ================= المواد: الجاية قريب ================= */
+  const SOON = [['🏭', 'إدارة الإنتاج'], ['⚖️', 'القانون التجاري'], ['🧾', 'محاسبة الشركات'], ['📊', 'الإحصاء']];
+  function subjectsExtra(view) {
+    const sub = $('.subjects', view); if (!sub) return;
+    const on = self.Sub && Sub.on();
+    sub.insertAdjacentHTML('afterend', '<div class="group-h">قريبًا ⏳</div><div class="subjects soon">' + SOON.map(s => '<div class="subj soon-c"><span class="ic soon-ic">' + s[0] + '</span><b>' + s[1] + '</b><small>قادم قريبًا' + (on ? ' · هتنزلك أوتوماتيك ✓' : ' · داخلة في الاشتراك') + '</small></div>').join('') + '</div>');
+  }
+
+  /* ================= بعد كل صفحة ================= */
+  App.afterRender = (view, r) => {
+    try {
+      if (!Store.data) return;
+      if (r.name === 'home' && $('.hero', view)) homeExtra(view);
+      else if (r.name === 'subjects') subjectsExtra(view);
+      else if (r.name === 'settings') settingsExtra(view);
+      if (r.name === 'lesson' || r.name === 'teach') setTimeout(() => watchImportant(view), 800); else if (io) { io.disconnect(); io = null; }
+      if (self.Pal && Pal.el) { if (!Pal.el.querySelector('.prop')) Pal.base(); }
+    } catch (e) { console.error(e); }
+  };
+
+  /* ================= ترحيب بعد التفعيل ================= */
+  function welcome() {
+    const w = sessionStorage.getItem('mz:welcome'); if (!w) return; sessionStorage.removeItem('mz:welcome');
+    const T = {
+      owner: ['👑', 'أهلًا يا مخترع!', 'النسخة الكاملة مفتوحة، ولوحة الأدمن مستنياك في صفحة الاشتراك. يلا نكسّر الدنيا 😎'],
+      fatma: ['🤍', 'أهلًا يا فاطمة', 'النسخة دي هدية من محمد 🤍 كل المواد والفصول مفتوحة ليكي، وأنا معاكي في كل خطوة.'],
+      sub: ['🎉', 'اشتراكك اتفعّل!', 'كل الفصول والبورد والماراثون والمراجعة النهائية بقوا مفتوحين. يلا بينا!']
+    }[w] || ['🎉', 'اشتراكك اتفعّل!', 'كل حاجة بقت مفتوحة.'];
+    const el = document.createElement('div'); el.className = 'award-pop welcome';
+    el.innerHTML = '<div class="ap-in">' + Char.html('', 96) + '<div class="ap-ic">' + T[0] + '</div><b>' + esc(T[1]) + '</b><small>' + esc(T[2]) + '</small><div class="btns"><button class="btn" data-x>يلا بينا</button></div></div>';
+    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
+    const c = $('.char', el); Props.put(c, w === 'owner' ? 'crown' : w === 'fatma' ? 'heart' : 'trophy'); setTimeout(() => Char.act(c, 'cheer'), 300);
+    beep('ok'); haptic('success');
+    el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) { el.classList.remove('on'); setTimeout(() => el.remove(), 300); Awards.check(); } };
+  }
+
+  /* ================= تشغيل ================= */
+  function start() {
+    if (!Store.data) return;
+    if (self.Sub) Sub.check();
+    welcome();
+    Awards.check(true);
+    if (self.Pal && Pal.el) Pal.base();
+  }
+  const prevAfter = App.after;
+  App.after = fresh => { prevAfter(fresh); start(); };
+  News.load();
+  if (Store.data) { start(); if (Router.cur) Router.render(); }
+})();

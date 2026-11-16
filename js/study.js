@@ -109,6 +109,7 @@
   App.teachSections = sections; App.teachCheckQ = checkQ;
   Router.on('teach', (view, r) => {
     const l = App.LESSONS[r.args[0]]; if (!l) return Router.go('subjects', { replace: true });
+    if (l.locked) return Router.go('lesson/' + l.id, { replace: true });
     const s = S(l.s), d = D(), secs = sections(l); if (!secs.length) return Router.go('lesson/' + l.id, { replace: true });
     d.teach = d.teach || {}; const st = d.teach[l.id] || (d.teach[l.id] = { i: 0, ok: 0, n: 0 });
     if (r.q.restart) { st.i = 0; st.ok = 0; st.n = 0; history.replaceState(null, '', '#teach/' + l.id); }
@@ -169,6 +170,7 @@
   };
   Router.on('marathon', view => {
     const s = S(Router.cur.args[0]); if (!s) return Router.go('subjects', { replace: true });
+    if (self.Sub && Sub.lockedSubject(s)) { header(view, 'ماراثون المتوقع ⭐', { back: { to: 'subject/' + s.id, label: s.short } }); view.insertAdjacentHTML('beforeend', Sub.wallHTML('الماراثون للمشتركين', 'كل الأسئلة المتوقعة في ' + s.name + ' متقسمة أجزاء، بشرحها وتفرعاتها، وتقدمك بيتحفظ.')); return; }
     const qs = starQs(s.id), st = marState(s.id), d = D();
     header(view, 'ماراثون المتوقع ⭐', { back: { to: s.final ? 'final/' + s.id : 'subject/' + s.id, label: s.final ? 'المراجعة' : s.short } });
     if (!qs.length) { view.insertAdjacentHTML('beforeend', '<div class="empty">' + Char.html('', 80) + '<p>لسه مفيش أسئلة عليها ⭐ في المادة دي.</p></div>'); return; }
@@ -193,6 +195,7 @@
   /* ---------- المراجعة النهائية ---------- */
   Router.on('final', (view, r) => {
     const s = S(r.args[0]); if (!s || !s.final) return Router.go('subjects', { replace: true });
+    if (self.Sub && Sub.lockedSubject(s)) { header(view, 'المراجعة النهائية', { back: { to: 'subject/' + s.id, label: s.short } }); view.insertAdjacentHTML('beforeend', Sub.wallHTML('المراجعة النهائية للمشتركين', 'الملخص الشامل، «حاجات حتمًا هتيجي»، «إزاي تحل كل نوع سؤال»، والماراثون والامتحان التجريبي.')); return; }
     const d = D(), qs = starQs(s.id), st = marState(s.id), okN = qs.filter(q => st.r[q.id] === 1).length;
     const figs = F.list(s.id).filter(f => F.canPractice(f.id)), figOk = figs.filter(f => (d.figs || {})[f.id] && d.figs[f.id].best >= d.figs[f.id].n).length;
     const cards = App.cardsOf(s.id), cardsSeen = cards.filter(c => d.srs[c.id]).length, allQ = App.questionsOf(s.id).length;

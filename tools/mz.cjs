@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+/* أداة المحتوى والاشتراك:
+   node tools/mz.cjs init      ← (مرة واحدة) يطلّع المفاتيح وكلمة سر الأدمن ويكتب js/keys.js و .mz-secret
+   node tools/mz.cjs build     ← يقرا content-src/ ويطلّع js/content/free.js (المجاني) و content/paid.mz (المتشفّر) و content/src.mz (المصادر متشفّرة)
+   node tools/mz.cjs unpack    ← يفك content/src.mz لـ content-src/ (محتاج كلمة سر الأدمن)
+   node tools/mz.cjs issue "الاسم" ABCD-EFGH [term|vip] [YYYY-MM-DD]  ← يطلّع كود
+   كلمة السر من MZ_PASS أو من ملف .mz-secret (مش بيترفع على GitHub) */
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const L = require('../js/license.js');
+const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
+const FREE = { mkt: ['mk0'], eco: ['ec1'] };
+const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'eco.js', 'eco-b1.js', 'eco-q.js'];
+
+const pass = () => process.env.MZ_PASS || (fs.existsSync(path.join(ROOT, '.mz-secret')) ? fs.readFileSync(path.join(ROOT, '.mz-secret'), 'utf8').match(/ADMIN_PASSWORD=(\S+)/)[1] : null);
+function readKeysJs() {
+  const ctx = { self: {} }; vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'js/keys.js'), 'utf8'), ctx);
+  return ctx.self.MZ_KEYS;
+}
+async function secrets() {
+  const p = pass(); if (!p) throw new Error('محتاج كلمة سر الأدمن: MZ_PASS أو .mz-secret');
+  const keys = readKeysJs(); const a = await L.openAdminBundle(p, keys.admin);
+  return { privJwk: a.privJwk, K: L.b64u.dec(a.K), pubJwk: keys.pub, keys };
+}
+
+async function init() {
+  if (fs.existsSync(path.join(ROOT, 'js/keys.js')) && !process.argv.includes('--force')) throw new Error('js/keys.js موجود. استخدم --force لو متأكد (هيلغي كل الأكواد القديمة)');
+  const { privJwk, pubJwk, K } = await L.genKeys();
+  const word = () => L.b32enc(L.rand(3)).slice(0, 4);
+  const password = 'MZK-' + [word(), word(), word(), word()].join('-');
+  const admin = await L.makeAdminBundle(password, { privJwk, K: L.b64u.enc(K) });
+  const vsalt = L.b64u.enc(L.rand(16));
+  const Kb = L.b64u.enc(K), vanity = [];
+  for (const n of ['محمد', 'muhammad', 'mohamed', 'mohammed', 'mohammad']) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع', admin: true }, vsalt));
+  for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
+  // ترتيب عشوائي عشان محدش يعرف أنهي تبع مين
+  vanity.sort(() => Math.random() - 0.5);
+  const js = '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs init. المفتاح الخاص هنا متشفّر بكلمة سر الأدمن ومينفعش يتفك من غيرها. */\n'
+    + 'self.MZ_KEYS = ' + JSON.stringify({ pub: { kty: pubJwk.kty, crv: pubJwk.crv, x: pubJwk.x, y: pubJwk.y }, admin, vsalt, vanity }, null, 1) + ';\n';
+  fs.writeFileSync(path.join(ROOT, 'js/keys.js'), js);
+  fs.writeFileSync(path.join(ROOT, '.mz-secret'), 'ADMIN_PASSWORD=' + password + '\n');
+  console.log('اتعمل. كلمة سر الأدمن في .mz-secret');
+}
+
+function loadSources() {
+  const ctx = { self: {} }; ctx.self.self = ctx.self;
+  for (const f of SRC_ORDER) vm.runInNewContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx.self, { filename: f });
+  return ctx.self.MZ_CONTENT;
+}
+const figRefs = txt => (String(txt).match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
+
+async function build() {
+  const { K } = await secrets();
+  const subjects = loadSources(), free = [], paid = {};
+  for (const S of subjects) {
+    const fr = new Set(FREE[S.id] || []), isFree = l => fr.has(l);
+    S.questions = S.questions.map((q, i) => Object.assign({}, q, { k: typeof q.k === 'string' ? q.k : 'q' + i, kw: Array.isArray(q.k) ? q.k : q.kw }));
+    S.cards = S.cards.map((c, i) => [c[0], c[1], c[2], 'c' + i]);
+    const freeFigs = new Set(); S.lessons.filter(l => isFree(l.id)).forEach(l => figRefs(l.summary).forEach(f => freeFigs.add(f)));
+    const pick = (o, keep) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keep(k)));
+    const F = {
+      id: S.id, name: S.name, short: S.short, icon: S.icon, color: S.color, kind: S.kind, tools: S.tools || [], keys: S.keys, final: S.final, partial: S.partial, rewrite: S.rewrite,
+      lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, summary: '', locked: true }),
+      questions: S.questions.filter(q => isFree(q.l)), cards: S.cards.filter(c => isFree(c[2])), concepts: (S.concepts || []).filter(c => isFree(c.l)),
+      figs: pick(S.figs, k => freeFigs.has(k)), boards: pick(S.boards, k => isFree(k)),
+      lockedConcepts: (S.concepts || []).filter(c => !isFree(c.l)).map(c => ({ k: c.k, alt: c.alt, l: c.l })),
+      paid: true
+    };
+    free.push(F);
+    paid[S.id] = {
+      lessons: Object.fromEntries(S.lessons.filter(l => !isFree(l.id)).map(l => [l.id, l.summary])),
+      questions: S.questions.filter(q => !isFree(q.l)), cards: S.cards.filter(c => !isFree(c[2])), concepts: (S.concepts || []).filter(c => !isFree(c.l)),
+      figs: pick(S.figs, k => !freeFigs.has(k)), boards: pick(S.boards, k => !isFree(k)), must: S.must, howto: S.howto
+    };
+  }
+  const plain = JSON.stringify(paid), ver = L.b64u.enc((await L.sha256(new TextEncoder().encode(plain))).slice(0, 6));
+  fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, 'content/paid.mz'), Buffer.from(await L.encryptJSON(K, { ver, subjects: paid })));
+  const files = Object.fromEntries(SRC_ORDER.map(f => [f, fs.readFileSync(path.join(SRC, f), 'utf8')]));
+  fs.writeFileSync(path.join(ROOT, 'content/src.mz'), Buffer.from(await L.encryptJSON(K, { files })));
+  fs.writeFileSync(path.join(ROOT, 'js/content/free.js'), '/* المحتوى المجاني (اتولّد بـ tools/mz.cjs build — ماتعدّلش هنا، عدّل في content-src) */\nself.MZ_PAID_VER = ' + JSON.stringify(ver) + ';\n(self.MZ_CONTENT = self.MZ_CONTENT || []).push(...' + JSON.stringify(free) + ');\n');
+  const kb = n => (fs.statSync(path.join(ROOT, n)).size / 1024).toFixed(0) + 'KB';
+  console.log('free.js ' + kb('js/content/free.js') + ' · paid.mz ' + kb('content/paid.mz') + ' · src.mz ' + kb('content/src.mz') + ' · ver ' + ver);
+}
+
+async function unpack() {
+  const { K } = await secrets();
+  const { files } = await L.decryptJSON(K, new Uint8Array(fs.readFileSync(path.join(ROOT, 'content/src.mz'))));
+  fs.mkdirSync(SRC, { recursive: true });
+  for (const [f, t] of Object.entries(files)) fs.writeFileSync(path.join(SRC, f), t);
+  console.log('اتفك ' + Object.keys(files).length + ' ملف في content-src/');
+}
+
+async function issue() {
+  const [, , , name, device, plan = 'term', exp] = process.argv;
+  const s = await secrets();
+  const code = await L.issue({ privJwk: s.privJwk, K: s.K, name, device, plan, exp: exp ? new Date(exp + 'T00:00:00Z') : (plan === 'vip' ? null : new Date('2027-02-28T00:00:00Z')), serial: Math.floor(Math.random() * 60000) });
+  console.log(code);
+}
+
+const cmd = process.argv[2];
+({ init, build, unpack, issue }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

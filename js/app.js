@@ -9,6 +9,7 @@
   const SUBJ = [], LESSONS = {};
   let CONCEPTS = [];
   const S = id => SUBJ.find(s => s.id === id);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
   const D = () => Store.data;
   const COLORS = ['blue', 'green', 'orange', 'purple', 'pink', 'teal', 'indigo', 'red', 'yellow'];
   function refreshSubjects() {
@@ -29,7 +30,7 @@
   /* ---------- البيانات المشتقة ---------- */
   function builtinCards() {
     const out = [];
-    BUILT.forEach(s => s.cards.forEach((c, i) => out.push({ id: s.id + ':c' + i, s: s.id, l: c[2], front: c[0], back: c[1] })));
+    BUILT.forEach(s => s.cards.forEach((c, i) => out.push({ id: s.id + ':' + (c[3] || 'c' + i), s: s.id, l: c[2], front: c[0], back: c[1] })));
     return out;
   }
   const BUILT_CARDS = builtinCards();
@@ -60,7 +61,7 @@
   function streakNow() { return E.streak(new Set(Object.keys(D().days).filter(k => { const d = D().days[k]; return d.min || d.cards || d.q; }))); }
   function upcomingExams() { const t = E.startOfDay(new Date()); return (D().exams || []).filter(e => S(e.subject) && new Date(e.date) >= t).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))); }
   function plan() {
-    const lessons = {}; SUBJ.forEach(s => { lessons[s.id] = s.lessons.map(l => l.id); });
+    const lessons = {}; SUBJ.forEach(s => { lessons[s.id] = s.lessons.filter(l => !l.locked).map(l => l.id); });
     const exams = upcomingExams().filter(e => S(e.subject)).map(e => { const sc = E.examScope(e.kind), ls = sc === 'all' || (sc === 'mid' && !hasMid(e.subject)) ? null : E.scopeLessons(D().scope, lessons[e.subject], sc); return { id: e.id, subject: e.subject, date: new Date(e.date), lessons: ls && ls.length ? ls : null }; });
     const prog = {}; Object.keys(LESSONS).forEach(l => { prog[l] = lessonProgress(l); });
     return E.buildPlan(exams, lessons, prog, { perDay: D().settings.perDay || 3 });
@@ -178,6 +179,7 @@
     const nextEx = upcomingExams().find(e => e.subject === s.id);
     let html = '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + s.lessons.length + ' دروس · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
     if (s.partial) html += '<div class="warn">' + icon('info') + ' ' + esc(s.partial) + '</div>';
+    if (s.paid && !s.unlocked) html += '<a class="card tap subbar mb" href="#subscribe">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ افتح كل فصول ' + esc(s.short) + '</b><span class="note" style="display:block">الدروس اللي عليها 🎁 مجانية. اشتراك الترم كامل ' + self.Sub.PRICE + ' ج ويفتح كل المواد.</span></span>' + icon('chev', 'chev') + '</a>';
     html += '<div class="btns mb"><a class="btn" href="#review/' + s.id + '">' + icon('cards') + (due ? 'راجع ' + due : nw ? 'ابدأ البطاقات' : 'راجع') + '</a><a class="btn tint" href="#quiz?s=' + s.id + '">' + icon('quiz') + 'امتحني</a></div>';
     if (s.final) html += '<a class="card tap finalcard mb" href="#final/' + s.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🏁 المراجعة النهائية</b><span class="note" style="display:block">ملخص شامل، الرسومات، ماراثون الأسئلة المتوقعة، وامتحان تجريبي.</span></span>' + icon('chev', 'chev') + '</a>';
     const tabs = [['lessons', 'الدروس'], ...(s.tools.length ? [['tools', 'تمارين وحاسبات']] : []), ...(self.Figs && Figs.list(s.id).length ? [['figs', 'الرسومات']] : []), ['cards', 'البطاقات'], ['qs', 'الأسئلة']];
@@ -190,7 +192,7 @@
       const nMid = s.lessons.filter(l => inSc(l.id, 'mid')).length, nFin = s.lessons.filter(l => inSc(l.id, 'final')).length;
       body.innerHTML = '<div class="card mb scopecard"><div style="display:flex;gap:10px;align-items:center"><div style="flex:1"><b>منهج الميدترم والفاينال</b><div class="note">' + (nMid ? 'الميدترم: ' + nMid + ' درس · الفاينال: ' + nFin + ' درس' : 'لسه ماحددتش الميدترم. كل الدروس محسوبة على الفاينال.') + '</div></div><button class="btn sm tint" id="scopeBtn">حدد</button></div>'
         + (nMid ? '<div class="btns mt"><a class="btn sm" href="#quiz?s=' + s.id + '&sc=mid">امتحني ميدترم</a><a class="btn sm gray" href="#quiz?s=' + s.id + '&sc=final">امتحني فاينال</a></div>' : '') + '</div>'
-        + '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id), v = D().scope[l.id]; return '<a class="row tap" href="#lesson/' + l.id + '">' + ring(lp, 34, 'var(--' + s.color + ')') + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + (v === 'mid' || v === 'both' ? ' <span class="pill sc-mid">ميدترم</span>' : '') + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>'
+        + '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id), v = D().scope[l.id]; return '<a class="row tap' + (l.locked ? ' locked' : '') + '" href="#lesson/' + l.id + '">' + (l.locked ? '<span class="ic bg-gray">' + icon('lock') + '</span>' : ring(lp, 34, 'var(--' + s.color + ')')) + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + (s.paid && !s.unlocked && !l.locked ? ' <span class="pill green">🎁 مجاني</span>' : '') + (v === 'mid' || v === 'both' ? ' <span class="pill sc-mid">ميدترم</span>' : '') + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>'
         + (s.custom ? (s.lessons.length ? '' : '<div class="empty" style="padding:18px 0">' + Char.html('', 70) + '<p>لسه مفيش محاضرات في المادة دي.</p></div>') + '<button class="btn block tint" id="addL">' + icon('plus') + 'ضيف محاضرة</button>' : '');
       $('#scopeBtn').onclick = () => scopeSheet(s);
       const al = $('#addL'); if (al) al.onclick = () => App.lessonSheet({ s: s.id });
@@ -241,6 +243,11 @@
   Router.on('lesson', (view, r) => {
     const l = LESSONS[r.args[0]]; if (!l) return Router.go('subjects', { replace: true });
     const s = S(l.s), d = D();
+    if (l.locked) {
+      header(view, l.title, { back: { to: 'subject/' + s.id, label: s.short } });
+      view.insertAdjacentHTML('beforeend', '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px"><span class="pill acc">' + esc(s.name) + '</span>' + (l.source ? '<span class="pill">' + esc(l.source) + '</span>' : '') + '</div>' + self.Sub.wallHTML('الدرس ده للمشتركين', 'الملخص الكامل، شرح البورد بالصوت، والأسئلة المتوقعة بالتفرعات. اشترك مرة واحدة للترم كله، والدروس اللي عليها 🎁 مجانية تجربها الأول.'));
+      return;
+    }
     if (!d.lessonsRead[l.id]) { d.lessonsRead[l.id] = now(); Store.save(); }
     header(view, l.title, { back: { to: 'subject/' + s.id, label: s.short }, right: (s.custom ? '<button class="btn-nav" id="editL" aria-label="تعديل المحاضرة">' + icon('edit') + '</button>' : '') + '<button class="btn-nav" id="noteBtn" aria-label="ملاحظة">' + icon('note') + '</button>' });
     const nc = cardsOf(null, l.id).length, nq = questionsOf(null, l.id).length, idx = s.lessons.indexOf(l);
@@ -667,7 +674,7 @@
     function addMe(text, save = true) { box.insertAdjacentHTML('beforeend', '<div class="msg me">' + esc(text) + '</div>'); if (save) { d.chat.push({ who: 'me', text, t: now() }); Store.save(); } }
     function addBot(text, acts = [], save = true, mood) {
       const links = acts.filter(a => a.href), says = acts.filter(a => a.say);
-      const row = U.el('<div class="bot-row">' + Char.html('', 34) + '<div class="msg bot">' + text + (links.length ? '<div class="acts">' + links.map((a, i) => '<a class="btn ' + (i ? 'tint' : '') + '" href="' + esc(a.href) + '">' + esc(a.label) + '</a>').join('') + '</div>' : '') + (says.length ? '<div class="says">' + says.map(a => '<button class="chip" data-say="' + esc(a.say) + '">' + esc(a.label || a.say) + '</button>').join('') + '</div>' : '') + '</div></div>');
+      const row = U.el('<div class="bot-row">' + Char.html('', 34) + '<div class="msg bot">' + text + (links.length ? '<div class="acts">' + links.map((a, i) => '<a class="btn ' + (a.wa ? 'green' : i ? 'tint' : '') + '" href="' + esc(a.href) + '"' + (/^https?:/.test(a.href) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(a.label) + '</a>').join('') + '</div>' : '') + (says.length ? '<div class="says">' + says.map(a => '<button class="chip" data-say="' + esc(a.say) + '">' + esc(a.label || a.say) + '</button>').join('') + '</div>' : '') + '</div></div>');
       box.appendChild(row);
       if (save) { d.chat.push({ who: 'bot', text, acts, t: now() }); Store.save(); }
       if (mood) Char.act(row.querySelector('.char'), mood);
@@ -678,7 +685,8 @@
       if (App.cook && App.cook.match(text)) return App.cook.run(text, box, html => { d.chat.push({ who: 'bot', text: html, t: now() }); Store.save(); });
       const thinking = U.el('<div class="bot-row">' + Char.html('', 34) + '<div class="msg bot" style="letter-spacing:3px">…</div></div>'); box.appendChild(thinking);
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      setTimeout(() => { thinking.remove(); const r = Brain.reply(text); addBot(r.text, r.acts || [], true, r.mood); if (r.after) r.after(); }, 380 + Math.random() * 300);
+      const r = Brain.reply(text), wait = Math.min(1500, 420 + String(r.text).replace(/<[^>]+>/g, '').length * 2.2) + Math.random() * 250;
+      setTimeout(() => { thinking.remove(); addBot(r.text, r.acts || [], true, r.mood); if (r.after) r.after(); if (App.Awards) App.Awards.check(); }, wait);
     };
     renderAll();
     $('#chatF').onsubmit = e => { e.preventDefault(); const v = $('#chatIn').value.trim(); if (!v) return; $('#chatIn').value = ''; say(v); };
@@ -718,7 +726,54 @@
       next.push('مش فاهم');
       if ((c.rel || [])[0] && tu.kind !== 'diff') next.push('الفرق بين ' + c.k + ' و' + c.rel[0]);
       next.forEach(x => acts.push({ say: x }));
-      return { text: intro + body + tail, acts, mood: tu.kind === 'simpler' ? 'nod' : 'happy' };
+      const qs = Brain.relatedQs(c), bad = qs.filter(q => d.attempts.some(a => a.q === q.id && !a.ok) && !d.attempts.some(a => a.q === q.id && a.ok && a.t > Math.max(...d.attempts.filter(x => x.q === q.id && !x.ok).map(x => x.t)))).length;
+      const mine = bad ? '<div class="tu mine"><b>💡 خد بالك</b><div>إنت غلطت قبل كده في ' + (bad === 1 ? 'سؤال' : bad + ' أسئلة') + ' عن «' + esc(c.k) + '». تعالى نثبّتها: قولّي «اديني سؤال عليها».</div></div>' : '';
+      if (qs.length) acts.push({ say: 'اديني سؤال عليها' });
+      (tu.also || []).slice(0, 2).forEach(x => acts.push({ say: 'اشرحلي ' + x.k }));
+      return { text: intro + body + mine + tail, acts, mood: tu.kind === 'simpler' ? 'nod' : 'happy' };
+    },
+    /** الأسئلة اللي ليها علاقة بالمفهوم ده */
+    relatedQs(c) {
+      const names = [c.k].concat(c.alt || []).map(x => E.norm(x)).filter(x => x.length >= 3);
+      const all = questionsOf(c.s).filter(q => q.type === 'mcq' || q.type === 'tf' || q.type === 'num' || q.type === 'fill');
+      const hit = all.filter(q => { const t = E.norm(q.q + ' ' + (q.explain || '')); return names.some(n => t.includes(n)); });
+      return hit.length ? hit : all.filter(q => q.l === c.l).slice(0, 0);
+    },
+    /** سؤال جوه الشات */
+    askQ(c, avoid) {
+      const pool = Brain.relatedQs(c).filter(q => q.id !== avoid && q.type !== 'fill');
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      if (!q) return { text: 'معنديش سؤال جاهز على «' + esc(c.k) + '» بالظبط، بس فيه أسئلة على الدرس كله 👇', acts: [{ label: 'امتحني في الدرس', href: '#quiz?l=' + c.l + '&n=5&go=1' }] };
+      Brain.ctx.pq = q.id; Brain.ctx.last = c.k; D().chatCtx = Brain.ctx; Store.save();
+      const opts = q.type === 'tf' ? ['صح', 'غلط'] : q.type === 'mcq' ? q.options : null;
+      return { text: pick(['يلا نشوف 😏', 'سؤال سريع 👇', 'ركّز معايا 🎯']) + '<div class="tu"><b>' + (q.star ? '⭐ ' : '') + 'سؤال</b><div>' + esc(q.q) + '</div></div>' + (opts ? '' : '<div class="note">اكتب الرقم بس.</div>'), acts: (opts || []).map((o, i) => ({ say: 'إجابتي: ' + o, label: (q.type === 'mcq' ? 'أبجد'[i] + ') ' : '') + o })), mood: 'think' };
+    },
+    /** تصحيح إجابة السؤال اللي في الشات */
+    answerQ(text) {
+      const q = allQuestions().find(x => x.id === Brain.ctx.pq); if (!q) { Brain.ctx.pq = null; return null; }
+      const t = String(text).replace(/^\s*(اجابتي|إجابتي)\s*[:：]?\s*/, '').trim(); if (!t) return null;
+      let val = t;
+      if (q.type === 'tf') { const n = E.norm(t); if (/^(صح|صحيح|ايوه|اه|true)/.test(n)) val = 0; else if (/^(غلط|خطا|لا|false)/.test(n)) val = 1; else return null; }
+      else if (q.type === 'mcq') { const n = E.norm(t); let i = q.options.findIndex(o => E.norm(o) === n); if (i < 0) i = 'ابجد'.indexOf(n[0]) >= 0 && n.length <= 2 ? 'ابجد'.indexOf(n[0]) : -1; if (i < 0) i = q.options.findIndex(o => E.norm(o).includes(n) && n.length >= 3); if (i < 0) return null; val = i; }
+      const res = E.grade(q, q.type === 'tf' ? val === 0 : val), d = D();
+      if (S(q.s) && LESSONS[q.l]) d.attempts.push({ q: q.id, s: q.s, l: q.l, ok: !!res.ok, t: now() }); logDay({ q: 1, ok: res.ok ? 1 : 0 });
+      Brain.ctx.pq = null; d.chatCtx = Brain.ctx; Store.save();
+      const right = rightAnswer(q), c = CONCEPTS.find(x => x.k === Brain.ctx.last);
+      const br = !res.ok && q.type === 'mcq' ? branches(q, val).find(b => b.mine) : null;
+      return { text: (res.ok ? pick(['صح 👏 جامد!', 'برافو، مظبوط ✅', 'إيه الحلاوة دي 🔥 صح']) : 'لأ، الإجابة <b>' + esc(right) + '</b> 💙') + (q.explain ? '<div class="tu"><b>الشرح</b><div>' + esc(q.explain) + '</div></div>' : '') + (br ? '<div class="tu"><b>🔀 اختيارك كان يبقى صح</b><div>' + esc(br.t) + '</div></div>' : '') + (q.fix && !q.answer ? '<div class="tu"><b>✅ العبارة الصح</b><div>' + esc(q.fix) + '</div></div>' : ''), acts: (c ? [{ say: 'سؤال تاني عليها' }] : []).concat([{ say: 'امتحني 5 أسئلة' }]), mood: res.ok ? 'happy' : 'nod' };
+    },
+    /** أنا مين */
+    who(t) {
+      if (/(مين (عملك|صنعك|اخترعك|برمجك|طورك|عمل البرنامج|عامل البرنامج|صاحب البرنامج|ورا البرنامج)|انت مين|مين انت|اسمك ايه|انت ايه|عرفني بنفسك|انت (ai|ذكاء|شات|بوت|روبوت|انسان|حقيقي)|شات ?جي ?بي ?تي|chatgpt|كلود|claude|جيميناي|gemini|اتعملت ازاي|عملوك ازاي|بتشتغل ازاي)/.test(t))
+        return { text: 'أنا <b>سَنَد</b> 🤖💙 مساعد المذاكرة بتاع مذاكِر.<br>عملني <b>محمد هاني</b> مخصوص عشان أذاكر معاك المنهج خطوة خطوة. أنا مش شات عام بيرد على أي حاجة، أنا متدرب على منهجك إنت بالذات: الملخصات والأسئلة المتوقعة وشرح الدكاترة.<br>اسألني في أي حاجة في المادة وأنا أفهمهالك 😉', acts: [{ say: 'ذاكرلي' }, { say: 'إيه أهم الأسئلة المتوقعة؟' }], mood: 'happy' };
+      if (/(رقم محمد|اكلم محمد|اكلم مين|عايز اكلم|الدعم|مشكله في البرنامج|البرنامج فيه مشكله|اشتكي|واتس محمد)/.test(t))
+        return { text: 'تقدر تكلّم محمد على واتساب على طول 👇 بيرد على أي سؤال أو مشكلة.', acts: [{ label: 'كلّم محمد على واتساب', href: self.Sub ? Sub.wa('أهلًا يا محمد، عندي سؤال في مذاكِر:') : '#', wa: 1 }], mood: 'happy' };
+      if (/(اشتراك|اشترك|كود التفعيل|كود تفعيل|انستا ?باي|البرنامج بكام|التطبيق بكام|ادفع ازاي|افتح الفصول|الفصول المقفوله)/.test(t) && self.Sub)
+        return { text: Sub.on() ? 'إنت مشترك فعلًا ✓ كل حاجة مفتوحة.' : 'الاشتراك <b>' + Sub.PRICE + ' ج للترم كامل</b>، وبيفتح كل المواد والفصول ومعاها المواد الجاية. التحويل إنستا باي وبعدها يوصلك كود التفعيل على واتساب.', acts: [{ label: Sub.on() ? 'تفاصيل اشتراكي' : 'اشترك', href: '#subscribe' }], mood: 'happy' };
+      if (/^(عامل ايه|ازيك|اخبارك|عامل اي|ازيك يا سند|انت كويس)/.test(t)) return { text: pick(['الحمد لله تمام 😄 وإنت عامل إيه؟ جاهز نذاكر حاجة؟', 'زي الفل طول ما إنت بتذاكر 😎 نبدأ بإيه؟', 'أنا كويس جدًا، وهبقى أحسن لو حلّينا 10 أسئلة سوا 😁']), acts: [{ say: 'ذاكرلي' }, { say: 'امتحني 5 أسئلة' }], mood: 'happy' };
+      if (/(بحبك|حبيبي يا سند|انت جامد|انت حلو|انت عسل|شكرا يا سند)/.test(t)) return { text: pick(['وأنا كمان بحب أذاكر معاك 🥹💙', 'يا عم إنت اللي جامد، أنا بس بشاور 😄', 'تسلم 💙 يلا نكمّل عشان أفتخر بيك أكتر']), mood: 'happy' };
+      if (/(نكته|نكتة|ضحكني|هزر)/.test(t)) return { text: pick(['مرة طالب ذاكر ليلة الامتحان بس… فالامتحان ذاكره هو 😂 يلا نذاكر بدري.', 'المضاعف قال للتسرب: من غيرك كنت هبقى لا نهائي 😅 (افهمها بعد الفصل التالت)', 'سألوا هرم ماسلو: مالك متوتر؟ قال: لسه ماحققتش ذاتي 😂']), acts: [{ say: 'ذاكرلي' }], mood: 'happy' };
+      return null;
     },
     ctx: null,
     /** أوامر المذاكرة: ارسملي / ذاكرلي / المراجعة النهائية / أهم الأسئلة */
@@ -762,6 +817,12 @@
     reply(text) {
       const p = E.parseIntent(text), d = D(), s = p.subject ? S(p.subject) : null;
       if (!Brain.ctx || Brain.ctxP !== Store.current) { Brain.ctx = Object.assign({}, d.chatCtx || {}); Brain.ctxP = Store.current; }
+      const nt = E.norm(text);
+      if (Brain.ctx.pq && (/^(اجابتي|إجابتي)/.test(nt) || nt.split(' ').length <= 4)) { const a = Brain.answerQ(text); if (a) return a; }
+      const me = Brain.who(nt); if (me) return me;
+      const lastC = Brain.ctx.last && CONCEPTS.find(x => x.k === Brain.ctx.last);
+      if (lastC && /(س[ؤو]ال (عليها|عليه|علي ده|علي دي|على ده|على دي|تاني|كمان)|امتحني (فيها|فيه)|اختبرني (فيها|فيه)|اديني س[ؤو]ال)/.test(nt) && !E.findConcepts(CONCEPTS, text).length) return Brain.askQ(lastC, Brain.ctx.pq);
+      if (lastC && /^(تاني|كمان|زياده|كمل|وبعدين|طب وبعدين)$/.test(nt)) { const kinds = ['example', 'mistake', 'why', 'how'].filter(k => ({ example: lastC.ex, mistake: lastC.err, why: lastC.why, how: lastC.how })[k]); const k = kinds[(Brain.ctx.n = (Brain.ctx.n || 0) + 1) % Math.max(1, kinds.length)]; if (k) return Brain.teach({ kind: k, c: lastC, level: 0 }); return Brain.askQ(lastC); }
       const si = E.studyIntent(text);
       if (si) { const r0 = Brain.study(si, p, text); if (r0) return r0; }
       let tt = E.norm(text); SUBJ.forEach(x => (x.rewrite || []).forEach(([from, to]) => from.forEach(ph => { tt = tt.split(E.norm(ph)).join(E.norm(to)); })));
@@ -839,7 +900,9 @@
         case 'summary': default: {
           const q = p.query || p.text;
           const res = E.search(searchDocs().filter(x => x.kind !== 'note'), q, 3);
-          if (!res.length) return { text: 'مافهمتش قصدك أوي 😅 جرّب: «امتحني 10 أسئلة»، «عايز أراجع»، «أذاكر إيه النهارده؟»، أو اكتب «مساعدة».', mood: 'think' };
+          const LC = [].concat(...SUBJ.map(x => (x.lockedConcepts || []).map(c => Object.assign({ s: x.id }, c)))), lc1 = E.findConcepts(LC, text)[0], lc2 = E.fuzzyConcepts(LC, text)[0], lockedC = lc2 && (!lc1 || E.norm(lc2.k).length > E.norm(lc1.k).length + 2) ? lc2 : lc1;
+          if (lockedC) { const ll = LESSONS[lockedC.l]; return { text: '«<b>' + esc(lockedC.k) + '</b>» موجودة في درس «' + esc(ll ? ll.title : '') + '»، والدرس ده للمشتركين 🔒<br>اشترك مرة واحدة للترم كله وأنا أشرحهالك بالتفصيل، وعلى البورد كمان.', acts: [{ label: '⭐ اشترك', href: '#subscribe' }, { label: 'شوف الدرس', href: '#lesson/' + lockedC.l }], mood: 'think' }; }
+          if (!res.length) return { text: pick(['دي مش عارفها لسه 😅', 'مش متأكد منها، ومش عايز أقولك حاجة غلط 🙏', 'السؤال ده لسه ماتدربتش عليه 😅']) + '<br>لو سؤال في المادة ابعته لـ <b>محمد</b> على واتساب وهيرد عليك. ولو عايز حاجة من المنهج جرّب: «يعني إيه المضاعف؟»، «ذاكرلي الفصل الأول»، «امتحني 10 أسئلة».', acts: [{ label: 'ابعت السؤال لمحمد', href: self.Sub ? Sub.wa('أهلًا يا محمد، سَنَد ماعرفش يرد على السؤال ده:\n' + text) : '#', wa: 1 }, { say: 'مساعدة' }], mood: 'think' };
           const top = res[0].doc;
           if (top.kind === 'card') return { text: '<b>' + esc(top.c.front) + '</b><br>' + esc(top.c.back) + (res[1] && res[1].doc.kind === 'lesson' ? '' : ''), acts: [{ label: 'افتح الدرس', href: '#lesson/' + top.c.l + '?hl=' + encodeURIComponent(q) }] };
           return { text: 'لقيت ده في <b>' + esc(top.l.title) + '</b>:<br>' + esc(E.snippet(top.text.replace(/[#*|>`]/g, ''), q, 220)), acts: [{ label: 'افتح الدرس', href: '#lesson/' + top.l.id + '?hl=' + encodeURIComponent(q) }].concat(res[1] ? [{ label: res[1].doc.kind === 'lesson' ? res[1].doc.title : 'نتائج أكتر', href: '#search?q=' + encodeURIComponent(q) }] : []) };

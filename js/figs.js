@@ -157,9 +157,67 @@
     if (f.notes && !o.hide) h += '<div class="fg-notes">' + f.notes.map(x => '<div class="fg-note">' + esc(x) + '</div>').join('') + '</div>';
     return '<div class="fg-chainbox">' + h + '</div>';
   }
-  const DRAW = { pyramid, rings, loop, cycle, curve, bell, tree, chain };
+  /* ---------- خط بأسهم بين نقط (للتدفق الدائري) ---------- */
+  function pline(pts, cls, hot) {
+    const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ',' + p[1]).join(' '), a = pts[pts.length - 2], b = pts[pts.length - 1];
+    const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), s = 6.5, q = (dd) => f1(b[0] + s * Math.cos(ang + dd)) + ',' + f1(b[1] + s * Math.sin(ang + dd));
+    return '<path d="' + d + '" class="fg-fl ' + cls + (hot ? ' hot' : '') + '"/><polygon points="' + b[0] + ',' + b[1] + ' ' + q(Math.PI * 0.84) + ' ' + q(-Math.PI * 0.84) + '" class="fg-fa ' + cls + '"/>';
+  }
+  /* ---------- التدفق الدائري للدخل: قطاعين وسوقين وأربع تدفقات ---------- */
+  function circ(f, o) {
+    const N = f.nodes, F = f.flows, n = N.length;
+    const box = [[248, 118, 86, 64], [6, 118, 86, 64], [112, 6, 116, 46], [112, 250, 116, 46]];
+    const paths = [
+      [[[312, 118], [312, 29], [228, 29]], [[112, 29], [28, 29], [28, 118]]],
+      [[[70, 118], [70, 74], [150, 74], [150, 52]], [[190, 52], [190, 74], [270, 74], [270, 118]]],
+      [[[28, 182], [28, 273], [112, 273]], [[228, 273], [312, 273], [312, 182]]],
+      [[[270, 182], [270, 228], [190, 228], [190, 250]], [[150, 250], [150, 228], [70, 228], [70, 182]]]
+    ];
+    const lp = [[270, 19], [230, 90], [270, 291], [230, 219]];
+    let s = '';
+    F.forEach((fl, j) => { const i = n + j; s += paths[j].map(p => pline(p, fl.money ? 'm' : 'r', o.hot === i)).join(''); });
+    N.forEach((nd, i) => {
+      const [x, y, w, h] = box[i], t = lab(nd, o, i), ls = wrap(t, 11);
+      s += band('rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="10"', f, i, o);
+      s += tx(x + w / 2, y + h / 2 + 4, ls, fit(ls.reduce((a, b) => a.length > b.length ? a : b), w - 8, 12.5), 'fg-tx b' + (isHid(o, i) ? ' q' : ''));
+    });
+    F.forEach((fl, j) => { const i = n + j, t = lab(fl, o, i), ls = wrap(t, 16); s += tx(lp[j][0], lp[j][1] + 4, ls, fit(ls.reduce((a, b) => a.length > b.length ? a : b), 84, 10.5, 7.5), 'fg-tx b ' + (fl.money ? 'cm' : 'cr') + (isHid(o, i) ? ' q' : '')); });
+    if (f.mid) s += tx(170, 146, wrap(f.mid, 18), 10, 'fg-tx sm');
+    return svg(340, 300, s);
+  }
+  /* ---------- رسم بياني بمحاور: خطوط ونقط وعلامات ---------- */
+  function xy(f, o) {
+    const I = f.items, xmax = f.xmax || 10, ymax = f.ymax || 10, ymin = f.ymin || 0, X0 = 46, X1 = 322, Y0 = 18, Y1 = f.ymin ? 250 : 222;
+    const X = v => f1(X0 + (X1 - X0) * v / xmax), Y = v => f1(Y1 - (Y1 - Y0) * (v - ymin) / (ymax - ymin));
+    let s = '';
+    if (ymin < 0) s += '<line x1="' + X0 + '" y1="' + Y(0) + '" x2="' + X1 + '" y2="' + Y(0) + '" class="fg-ax"/>';
+    s += '<line x1="' + X0 + '" y1="' + Y1 + '" x2="' + X0 + '" y2="' + Y0 + '" class="fg-ax"/>' + (ymin < 0 ? '' : '<line x1="' + X0 + '" y1="' + Y1 + '" x2="' + X1 + '" y2="' + Y1 + '" class="fg-ax"/>');
+    I.forEach((it, i) => {
+      const t = lab(it, o, i), q = isHid(o, i) ? ' q' : '', hot = o.hot === i ? ' hot' : '', c = 'style="--c:var(--' + col(f, i) + ')"';
+      if (it.line) {
+        const [[a, b], [cx, cy]] = it.line;
+        s += '<line x1="' + X(a) + '" y1="' + Y(b) + '" x2="' + X(cx) + '" y2="' + Y(cy) + '" class="fg-xl' + (it.dash ? ' dash' : '') + hot + '" ' + c + '/>';
+        const lx = it.lx != null ? it.lx : cx, ly = it.ly != null ? it.ly : cy;
+        s += '<text x="' + X(lx) + '" y="' + f1(+Y(ly) + (it.dy || -6)) + '" font-size="' + (q ? 13 : 10.5) + '" text-anchor="' + (it.anchor === 'right' ? 'end' : 'start') + '" class="fg-tx b xl' + q + '" ' + c + '>' + esc(t) + '</text>';
+      } else if (it.pt) {
+        const [a, b] = it.pt;
+        s += '<line x1="' + X(a) + '" y1="' + Y(b) + '" x2="' + X(a) + '" y2="' + Y(Math.max(0, ymin)) + '" class="fg-dash"/><line x1="' + X(a) + '" y1="' + Y(b) + '" x2="' + X0 + '" y2="' + Y(b) + '" class="fg-dash"/>';
+        s += '<circle cx="' + X(a) + '" cy="' + Y(b) + '" r="' + (hot ? 7 : 5) + '" class="fg-pt' + hot + '" ' + c + '/>';
+        s += '<text x="' + f1(+X(a) + (it.dx || 8)) + '" y="' + f1(+Y(b) + (it.dy || 16)) + '" font-size="' + (q ? 13 : 10.5) + '" text-anchor="' + (it.anchor === 'left' ? 'start' : 'end') + '" class="fg-tx b' + q + '">' + esc(t) + '</text>';
+      } else if (it.yt != null) {
+        s += '<line x1="' + (X0 - 4) + '" y1="' + Y(it.yt) + '" x2="' + (X0 + 4) + '" y2="' + Y(it.yt) + '" class="fg-ax"/><text x="' + (X0 - 7) + '" y="' + f1(+Y(it.yt) + 4) + '" font-size="' + (q ? 13 : 11) + '" text-anchor="start" class="fg-tx b' + q + hot + '">' + esc(t) + '</text>';
+      } else if (it.xt != null) {
+        s += '<text x="' + X(it.xt) + '" y="' + f1(Y(Math.max(0, ymin)) + 15) + '" font-size="' + (q ? 13 : 11) + '" text-anchor="middle" class="fg-tx b' + q + hot + '" direction="ltr">' + esc(t) + '</text>';
+      }
+    });
+    s += '<text x="' + X1 + '" y="' + f1(ymin < 0 ? Y1 + 20 : Y(0) + 32) + '" font-size="10.5" text-anchor="start" class="fg-tx sm">' + esc(f.x || '') + ' ←</text>';
+    s += '<text x="' + (X0 + 6) + '" y="' + (Y0 + 4) + '" font-size="10.5" text-anchor="end" class="fg-tx sm">↑ ' + esc(f.y || '') + '</text>';
+    s += '<text x="' + (X0 - 6) + '" y="' + f1(Y(Math.max(0, ymin)) + 14) + '" font-size="10" text-anchor="start" class="fg-tx sm">0</text>';
+    return svg(340, Y1 + 40, s);
+  }
+  const DRAW = { pyramid, rings, loop, cycle, curve, bell, tree, chain, circ, xy };
   /** الأجزاء اللي ليها أسماء (للتدريب والشرح) */
-  function parts(f) { return f.levels || f.rings || f.steps || f.stages || f.groups || f.kids || []; }
+  function parts(f) { return f.levels || f.rings || f.steps || f.stages || f.groups || f.kids || (f.nodes ? f.nodes.concat(f.flows || []) : null) || f.items || []; }
 
   const api = {
     reg(sid, figs) { Object.keys(figs || {}).forEach(id => { REG[id] = Object.assign({ id, sid }, figs[id]); }); },

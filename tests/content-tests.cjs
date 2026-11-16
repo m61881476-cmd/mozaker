@@ -32,7 +32,7 @@ t('50+ بطاقة وكل بطاقة على درس', S.cards.length >= 50 && S.ca
 chapters.forEach(c => t('بطاقات على ' + c, S.cards.filter(x => x[2] === c).length >= 4));
 // رسومات
 const figIds = Object.keys(S.figs);
-t('16 رسمة', figIds.length === 16);
+t('17 رسمة في التسويق', figIds.length === 17);
 const refs = [].concat(...S.lessons.map(l => (l.summary.match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2))));
 t('كل رسمة مذكورة في الدروس موجودة', refs.every(r => S.figs[r]), refs.filter(r => !S.figs[r]).join());
 t('كل رسمة مستخدمة في درس', figIds.every(f => refs.includes(f)), figIds.filter(f => !refs.includes(f)).join());

@@ -201,6 +201,8 @@
       + '<div class="seg" id="aPlan"><button data-p="term" class="on">ترم (' + PRICE + ' ج)</button><button data-p="vip">VIP (مجاني ومن غير مدة)</button></div>'
       + '<label class="field mt" id="aExpW"><span>صالح لحد</span><input class="input" id="aExp" type="date" value="' + TERM_END + '"></label>'
       + '<button class="btn block" id="aGo">' + icon('spark') + 'طلّع الكود</button><div id="aOut"></div></div>';
+    const nT = log.filter(x => x.plan !== 'vip').length, nV = log.filter(x => x.plan === 'vip').length;
+    h = '<div class="card mb quota"><b>الـ 100 كود</b><div class="qrow"><span>عادي (ترم · ' + PRICE + ' ج)</span><b>' + nT + ' / 90</b></div><div class="bar"><i style="width:' + Math.min(100, nT / 90 * 100) + '%"></i></div><div class="qrow"><span>VIP (مجاني من غير مدة)</span><b>' + nV + ' / 10</b></div><div class="bar vip"><i style="width:' + Math.min(100, nV / 10 * 100) + '%"></i></div><p class="note">أرقام 1–90 للعادي و91–100 للـ VIP. كل كود بيتعمل لطالب معين بعد ما يدفع، لأنه مربوط باسمه ورقم جهازه.</p></div>' + h;
     h += '<div class="group-h">الأكواد اللي طلعت (' + log.length + ') · VIP: ' + log.filter(x => x.plan === 'vip').length + '</div><div class="group">' + (log.length ? log.slice().reverse().map(x => '<div class="row noicon"><span class="tx"><b>' + esc(x.name) + (x.plan === 'vip' ? ' <span class="pill star">VIP</span>' : '') + '</b><small dir="ltr" style="text-align:right">#' + x.serial + ' · ' + esc(License.prettyDevice(x.device)) + ' · ' + esc(String(x.at).slice(0, 10)) + '</small></span><button class="btn sm gray" data-cp="' + esc(x.code) + '">انسخ</button></div>').join('') : '<div class="row noicon"><span class="tx"><small>لسه مفيش</small></span></div>') + '</div>';
     h += '<p class="note">لو عايز تلغي كود، ابعت رقمه (اللي بعد #) وهيتضاف لقايمة الأكواد الملغية. الكود الملغي بيتقفل أول ما صاحبه يفتح البرنامج على النت.</p><button class="btn block gray" id="aCsv">' + icon('down') + 'نزّل القايمة (Excel)</button>';
     view.insertAdjacentHTML('beforeend', h);
@@ -210,10 +212,14 @@
     $('#aGo').onclick = async () => {
       const name = $('#aName').value.trim(), dev = License.cleanDevice($('#aDev').value);
       if (!name || dev.length !== 8) { toast('اكتب الاسم ورقم الجهاز (8 حروف)'); return; }
-      const used = new Set(log.map(x => x.serial)); let serial; do { serial = 1 + Math.floor(Math.random() * 65000); } while (used.has(serial));
+      // رقم مسلسل بالترتيب: العادي من 1 لـ 90، والـ VIP من 91 لـ 100، ولو خلصوا يكمّل من 101
+      const used = new Set(log.map(x => x.serial)); let serial = plan === 'vip' ? 91 : 1; const top = plan === 'vip' ? 100 : 90;
+      while (used.has(serial) && serial <= top) serial++;
+      if (serial > top) { serial = 101; while (used.has(serial)) serial++; toast(plan === 'vip' ? 'الـ 10 VIP خلصوا، ده كود زيادة' : 'الـ 90 كود العادي خلصوا، ده كود زيادة'); }
       try {
         const code = await License.issue({ privJwk: ADM.privJwk, K: ADM.K, name, device: dev, plan, exp: plan === 'vip' ? null : new Date($('#aExp').value + 'T00:00:00Z'), serial });
         log.push({ serial, name, device: dev, plan, code, at: new Date().toISOString() }); LS.set('mz:adminlog', log);
+        setTimeout(() => { const q = document.querySelector('.quota'); if (q) { const a = log.filter(x => x.plan !== 'vip').length, v = log.filter(x => x.plan === 'vip').length; const bs = q.querySelectorAll('.qrow b'), is = q.querySelectorAll('.bar i'); bs[0].textContent = a + ' / 90'; bs[1].textContent = v + ' / 10'; is[0].style.width = Math.min(100, a / 90 * 100) + '%'; is[1].style.width = Math.min(100, v / 10 * 100) + '%'; } }, 0);
         const link = location.origin + location.pathname + '#activate/' + code;
         const msg = 'أهلًا يا ' + name.split(' ')[0] + ' 🎉 اشتراكك في مذاكِر اتفعّل' + (plan === 'vip' ? ' (VIP)' : '') + '.\n\nكود التفعيل:\n' + code + '\n\nافتح مذاكِر ← الاشتراك ← الصق الكود ← فعّل.\nأو دوس هنا: ' + link + '\n\nالكود مربوط باسمك وجهازك، فمش هيشتغل مع حد تاني.';
         $('#aOut').innerHTML = '<div class="card mt codeout"><b>الكود جاهز ✓ (#' + serial + ')</b><textarea class="input mt" rows="4" dir="ltr" readonly>' + esc(code) + '</textarea><div class="btns mt"><button class="btn" id="aCp">انسخ الرسالة</button><button class="btn green" id="aWa">ابعت على واتساب</button></div></div>';

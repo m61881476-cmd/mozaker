@@ -118,12 +118,16 @@
   }
 
   /* ---------- الأكواد الخاصة (عبارة + الاسم الأول) ---------- */
-  async function vanityKey(phrase, name, salt) { return pbkdf(normPhrase(phrase) + '|' + firstName(name), b64u.dec(salt), VANITY_ITER); }
-  async function makeVanity(phrase, name, payload, salt) { return b64u.enc(await seal(await vanityKey(phrase, name, salt), te.encode(JSON.stringify(payload)))); }
+  /* nameKey: الاسم الأول لوحده (زي «فاطمه») أو الاسم الأول+الأخير لازقين (زي «محمدالشيخ») */
+  async function vanityKey(phrase, nameKey, salt) { return pbkdf(normPhrase(phrase) + '|' + nameKey, b64u.dec(salt), VANITY_ITER); }
+  async function makeVanity(phrase, nameKey, payload, salt) { return b64u.enc(await seal(await vanityKey(phrase, normPhrase(nameKey), salt), te.encode(JSON.stringify(payload)))); }
+  function nameKeys(name) { const w = normName(name).split(' ').filter(Boolean); if (!w.length) return []; const k = [w[0]]; if (w.length > 1) k.push(w[0] + w[w.length - 1]); if (w.length > 2) k.push(w.join('')); return k; }
   async function tryVanity(phrase, name, entries, salt) {
-    if (!normPhrase(phrase) || !firstName(name) || !entries || !entries.length) return null;
-    const key = await vanityKey(phrase, name, salt);
-    for (const e of entries) { try { return JSON.parse(td.decode(await open(key, b64u.dec(e)))); } catch (err) { /* مش ده */ } }
+    if (!normPhrase(phrase) || !entries || !entries.length) return null;
+    for (const nk of nameKeys(name)) {
+      const key = await vanityKey(phrase, nk, salt);
+      for (const e of entries) { try { return JSON.parse(td.decode(await open(key, b64u.dec(e)))); } catch (err) { /* مش ده */ } }
+    }
     return null;
   }
 

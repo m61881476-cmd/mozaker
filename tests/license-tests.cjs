@@ -28,19 +28,26 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log('✗ ' + m); } 
   const enc = await L.encryptJSON(K, { a: 1 }); ok((await L.decryptJSON(K, enc)).a === 1, 'فك المحتوى');
   // الأكواد الخاصة في المفاتيح الحقيقية
   const ctx = { self: {} }; vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/keys.js'), 'utf8'), ctx); const KEYS = ctx.self.MZ_KEYS;
-  const v1 = await L.tryVanity('Muhammad 2007', 'محمد هاني', KEYS.vanity, KEYS.vsalt); ok(v1 && v1.who === 'owner' && v1.admin, 'كود محمد');
-  const v1b = await L.tryVanity('muhammad2007', 'Mohamed', KEYS.vanity, KEYS.vsalt); ok(v1b && v1b.who === 'owner', 'كود محمد بالإنجليزي ومن غير مسافة');
+  const v1 = await L.tryVanity('Muhammad 2007', 'محمد الشيخ', KEYS.vanity, KEYS.vsalt); ok(v1 && v1.who === 'owner' && v1.admin && v1.ap, 'كود محمد الشيخ ومعاه الأدمن');
+  const v1b = await L.tryVanity('muhammad2007', 'Mohamed Elsheikh', KEYS.vanity, KEYS.vsalt); ok(v1b && v1b.who === 'owner', 'كود محمد الشيخ بالإنجليزي');
+  const v1c = await L.tryVanity('Muhammad 2007', 'محمد هاني الشيخ', KEYS.vanity, KEYS.vsalt); ok(v1c && v1c.who === 'owner', 'محمد هاني الشيخ (اسم ثلاثي) شغال');
+  ok(!(await L.tryVanity('Muhammad 2007', 'محمد هاني', KEYS.vanity, KEYS.vsalt)), 'محمد هاني من غير الشيخ مرفوض');
+  ok(!(await L.tryVanity('Muhammad 2007', 'محمد', KEYS.vanity, KEYS.vsalt)), 'محمد لوحده مرفوض');
+  ok(!(await L.tryVanity('Muhammad 2007', 'محمد احمد', KEYS.vanity, KEYS.vsalt)), 'محمد تاني مرفوض');
+  ok((await L.openAdminBundle(v1.ap, KEYS.admin)).privJwk, 'لوحة الأدمن تتفتح بكود محمد الشيخ');
   const v2 = await L.tryVanity('I love you', 'فاطمة', KEYS.vanity, KEYS.vsalt); ok(v2 && v2.who === 'fatma' && !v2.admin, 'كود فاطمة');
   const v2b = await L.tryVanity('i love you', 'Fatma Ali', KEYS.vanity, KEYS.vsalt); ok(v2b && v2b.who === 'fatma', 'كود فاطمة بالإنجليزي');
   ok(!(await L.tryVanity('I love you', 'أحمد', KEYS.vanity, KEYS.vsalt)), 'كود فاطمة باسم تاني مرفوض');
   ok(!(await L.tryVanity('Muhammad 2008', 'محمد', KEYS.vanity, KEYS.vsalt)), 'عبارة غلط مرفوضة');
   // المحتوى المدفوع يتفك بمفتاح كود فاطمة
   const paid = await L.decryptJSON(L.b64u.dec(v2.K), new Uint8Array(fs.readFileSync(path.join(__dirname, '../content/paid.mz'))));
-  ok(paid.subjects && paid.subjects.mkt && paid.subjects.eco && paid.subjects.mkt.questions.length > 100, 'المحتوى المدفوع يتفك');
+  ok(paid.subjects && paid.subjects.mkt && paid.subjects.eco && paid.subjects.mkt.questions.length > 150, 'المحتوى المدفوع يتفك');
   // المجاني مافيهوش ملخصات الدروس المقفولة
   const fc = { self: {} }; fc.self.self = fc.self; vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/content/free.js'), 'utf8'), fc.self);
   const free = fc.self.MZ_CONTENT; ok(free.every(s => s.lessons.filter(l => l.locked).every(l => !l.summary)), 'الدروس المقفولة فاضية في المجاني');
-  ok(free.find(s => s.id === 'mkt').lessons.find(l => l.id === 'mk0').summary.length > 200, 'الدرس المجاني موجود');
+  ok(free.find(s => s.id === 'eco').lessons.find(l => l.id === 'ec1').summary.length > 200, 'الفصل الأول اقتصاد مجاني');
+  ok(free.find(s => s.id === 'mkt').lessons.every(l => l.locked), 'التسويق كله مقفول');
+  ok(free.reduce((n, s) => n + s.lessons.filter(l => !l.locked).length, 0) === 1, 'فصل مجاني واحد بس');
   ok(fc.self.MZ_PAID_VER === paid.ver, 'رقم نسخة المحتوى متطابق');
   console.log('license: ' + pass + ' ✓  ' + fail + ' ✗'); process.exit(fail ? 1 : 0);
 })();

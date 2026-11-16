@@ -59,7 +59,7 @@
       }
       const v = await License.tryVanity(text, name, KEYS.vanity, KEYS.vsalt);
       if (!v) return { ok: false, msg: MSG.vanity };
-      await store(License.b64u.dec(v.K), { kind: 'vanity', name, plan: v.plan, exp: null, who: v.who, label: v.label, admin: !!v.admin, at: Date.now() });
+      await store(License.b64u.dec(v.K), { kind: 'vanity', name, plan: v.plan, exp: null, who: v.who, label: v.label, admin: !!v.admin, ap: v.ap || null, at: Date.now() });
       return { ok: true, plan: v.plan, who: v.who };
     } catch (e) { return { ok: false, msg: MSG[e.message] || MSG.net }; }
   }
@@ -182,6 +182,8 @@
   let ADM = null;
   Router.on('admin', view => {
     header(view, 'لوحة الأدمن', { back: { to: 'subscribe', label: 'الاشتراك' } });
+    const LA = LS.get('mz:lic', null);
+    if (!ADM && LA && LA.admin && LA.ap) { view.insertAdjacentHTML('beforeend', '<p class="note center">بيفتح…</p>'); License.openAdminBundle(LA.ap, KEYS.admin).then(a => { ADM = { privJwk: a.privJwk, K: License.b64u.dec(a.K) }; Router.render(); }).catch(() => { LA.ap = null; LS.set('mz:lic', LA); Router.render(); }); return; }
     if (!ADM) {
       view.insertAdjacentHTML('beforeend', '<div class="card"><b>كلمة سر الأدمن</b><p class="note">بتفتح المفتاح اللي بيطلّع الأكواد. مابتتحفظش، ومحدش يقدر يطلّع كود من غيرها.</p><input class="input" id="admPw" type="password" dir="ltr" autocomplete="current-password" placeholder="MZK-XXXX-XXXX-XXXX-XXXX"><button class="btn block mt" id="admGo">' + icon('lock') + 'افتح</button><p id="admMsg"></p></div>');
       $('#admGo').onclick = async () => {

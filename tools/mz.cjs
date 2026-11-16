@@ -8,7 +8,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const L = require('../js/license.js');
 const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
-const FREE = { mkt: ['mk0'], eco: ['ec1'] };
+const FREE = { eco: ['ec1'] };
 const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'eco.js', 'eco-b1.js', 'eco-q.js'];
 
 const pass = () => process.env.MZ_PASS || (fs.existsSync(path.join(ROOT, '.mz-secret')) ? fs.readFileSync(path.join(ROOT, '.mz-secret'), 'utf8').match(/ADMIN_PASSWORD=(\S+)/)[1] : null);
@@ -29,16 +29,29 @@ async function init() {
   const password = 'MZK-' + [word(), word(), word(), word()].join('-');
   const admin = await L.makeAdminBundle(password, { privJwk, K: L.b64u.enc(K) });
   const vsalt = L.b64u.enc(L.rand(16));
-  const Kb = L.b64u.enc(K), vanity = [];
-  for (const n of ['محمد', 'muhammad', 'mohamed', 'mohammed', 'mohammad']) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع', admin: true }, vsalt));
-  for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
-  // ترتيب عشوائي عشان محدش يعرف أنهي تبع مين
-  vanity.sort(() => Math.random() - 0.5);
+  const Kb = L.b64u.enc(K);
+  const vanity = await makeVanities(Kb, vsalt, password);
   const js = '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs init. المفتاح الخاص هنا متشفّر بكلمة سر الأدمن ومينفعش يتفك من غيرها. */\n'
     + 'self.MZ_KEYS = ' + JSON.stringify({ pub: { kty: pubJwk.kty, crv: pubJwk.crv, x: pubJwk.x, y: pubJwk.y }, admin, vsalt, vanity }, null, 1) + ';\n';
   fs.writeFileSync(path.join(ROOT, 'js/keys.js'), js);
   fs.writeFileSync(path.join(ROOT, '.mz-secret'), 'ADMIN_PASSWORD=' + password + '\n');
   console.log('اتعمل. كلمة سر الأدمن في .mz-secret');
+}
+
+/** الأكواد الخاصة: «Muhammad 2007» لمحمد الشيخ بس (ومعاه لوحة الأدمن)، و«I love you» لفاطمة */
+async function makeVanities(Kb, vsalt, password) {
+  const vanity = [];
+  const owner = [];
+  for (const f of ['محمد', 'muhammad', 'mohamed', 'mohammed', 'mohammad', 'mohamad']) for (const l of ['الشيخ', 'elsheikh', 'alsheikh', 'elshaikh', 'alshaikh', 'sheikh', 'elshiekh']) owner.push(f + l);
+  for (const n of owner) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع', admin: true, ap: password }, vsalt));
+  for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
+  return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
+}
+async function vanityCmd() {
+  const s = await secrets(), k = s.keys;
+  k.vanity = await makeVanities(L.b64u.enc(s.K), k.vsalt, pass());
+  fs.writeFileSync(path.join(ROOT, 'js/keys.js'), '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs init. المفتاح الخاص هنا متشفّر بكلمة سر الأدمن ومينفعش يتفك من غيرها. */\nself.MZ_KEYS = ' + JSON.stringify(k, null, 1) + ';\n');
+  console.log('اتعمل ' + k.vanity.length + ' كود خاص');
 }
 
 function loadSources() {
@@ -98,4 +111,4 @@ async function issue() {
 }
 
 const cmd = process.argv[2];
-({ init, build, unpack, issue }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+({ init, build, unpack, issue, vanity: vanityCmd }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

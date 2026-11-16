@@ -315,6 +315,8 @@
     const row = b.closest('label, .row'); if (!row) return;
     const v = talk();
     row.insertAdjacentHTML('afterend', '<div class="row noicon"><span class="tx"><b>كلام ' + cname() + '</b><small>كتير: بيشجع أكتر · عادي · هادي: مابيتكلمش غير لما تكلمه</small></span><select id="sTalk" class="input sel">' + [['more', 'كتير'], ['normal', 'عادي'], ['quiet', 'هادي']].map(o => '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>');
+    row.parentNode.querySelector('#sTalk').closest('.row').insertAdjacentHTML('afterend', '<button class="row tap noicon" id="sTour" style="width:100%;text-align:start"><span class="tx"><b>🧭 خلّي ' + cname() + ' يعرّفك على البرنامج</b><small>جولة سريعة بيشاورلك فيها على كل حاجة</small></span></button>');
+    $('#sTour', view).onclick = () => Tour.start();
     $('#sTalk', view).onchange = e => { D().settings.palTalk = e.target.value; Store.save(); toast(e.target.value === 'quiet' ? 'تمام، هسكت ومش هتكلم غير لما تكلمني 🤐' : e.target.value === 'more' ? 'هشجعك أكتر 💪' : 'تمام 👌', 'check'); };
   }
 
@@ -377,6 +379,88 @@
     el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) { el.classList.remove('on'); setTimeout(() => el.remove(), 300); Awards.check(); } };
   }
 
+  /* ================= سَنَد بيقدّم البرنامج: جولة بيتمشى فيها ويشاور بالعصاية ================= */
+  Object.assign(PROP_SVG, {
+    wave: '<g class="pp-wave"><path d="M232 288 L262 196" stroke="#5b6b3a" stroke-width="22" stroke-linecap="round"/><circle cx="266" cy="184" r="17" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/><path d="M292 160q12 14 0 30M304 150q18 22 0 48" fill="none" stroke="#ffb300" stroke-width="5" stroke-linecap="round"/></g>',
+    thumbs: '<g class="pp-th"><circle cx="222" cy="290" r="13" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/><text x="250" y="270" font-size="70" text-anchor="middle">👍</text></g>',
+    think: '<g class="pp-tk"><circle cx="200" cy="200" r="13" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/><path d="M222 288 Q215 240 200 210" stroke="#5b6b3a" stroke-width="18" fill="none" stroke-linecap="round"/><text x="250" y="70" font-size="64" text-anchor="middle">💭</text></g>'
+  });
+  const TOUR = [
+    { mood: 'cheer', prop: 'wave', t: d => 'أهلًا يا ' + esc(d.name || 'بطل') + '! 👋 أنا <b>' + cname() + '</b>، هعرّفك على <b>مذاكِر</b> في أقل من دقيقة. يلا بينا!' },
+    { sel: '.mtile[href="#subjects"]', mood: 'happy', prop: 'stick', t: () => 'هنا <b>المواد</b> 📚 دوس هنا وتلاقي الاقتصاد والتسويق بكل فصولهم.' },
+    { sel: '.mtile[href="#subscribe"]', mood: 'nod', prop: 'stick', t: () => '<b>الفصل الأول في الاقتصاد مجاني</b> 🎁 جرّبه براحتك. ولو عجبك، دوس هنا تشترك <b>' + (self.Sub ? Sub.PRICE : 250) + ' ج للترم كله</b> وكل الفصول تتفتح.' },
+    { sel: '#askForm', mood: 'think', prop: 'think', t: () => 'اكتبلي هنا أي حاجة <b>بالعامية</b> ✍️ زي «امتحني 10 أسئلة» أو «يعني إيه المضاعف؟» وأنا أفهمك.' },
+    { sel: '.mtile[href="#news"]', mood: 'happy', prop: 'mic', t: () => 'وهنا <b>آخر الأخبار</b> 🎤 زي الأسايمنت ومواعيد التسليم. أول ما ينزل خبر جديد هقولك.' },
+    { sel: '.mtile[href="#awards"]', mood: 'cheer', prop: 'trophy', t: () => 'وكل ما تذاكر تكسب <b>جوايز</b> 🏆 وتترص على الرف بتاعك.' },
+    { sel: () => { const tb = $('.tabbar'); return tb && getComputedStyle(tb).display !== 'none' ? tb : $('.side'); }, mood: 'nod', prop: 'stick', t: () => 'ومن هنا تتنقّل بين <b>المواد والمراجعة والامتحانات والجدول</b>.' },
+    { mood: 'cheer', prop: 'thumbs', t: () => 'وأنا هفضل معاك على الشاشة 😄 دوس عليّا في أي وقت يطلعلك قايمة. يلا نبدأ بالفصل الأول في الاقتصاد؟', last: 1 }
+  ];
+  const Tour = {
+    on: false, i: 0,
+    start() {
+      if (this.on || !Store.data) return;
+      if (!Router.cur || Router.cur.name !== 'home') { Router.go('home'); setTimeout(() => this.start(), 700); return; }
+      this.on = true; this.i = 0;
+      if (self.Pal) Pal.sync(); const bd = $('#buddy'); if (bd) bd.classList.remove('on');
+      const w = this.w = document.createElement('div'); w.className = 'tour'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-label', 'جولة في البرنامج');
+      w.innerHTML = '<div class="tour-hole"></div><div class="tour-c"><div class="tour-fl">' + Char.html('', 84) + '</div></div><div class="tour-b"><div class="tour-t" aria-live="polite"></div><div class="tour-f"><span class="tour-dots"></span><button class="btn gray sm" data-tskip>تخطّي</button><button class="btn sm" data-tnext>التالي</button></div></div>';
+      document.body.appendChild(w);
+      $('[data-tskip]', w).onclick = () => this.end();
+      $('[data-tnext]', w).onclick = () => this.next();
+      w.addEventListener('click', e => { if (e.target === w || e.target.classList.contains('tour-hole')) this.next(); });
+      this.kh = e => { if (e.key === 'Escape') this.end(); else if (e.key === 'Enter' || e.key === 'ArrowLeft') this.next(); };
+      document.addEventListener('keydown', this.kh);
+      this.rh = () => this.show(true); addEventListener('resize', this.rh);
+      requestAnimationFrame(() => { w.classList.add('in'); this.show(); });
+    },
+    target(st) { if (!st.sel) return null; const el = typeof st.sel === 'function' ? st.sel() : $(st.sel); return el && el.getClientRects().length ? el : null; },
+    async show(quick) {
+      const st = TOUR[this.i], w = this.w; if (!w) return;
+      const el = this.target(st), c = $('.tour-c', w), ch = $('.char', c), hole = $('.tour-hole', w), b = $('.tour-b', w);
+      if (el && !quick) { const r0 = el.getBoundingClientRect(); if (r0.top < 70 || r0.bottom > innerHeight - 160) { el.scrollIntoView({ block: 'center', behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' }); await new Promise(r => setTimeout(r, 120)); } }
+      const W = 84, H = W * 360 / 268, vw = innerWidth, vh = innerHeight;
+      let x, y, flip = false;
+      if (el) {
+        const r = el.getBoundingClientRect(), pad = 6;
+        Object.assign(hole.style, { left: r.left - pad + 'px', top: r.top - pad + 'px', width: r.width + pad * 2 + 'px', height: r.height + pad * 2 + 'px', borderRadius: '16px' });
+        // طرف العصاية: (1.24W, 0.41H) من ركن الشخصية — ولو اتقلبت يبقى (-0.24W)
+        const wide = r.width > vw * 0.6, py = wide ? r.bottom - 4 : r.top + r.height / 2;
+        let px = wide ? r.left + r.width * 0.3 : r.left + Math.min(26, r.width / 3);
+        x = px - 1.24 * W; y = py - 0.41 * H;
+        if (x < 4) { flip = true; px = wide ? r.right - r.width * 0.3 : r.right - Math.min(26, r.width / 3); x = px + 0.24 * W; }
+        x = Math.max(4, Math.min(vw - W - 4, x)); y = Math.max(60, Math.min(vh - H - 8, y));
+        b.classList.toggle('top', r.top + r.height / 2 > vh * 0.5);
+      } else {
+        Object.assign(hole.style, { left: vw / 2 + 'px', top: vh * 0.42 + 'px', width: '0px', height: '0px', borderRadius: '50%' });
+        x = vw / 2 - W / 2; y = vh * 0.42 - H / 2 - 30; b.classList.remove('top');
+      }
+      const moved = Math.hypot((this.x || x) - x, (this.y || y) - y) > 10;
+      c.classList.toggle('walk', moved && !quick); c.classList.toggle('flip', flip);
+      c.style.transform = 'translate3d(' + Math.round(x) + 'px,' + Math.round(y) + 'px,0)'; this.x = x; this.y = y;
+      clearTimeout(this.wt); this.wt = setTimeout(() => c.classList.remove('walk'), moved ? 750 : 0);
+      if (quick) return;
+      Props.clear(ch); setTimeout(() => { Props.put(ch, st.prop); Char.act(ch, st.mood); }, moved ? 650 : 120);
+      $('.tour-t', w).innerHTML = st.t(D());
+      $('.tour-dots', w).innerHTML = TOUR.map((_, k) => '<i' + (k === this.i ? ' class="on"' : '') + '></i>').join('');
+      const nx = $('[data-tnext]', w); nx.textContent = st.last ? 'افتح الفصل الأول 🚀' : 'التالي'; $('[data-tskip]', w).hidden = !!st.last;
+      haptic();
+    },
+    next() { if (TOUR[this.i].last) { this.end(); Router.go(App.LESSONS.ec1 ? 'lesson/ec1' : 'subjects'); return; } this.i++; this.show(); },
+    end() {
+      if (!this.on) return; this.on = false; const d = D(); if (d) { d.tourDone = now(); Store.save(); }
+      document.removeEventListener('keydown', this.kh); removeEventListener('resize', this.rh);
+      const w = this.w; this.w = null; this.x = this.y = null; if (w) { w.classList.remove('in'); setTimeout(() => w.remove(), 300); }
+      scrollTo(0, 0); if (self.Pal) Pal.sync();
+    }
+  };
+  App.Tour = Tour;
+  if (self.Pal) {
+    const P = self.Pal, s0 = P.sync.bind(P);
+    P.sync = function () { s0(); if (Tour.on && this.el) { this.off = true; this.el.classList.add('off'); this.hush(); } };
+    const t0 = P.tap.bind(P);
+    P.tap = function () { t0(); const m = this.el && this.el.querySelector('.pal-menu'); if (!m || m.hidden) return; m.insertAdjacentHTML('afterbegin', '<button data-tour>🧭 عرّفني على البرنامج</button>'); $('[data-tour]', m).onclick = e => { e.stopPropagation(); this.hideMenu(); Tour.start(); }; };
+  }
+
   /* ================= تشغيل ================= */
   function start() {
     if (!Store.data) return;
@@ -384,6 +468,7 @@
     welcome();
     Awards.check(true);
     if (self.Pal && Pal.el) Pal.base();
+    if (!D().tourDone && !sessionStorage.getItem('mz:welcome')) setTimeout(() => { if (!Tour.on && !$('.award-pop') && !$('.lock') && Router.cur && Router.cur.name === 'home' && !D().tourDone) Tour.start(); }, 1400);
   }
   const prevAfter = App.after;
   App.after = fresh => { prevAfter(fresh); start(); };

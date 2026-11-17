@@ -11,7 +11,11 @@
       title: 'تكليف الاقتصاد الكلي', sub: 'تطبيقات نموذج التوازن العام في سوق السلع والنقود (IS-LM)', grade: '15 درجة',
       link: 'https://drive.google.com/drive/folders/1Was38RzlLQnV1eFczQIZ25l9QeBCmHWJ?usp=drive_link',
       team: () => { const d = D(); return (d.asg && d.asg.team) || []; }, checks: () => { const d = D(); d.asg = d.asg || { chk: {}, team: [] }; return d.asg.chk; },
-      ck: { cover: 2, pdf: 5, up: 6, got: 3, solved: 4 }
+      ck: { cover: 2, pdf: 5, up: 6, got: 3, solved: 4 },
+      warn: ['التكليف فيه <b>معطيات ومطالب من الفصل السادس (الاقتصاد المفتوح)</b>: صافي الصادرات والميل الحدي للاستيراد. والفصل ده <b>لسه ماتشرحش</b> في المحاضرات.',
+        'جزء الاقتصاد المفتوح في الحل متحل بالطريقة العامة للنموذج. ممكن الدكتور يشرحه بطريقة أو رموز مختلفة، فـ<b>الأحسن تستنى محاضرة الفصل السادس</b> أو تتأكد من المعيد قبل الرفع.',
+        'الحل معتبر دالة الطلب على النقود <b dir="ltr">MD = 0.8Y − 160r</b> (بـ r).',
+        '<b>واحد بس</b> من التيم يرفع، و<b>مرة واحدة</b> بس.']
     }
   };
 
@@ -122,10 +126,22 @@
       catch (e) { toast(e.message === 'net' ? 'محتاج نت أول مرة عشان ينزل الحل' : 'حصلت مشكلة، جرّب تاني', 'info'); }
       busy(dl, false);
     };
+    /** «هل انت متأكد؟» قبل الرفع، ومعاها التنبيهات */
+    const sure = () => new Promise(res => {
+      let done = false;
+      const s = U.sheet({ title: 'متأكد إنك عايز ترفع؟', cancelText: 'رجوع',
+        body: '<div class="sure">' + Char.html('', 64) + '<div class="bubble">' + (f ? 'استني ثانية قبل ما ترفعي 🤚' : 'استنى ثانية قبل ما ترفع 🤚') + '</div></div><ul class="surel">' + (sol.warn || []).map(w => '<li>⚠️ ' + w + '</li>').join('') + '</ul>'
+          + '<button class="btn block green" data-yes>📤 أيوه، ارفع دلوقتي</button><button class="btn block gray mt" data-no>⏳ هستنى المحاضرة</button>',
+        onOpen: a => { const c = a.body.querySelector('.char'); if (c && App.Props) { App.Props.put(c, 'stick'); Char.act(c, 'nod'); } a.body.querySelector('[data-yes]').onclick = () => { done = true; a.close(true); res(true); }; a.body.querySelector('[data-no]').onclick = () => { done = true; a.close(false); res(false); }; },
+        onClose: () => { if (!done) res(false); } });
+    });
     const up = $('#solUp'); if (up) up.onclick = async () => {
       busy(up, true, 'بيجهّز…');
       try {
         const file = await make(); mark('cover', 'pdf');
+        busy(up, false);
+        if (!(await sure())) { toast('تمام، الملف جاهز وقت ما تحب 👌', 'info'); return; }
+        busy(up, true, 'بيفتح…');
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try { await navigator.share({ files: [file], title: sol.file }); mark('up'); toast('اختار Drive وبعدين فولدر التسليم ✓', 'check'); }
           catch (e) { if (e && e.name !== 'AbortError') { download(file); open(sol.link, '_blank'); } }

@@ -145,7 +145,7 @@
       const pool = App.concepts().filter(x => x.l === l.id), cs = E.findConcepts(pool, sec.t + ' ' + sec.body).slice(0, 3), b = $('#tSimpleBox');
       if (!cs.length) { b.innerHTML = '<div class="card simple"><b>ولا يهمك 🤍</b><div class="note">اقرا السطور اللي جنبها 💡 تاني على مهلك، هي الشرح بالبلدي. ولو لسه، اسألني في المحادثة بالكلمة اللي وقفت معاك.</div><div class="btns mt"><button class="btn sm tint" data-ask="' + esc('يعني إيه ' + sec.t) + '">' + icon('chat') + 'اسأل ' + esc(d.charName) + '</button></div></div>'; }
       else b.innerHTML = '<div class="card simple"><b>ولا يهمك، نقولها أبسط 👇</b>' + cs.map(c => '<div class="tu"><b>' + esc(c.k) + '</b>' + E.tutorParts({ kind: 'simpler', c, level: 1 }).map(p => '<div><i>' + esc(p.h) + ':</i> ' + esc(p.t) + '</div>').join('') + (c.err ? '<div class="xp-err">⚠️ ' + esc(c.err) + '</div>' : '') + '</div>').join('') + '<div class="btns mt">' + cs.map(c => '<button class="btn sm tint" data-ask="' + esc('مثال على ' + c.k) + '">مثال على ' + esc(c.k) + '</button>').join('') + '</div></div>';
-      App.bindExplain(b); b.scrollIntoView({ behavior: 'smooth', block: 'start' }); Pal.say('خد وقتك، مفيش حد بيفهم من أول مرة 🤍', 'nod', 2600);
+      App.bindExplain(b); b.scrollIntoView({ behavior: 'smooth', block: 'start' }); Pal.say('خد وقتك، مفيش حد بيفهم من أول مرة 🤍', 'nod', 2600, true);
     };
     const finish = () => {
       d.teach[l.id + ':done'] = now(); App.logDay({ min: Math.max(1, Math.round((now() - t0) / 60000)) }); Store.save(true);
@@ -367,7 +367,7 @@
       if (s && s.final && r.name !== 'final') items.push({ t: '🏁 المراجعة النهائية', href: '#final/' + s.id });
       if (s && F.list(s.id).length && r.name !== 'fig') items.push({ t: '🖼️ الرسومات', href: '#subject/' + s.id + '?tab=figs' });
       if (!(r.name === 'quiz' && r.q.run)) items.push({ t: '👉 ' + sg.t, href: sg.href });
-      items.push({ t: '💬 اسألني أي سؤال', href: '#chat' }, { t: '🤸 اعمل حركة', fn: () => this.trick(pick(['spin', 'hop', 'peek'])) }, { t: '💛 شجعني', fn: () => this.say(this.cheerLine(), 'cheer', 3600) }, { t: '😴 نام شوية', fn: () => this.sleep() });
+      items.push({ t: '💬 اسألني أي سؤال', href: '#chat' }, { t: '🤸 اعمل حركة', fn: () => this.trick(pick(['spin', 'hop', 'peek'])) }, { t: '💛 شجعني', fn: () => this.say(this.cheerLine(), 'cheer', 4200, true) }, { t: '😴 نام شوية', fn: () => this.sleep() });
       const m = this.el.querySelector('.pal-menu');
       m.innerHTML = '<div class="pal-mh">' + esc(d.charName) + ' معاك، عايز إيه؟</div>' + items.slice(0, 8).map((it, i) => '<button data-pi="' + i + '">' + esc(it.t) + '</button>').join('');
       m.hidden = false; this.menuOn = true; this.el.classList.add('menu'); Char.act(this.char(), 'nod'); haptic();

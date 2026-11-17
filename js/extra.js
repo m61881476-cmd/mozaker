@@ -237,7 +237,8 @@
     let lastChat = 0, dism = [], quietTill = 0, nearTaps = 0;
     P.base = function () { const c = this.el && this.char(); if (!c) return; if (self.Sub && Sub.who() === 'owner') Props.put(c, 'crown'); else if (isF()) Props.put(c, 'heart'); else Props.clear(c); };
     P.say = function (html, mood, ms, force) {
-      if (!force) {
+      if (force === 'ev') { if (now() < quietTill || talk() === 'quiet') return; lastChat = now(); }
+      else if (!force) {
         if (now() < quietTill || talk() === 'quiet') return;
         if (now() - lastChat < GAP[talk()]) return;
         lastChat = now();

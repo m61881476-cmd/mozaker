@@ -214,7 +214,7 @@
   let buddyT = 0;
   function buddy(text, mood = 'happy', ms = 3200) {
     if (Store.data && Store.data.settings.buddy === false) return;
-    if (self.Pal && Pal.on()) return Pal.say(text, mood, ms);
+    if (self.Pal && Pal.on()) return Pal.say(text, mood, ms, 'ev');
     let b = $('#buddy');
     if (!b) { b = document.createElement('div'); b.id = 'buddy'; b.className = 'buddy'; b.setAttribute('role', 'status'); document.body.appendChild(b); b.onclick = () => b.classList.remove('on'); }
     b.innerHTML = Char.html() + '<div class="bubble">' + text + '</div>';

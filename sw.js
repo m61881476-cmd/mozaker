@@ -1,9 +1,9 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-3.7.1';
+const VERSION = 'mozaker-3.8.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',
-  './js/engine.js', './js/ui.js', './js/figs.js', './js/license.js', './js/keys.js', './js/content/free.js', './js/sub.js', './content/paid.mz', './js/extra.js', './data/news.json', './js/board.js', './js/app.js', './js/study.js', './js/share.js', './js/app2.js',
+  './js/engine.js', './js/ui.js', './js/figs.js', './js/license.js', './js/keys.js', './js/content/free.js', './js/sub.js', './content/paid.mz', './js/extra.js', './js/asgsol.js', './data/news.json', './js/board.js', './js/app.js', './js/study.js', './js/share.js', './js/app2.js',
   './icons/char.png', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/badge-96.png'
 ];
 const CDN = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

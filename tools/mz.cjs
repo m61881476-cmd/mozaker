@@ -92,7 +92,25 @@ async function build() {
   fs.writeFileSync(path.join(ROOT, 'content/src.mz'), Buffer.from(await L.encryptJSON(K, { files })));
   fs.writeFileSync(path.join(ROOT, 'js/content/free.js'), '/* المحتوى المجاني (اتولّد بـ tools/mz.cjs build — ماتعدّلش هنا، عدّل في content-src) */\nself.MZ_PAID_VER = ' + JSON.stringify(ver) + ';\n(self.MZ_CONTENT = self.MZ_CONTENT || []).push(...' + JSON.stringify(free) + ');\n');
   const kb = n => (fs.statSync(path.join(ROOT, n)).size / 1024).toFixed(0) + 'KB';
+  await assets(K);
   console.log('free.js ' + kb('js/content/free.js') + ' · paid.mz ' + kb('content/paid.mz') + ' · src.mz ' + kb('content/src.mz') + ' · ver ' + ver);
+}
+
+/** ملفات مدفوعة كبيرة (زي صفحات حل الأسايمنت): content-src/assets/<اسم>/*.jpg ← content/<اسم>.mz متشفّر بمفتاح المحتوى.
+   الشكل: [4 بايت طول الهيدر][هيدر JSON][الصور ورا بعض] */
+async function assets(Kin) {
+  const K = Kin || (await secrets()).K, base = path.join(SRC, 'assets'); if (!fs.existsSync(base)) return;
+  for (const name of fs.readdirSync(base)) {
+    const dir = path.join(base, name); if (!fs.statSync(dir).isDirectory()) continue;
+    const files = fs.readdirSync(dir).filter(f => /\.jpe?g$/i.test(f)).sort((a, b) => (+a.replace(/\D/g, '')) - (+b.replace(/\D/g, '')));
+    const bufs = files.map(f => fs.readFileSync(path.join(dir, f)));
+    const head = Buffer.from(JSON.stringify({ v: 1, pages: bufs.map(b => b.length) }));
+    const len = Buffer.alloc(4); len.writeUInt32BE(head.length);
+    const plain = Buffer.concat([len, head, ...bufs]);
+    const key = await L.aesKey(K);
+    fs.writeFileSync(path.join(ROOT, 'content', name + '.mz'), Buffer.from(await L.seal(key, new Uint8Array(plain))));
+    console.log('asset ' + name + ': ' + files.length + ' صفحة · ' + (plain.length / 1024).toFixed(0) + 'KB');
+  }
 }
 
 async function unpack() {
@@ -111,4 +129,4 @@ async function issue() {
 }
 
 const cmd = process.argv[2];
-({ init, build, unpack, issue, vanity: vanityCmd }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+({ init, build, unpack, issue, assets: () => assets(), vanity: vanityCmd }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

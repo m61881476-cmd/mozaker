@@ -13,6 +13,18 @@
   const DRIVE = 'https://drive.google.com/drive/folders/1Was38RzlLQnV1eFczQIZ25l9QeBCmHWJ?usp=drive_link';
   const NEWS_DEFAULT = [
     {
+      id: 'asg-eco-sol', for: 'reg', kind: 'info', date: '2026-11-17', icon: '✅', title: 'حل أسايمنت الاقتصاد جاهز! (انتظام)', short: 'الحل كامل بخطوات الدكتور والرسومات، والغلاف بأسامي تيمك بيتحط أول صفحة، في PDF واحد جاهز للرفع.',
+      say: 'خبر حلو 🎤 حل أسايمنت الاقتصاد جاهز! ضيف تيمك وأنا أعملك الملف كامل',
+      go: '#asgsol/asg-eco-1', goT: '📄 افتح الحل واعمل الملف',
+      points: [
+        ['✅', 'الحل <b>كامل</b>: الأسئلة السبعة بالخطوات زي ما الدكتور بيصحّح، ومعاها <b>رسومات IS-LM</b> وجدول الخلاصة.'],
+        ['🪪', '<b>ضيف أسامي التيم وأكوادهم</b> (وعلّم على «محوّل»)، والغلاف بيتعمل لوحده ويتحط <b>أول صفحة</b>.'],
+        ['📄', 'الغلاف + الحل = <b>ملف PDF واحد</b> جاهز.'],
+        ['📤', 'زرار <b>«ارفع على الدرايف»</b>: بيجهّز الملف ويفتحلك الدرايف على طول.'],
+        ['⭐', 'الحل <b>للمشتركين</b>.']
+      ]
+    },
+    {
       id: 'asg-stat-1', for: 'ext', kind: 'asg', date: '2026-11-17', icon: '📊', title: 'أسايمنت الإحصاء (انتساب)', short: 'غالبًا تيم وأسئلة PDF وتسليم على لينك. التفاصيل الخميس الساعة 1 في المحاضرة الأونلاين.',
       say: 'خبر للانتساب 🎤 فيه أسايمنت إحصاء! كل التفاصيل يوم الخميس الساعة 1 في المحاضرة الأونلاين، ماتفوّتهاش',
       points: [
@@ -26,14 +38,14 @@
       cover: 'الإحصاء', wait: 'تفاصيل الأسايمنت والأسئلة لسه ماوصلتش. أول ما تتقال يوم الخميس هتنزل هنا.'
     },
     {
-      id: 'asg-eco-1', for: 'reg', kind: 'asg', date: '2026-11-15', link: DRIVE, cover: 'مبادئ الاقتصاد', wait: 'أسئلة الدكتور لسه ماوصلتش. أول ما توصل هتنزل هنا.', icon: '📝', title: 'أسايمنت الاقتصاد نزل! (انتظام)', short: 'بـ 15 درجة بدل الميدترم، تيم من 5 لـ 6، ويترفع PDF على الدرايف.',
+      id: 'asg-eco-1', for: 'reg', kind: 'asg', date: '2026-11-15', link: DRIVE, cover: 'مبادئ الاقتصاد', wait: 'الأسئلة وصلت، والحل الكامل جاهز للمشتركين فوق.', icon: '📝', title: 'أسايمنت الاقتصاد نزل! (انتظام)', short: 'بـ 15 درجة بدل الميدترم، تيم من 5 لـ 6، ويترفع PDF على الدرايف.',
       say: 'خبر عاجل 🎤 فيه أسايمنت اقتصاد بـ 15 درجة بدل الميدترم! تعالى أقولك التفاصيل',
       points: [
         ['🎯', 'الأسايمنت عليه <b>15 درجة</b> بدل الميدترم.'],
         ['👥', 'التيم من <b>4 لـ 6</b> طلاب (الأحسن 5 أو 6).'],
         ['📄', 'يتكتب على <b>ورق عادي</b>.'],
         ['🪪', 'أول صفحة: <b>أسامي كل التيم وأكوادهم</b>، واللي محوّل يتكتب جنب اسمه <b>«محوّل»</b>.'],
-        ['📨', 'الدكتور هيبعت الأسئلة PDF، وأول ما توصل هتلاقيها هنا.'],
+        ['📨', 'الأسئلة وصلت: <b>تطبيقات نموذج IS-LM</b> (7 أسئلة)، و<b>الحل الكامل جاهز</b> هنا للمشتركين.'],
         ['🖨️', 'الأسايمنت كله يتعمل <b>ملف PDF واحد</b>.'],
         ['☝️', '<b>واحد بس</b> من التيم يرفعه، <b>مرة واحدة</b> بس، على لينك الدرايف.'],
         ['📅', 'التسليم <b>آخر أسبوع في الدراسة</b>، والأفضل تسلّم قبل الميعاد.'],
@@ -104,6 +116,11 @@
     News.mark(n.id);
     let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + esc(n.say || n.short) + '</div></div>';
     h += '<div class="card mb newsbody"><ul class="pts">' + n.points.map(p => '<li><span>' + p[0] + '</span><div>' + p[1] + '</div></li>').join('') + '</ul></div>';
+    if (n.go) h += '<a class="btn block mb green" href="' + esc(n.go) + '">' + esc(n.goT || 'افتح') + '</a>';
+    if (n.kind === 'asg' && App.AsgPdf && App.AsgPdf.SOLS[n.id]) {
+      const on = self.Sub && Sub.on();
+      h += '<a class="card tap solcard mb" href="#asgsol/' + esc(n.id) + '">' + Char.html('', 46) + '<span style="flex:1"><b>📄 الحل الكامل + الغلاف في PDF واحد' + (on ? '' : ' 🔒') + '</b><span class="note" style="display:block">' + (on ? 'ضيف التيم، والملف يتعمل لوحده وترفعه بضغطة.' : 'للمشتركين: الحل بخطوات الدكتور والرسومات، والغلاف بأسامي تيمك.') + '</span></span>' + icon('chev', 'chev') + '</a>';
+    }
     if (n.kind === 'asg') {
       const A = asg(n.id), done = n.checks.filter((_, i) => A.chk[i]).length;
       h += '<div class="btns mb">' + (n.link ? '<a class="btn green" href="' + esc(n.link) + '" target="_blank" rel="noopener">📤 لينك التسليم</a>' : '') + '<a class="btn tint" href="#cover/' + esc(n.id) + '">🪪 اعمل صفحة الغلاف</a></div>';
@@ -124,6 +141,7 @@
       let h = '<div class="card mb note">اكتب أسامي التيم وأكوادهم، وعلّم على «محوّل» للي محوّل. بعدها دوس «اطبع / احفظ PDF» وهتطلع صفحة أولى جاهزة.</div>';
       h += '<div class="group cover-in">' + A.team.map((m, i) => '<div class="row noicon cm"><span class="cm-n">' + (i + 1) + '</span><input class="input" data-f="n" data-i="' + i + '" placeholder="الاسم بالكامل" value="' + esc(m.n) + '"><input class="input" data-f="c" data-i="' + i + '" placeholder="الكود" inputmode="numeric" dir="ltr" value="' + esc(m.c) + '"><label class="cm-t"><input type="checkbox" data-f="t" data-i="' + i + '"' + (m.t ? ' checked' : '') + '> محوّل</label>' + (A.team.length > 1 ? '<button class="btn-x" data-del="' + i + '" aria-label="شيل">✕</button>' : '') + '</div>').join('') + '</div>';
       h += '<div class="btns mb">' + (A.team.length < 6 ? '<button class="btn tint" id="cvAdd">' + icon('plus') + 'ضيف طالب</button>' : '') + '<button class="btn" id="cvPrint">🖨️ اطبع / احفظ PDF</button></div>';
+      if (App.AsgPdf && App.AsgPdf.SOLS[nid]) h += '<a class="btn block green mb" href="#asgsol/' + esc(nid) + '">📄 الغلاف + الحل الكامل في PDF واحد ←</a>';
       h += '<div class="cover-sheet" id="cvSheet"><div class="cv-t">Assignment</div><div class="cv-s">' + esc(subj) + '</div><table><thead><tr><th>#</th><th>الاسم</th><th>الكود</th><th></th></tr></thead><tbody>' + A.team.filter(m => m.n.trim()).map((m, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(m.n) + '</td><td dir="ltr">' + esc(m.c) + '</td><td>' + (m.t ? 'محوّل' : '') + '</td></tr>').join('') + '</tbody></table></div>';
       view.querySelectorAll('.cvx').forEach(x => x.remove());
       const w = document.createElement('div'); w.className = 'cvx'; w.innerHTML = h; view.appendChild(w);

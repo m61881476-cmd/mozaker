@@ -89,7 +89,20 @@
     }
   }
 
+  /** ملف مدفوع كبير (زي صفحات حل الأسايمنت): بيتفك بمفتاح المشترك بس */
+  const ASSETS = {};
+  async function asset(name) {
+    if (ASSETS[name]) return ASSETS[name];
+    if (!paidOn) throw new Error('locked');
+    const res = await fetch('content/' + name + '.mz'); if (!res.ok) throw new Error('net');
+    const key = await License.aesKey(License.b64u.dec(LS.get('mz:k', '')));
+    const u8 = await License.open(key, new Uint8Array(await res.arrayBuffer()));
+    const hl = new DataView(u8.buffer, u8.byteOffset).getUint32(0), head = JSON.parse(new TextDecoder().decode(u8.slice(4, 4 + hl)));
+    let at = 4 + hl; const pages = head.pages.map(n => { const b = u8.slice(at, at + n); at += n; return b; });
+    return (ASSETS[name] = { pages });
+  }
   const Sub = {
+    asset,
     PRICE, INSTAPAY, WHATSAPP, WA_INTL,
     on: () => paidOn,
     info: () => LS.get('mz:lic', null),

@@ -135,7 +135,7 @@
   });
   function subjCard(s) {
     const p = subjectProgress(s.id), due = dueCards(s.id).length;
-    return '<a class="subj" href="#subject/' + s.id + '">' + subjIcon(s) + '<b>' + esc(s.name) + '</b><small>' + s.lessons.length + ' دروس · ' + cardsOf(s.id).length + ' بطاقة' + (due ? ' · <span class="c-blue">' + due + ' مستحقة</span>' : '') + '</small><div class="bar"><i style="width:' + Math.round(p * 100) + '%;background:var(--' + s.color + ')"></i></div></a>';
+    return '<a class="subj" href="#subject/' + s.id + '">' + subjIcon(s) + '<b>' + esc(s.name) + '</b><small>' + (s.lessons.length === 1 ? 'درس واحد' : s.lessons.length === 2 ? 'درسين' : s.lessons.length + (s.lessons.length <= 10 ? ' دروس' : ' درس')) + ' · ' + cardsOf(s.id).length + ' بطاقة' + (due ? ' · <span class="c-blue">' + due + ' مستحقة</span>' : '') + '</small><div class="bar"><i style="width:' + Math.round(p * 100) + '%;background:var(--' + s.color + ')"></i></div></a>';
   }
 
   /* ---------- المواد ---------- */
@@ -177,7 +177,7 @@
     header(view, s.name, { back: { to: 'subjects', label: 'المواد' }, right: s.custom ? '<button class="btn-nav" id="editS" aria-label="تعديل المادة">' + icon('edit') + '</button>' : '' });
     const p = subjectProgress(s.id), due = dueCards(s.id).length, nw = newCards(s.id).length, qs = questionsOf(s.id).length;
     const nextEx = upcomingExams().find(e => e.subject === s.id);
-    let html = '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + s.lessons.length + ' دروس · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
+    let html = '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + (s.lessons.length === 1 ? 'درس واحد' : s.lessons.length === 2 ? 'درسين' : s.lessons.length + (s.lessons.length <= 10 ? ' دروس' : ' درس')) + ' · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
     if (s.partial) html += '<div class="warn">' + icon('info') + ' ' + esc(s.partial) + '</div>';
     if (s.paid && !s.unlocked) html += '<a class="card tap subbar mb" href="#subscribe">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ افتح كل فصول ' + esc(s.short) + '</b><span class="note" style="display:block">الدروس اللي عليها 🎁 مجانية. اشتراك الترم كامل ' + self.Sub.PRICE + ' ج ويفتح كل المواد.</span></span>' + icon('chev', 'chev') + '</a>';
     html += '<div class="btns mb"><a class="btn" href="#review/' + s.id + '">' + icon('cards') + (due ? 'راجع ' + due : nw ? 'ابدأ البطاقات' : 'راجع') + '</a><a class="btn tint" href="#quiz?s=' + s.id + '">' + icon('quiz') + 'امتحني</a></div>';
@@ -257,6 +257,7 @@
     else if (canTeach) html += '<a class="card tap teachcard mb" href="#teach/' + l.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🎓 ذاكر معايا الدرس ده</b><span class="note" style="display:block">' + esc(d.charName) + ' يشرحهولك حتة حتة ويسألك بعد كل جزء.</span></span>' + icon('chev', 'chev') + '</a>';
     html += l.summary && l.summary.trim() ? '<article class="card prose">' + md(l.summary, r.q.hl) + '</article>' : '<div class="empty" style="padding:16px 0">' + Char.html('', 70) + '<p>المحاضرة دي لسه فاضية. اضغط ✏️ فوق واكتب الشرح أو الملخص.</p></div>';
     if (App.Board && App.Board.has(l.id)) html += '<a class="boardbar tap" href="#board/' + l.id + '" id="boardBar"><span><b>🎬 عايز شرح على البورد؟</b><span class="s">' + esc(d.charName) + ' يكتب ويرسم ويشرح بصوته، خطوة خطوة (' + App.Board.count(l.id) + ' مشاهد)</span></span><span class="go">' + icon('play') + '</span></a>';
+    if (nq && !isFinal) html += '<a class="card tap quizcard mb" href="#quiz?l=' + l.id + '&n=' + nq + '&go=1" id="quizBar">' + Char.html('', 46) + '<span style="flex:1"><b>📝 اختبر نفسك في الفصل ده</b><span class="note" style="display:block">' + nq + ' سؤال اختيار من متعدد وصح وغلط، وكل إجابة بشرحها.</span></span><span class="go">' + icon('play') + '</span></a>';
     if (s.custom) html += '<div class="btns mt"><button class="btn sm tint" id="addLC">' + icon('plus') + 'بطاقة</button><button class="btn sm tint" id="addLQ">' + icon('plus') + 'سؤال</button></div>';
     const myNotes = d.notes.filter(n => n.l === l.id);
     if (myNotes.length) html += '<div class="group-h">ملاحظاتي على الدرس</div><div class="group">' + myNotes.map(n => '<div class="row noicon"><span class="tx"><small style="color:var(--fg);font-size:15px">' + esc(n.text) + '</small></span></div>').join('') + '</div>';

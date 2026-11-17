@@ -261,7 +261,7 @@
       App.logDay({ min: Math.max(1, Math.round((Date.now() - P.t0) / 60000)) }); Store.save(true);
       const nq = App.questionsOf(l.s, P.lid).length;
       this.caption('خلصنا شرح «' + l.title + '» على البورد 🎉 دلوقتي جرّب نفسك في أسئلة الفصل.');
-      $('#bdEnd').innerHTML = '<div class="card bd-end"><b>🎉 خلصنا الشرح</b><div class="note">قريت الملخص وشفت الشرح على البورد، فاضل تثبّت بالأسئلة.</div><div class="btns mt">' + (nq ? '<a class="btn" href="#quiz?l=' + P.lid + '&n=' + Math.min(10, nq) + '&go=1">' + icon('quiz') + 'امتحني في الفصل</a>' : '') + '<button class="btn tint" id="bdAgain">' + icon('reset') + 'عيد الشرح</button><a class="btn gray" href="#lesson/' + P.lid + '">الملخص</a></div></div>';
+      $('#bdEnd').innerHTML = '<div class="card bd-end"><b>🎉 خلصنا الشرح</b><div class="note">قريت الملخص وشفت الشرح على البورد، فاضل تثبّت بالأسئلة.</div><div class="btns mt">' + (nq ? '<a class="btn" href="#quiz?l=' + P.lid + '&n=' + nq + '&go=1">' + icon('quiz') + 'امتحني في الفصل (' + nq + ' سؤال)</a>' : '') + '<button class="btn tint" id="bdAgain">' + icon('reset') + 'عيد الشرح</button><a class="btn gray" href="#lesson/' + P.lid + '">الملخص</a></div></div>';
       $('#bdAgain').onclick = () => { this.scene(0, true); };
       const c = $('.bd-cap .char'); if (c) Char.act(c, 'cheer'); U.beep('done'); this.ui();
       $('#bdEnd').scrollIntoView({ behavior: 'smooth', block: 'nearest' });

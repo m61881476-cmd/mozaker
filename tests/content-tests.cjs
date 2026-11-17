@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'eco', 'eco-b1', 'eco-q'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'eco', 'eco-b1', 'eco-q', 'law', 'law-b1', 'law-q'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -106,6 +106,27 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   t('اقتصاد: must و howto', Ec.must.length >= 6 && Ec.howto.length >= 5);
   const tu = x => E.tutor(Ec.concepts, x, {});
   t('اقتصاد: سَنَد يشرح المضاعف والفرق بين التعادل والتوازن', tu('يعني ايه مضاعف الانفاق').c.k === 'مضاعف الإنفاق' && tu('الفرق بين التعادل والتوازن').kind === 'diff');
+}
+/* ---------- القانون التجاري ---------- */
+{
+  const Lw = self.MZ_CONTENT.find(s => s.id === 'law');
+  t('قانون: المادة موجودة بالفصل الأول', !!Lw && Lw.lessons.length === 1 && Lw.lessons[0].id === 'lw1');
+  const q = Lw.questions;
+  t('قانون: 30 سؤال بالظبط', q.length === 30, q.length);
+  t('قانون: اختيار من متعدد وصح وغلط بس', q.every(x => x.t === 'mcq' || x.t === 'tf'));
+  t('قانون: كل MCQ أربع اختيارات وإجابة صح', q.filter(x => x.t === 'mcq').every(x => x.o.length === 4 && x.a >= 0 && x.a < 4 && x.e));
+  t('قانون: الإجابات الصح متوزعة على الأماكن', [0, 1, 2, 3].every(i => q.filter(x => x.t === 'mcq' && x.a === i).length >= 2));
+  t('قانون: كل «غلط» معاه العبارة الصح', q.filter(x => x.t === 'tf' && !x.a).every(x => x.fix));
+  t('قانون: البورد 9 مشاهد', Lw.boards.lw1 && Lw.boards.lw1.length === 9);
+  F.reg('law', Lw.figs);
+  const refs = (Lw.lessons[0].summary.match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
+  t('قانون: كل الرسومات المذكورة موجودة وبترسم', refs.length === 4 && refs.every(id => F.get(id) && F.html(id).includes('<figure')));
+  const sum = Lw.lessons[0].summary;
+  t('قانون: الملخص فيه كل المعلومات المهمة', ['صاحبة سلطة وسيادة', 'الشريعة العامة', 'العرف التجاري', '1000 جنيه', 'اليمين الحاسمة', 'التاريخ الثابت', 'افتراض التضامن', 'أمين التفليسة', 'النفاذ المعجل', '2008', '4%', '5%', 'متجمّد الفوائد', 'الرهن الحيازي', 'المضاربة', 'التداول', 'الحرفة', 'دور منطقي', 'المنفردة', 'الاحتراف'].every(w => sum.includes(w)));
+  E.mergePlus(Lw);
+  const tu = x => E.tutor(Lw.concepts, x, {});
+  t('قانون: سَنَد يفهم «يعني ايه النفاذ المعجل»', (tu('يعني ايه النفاذ المعجل') || { c: {} }).c.k === 'النفاذ المعجل');
+  t('قانون: سَنَد يفهم الغلط الإملائي «نظريه التدوال»', (tu('اشرحلي نظريه التدوال') || { c: {} }).c.k === 'نظرية التداول');
 }
 console.log((fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
 if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }

@@ -392,8 +392,9 @@
   const SOON = [['🏭', 'إدارة الإنتاج'], ['⚖️', 'القانون التجاري'], ['🧾', 'محاسبة الشركات'], ['📊', 'الإحصاء']];
   function subjectsExtra(view) {
     const sub = $('.subjects', view); if (!sub) return;
-    const on = self.Sub && Sub.on();
-    sub.insertAdjacentHTML('afterend', '<div class="group-h">قريبًا ⏳</div><div class="subjects soon">' + SOON.map(s => '<div class="subj soon-c"><span class="ic soon-ic">' + s[0] + '</span><b>' + s[1] + '</b><small>قادم قريبًا' + (on ? ' · هتنزلك أوتوماتيك ✓' : ' · داخلة في الاشتراك') + '</small></div>').join('') + '</div>');
+    const on = self.Sub && Sub.on(), have = new Set(App.SUBJ.map(x => x.name)), soon = SOON.filter(x => !have.has(x[1]));
+    if (!soon.length) return;
+    sub.insertAdjacentHTML('afterend', '<div class="group-h">قريبًا ⏳</div><div class="subjects soon">' + soon.map(s => '<div class="subj soon-c"><span class="ic soon-ic">' + s[0] + '</span><b>' + s[1] + '</b><small>قادم قريبًا' + (on ? ' · هتنزلك أوتوماتيك ✓' : ' · داخلة في الاشتراك') + '</small></div>').join('') + '</div>');
   }
 
   /* ================= وضع فاطمة: الشخصية (اللي هي شكل محمد) بتدلّعها ================= */

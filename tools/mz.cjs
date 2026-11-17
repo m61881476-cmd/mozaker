@@ -72,7 +72,7 @@ async function build() {
     const pick = (o, keep) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keep(k)));
     const F = {
       id: S.id, name: S.name, short: S.short, icon: S.icon, color: S.color, kind: S.kind, tools: S.tools || [], keys: S.keys, final: S.final, partial: S.partial, rewrite: S.rewrite,
-      lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, summary: '', locked: true }),
+      lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, exam: l.exam, summary: '', locked: true }),
       questions: S.questions.filter(q => isFree(q.l)), cards: S.cards.filter(c => isFree(c[2])), concepts: (S.concepts || []).filter(c => isFree(c.l)),
       figs: pick(S.figs, k => freeFigs.has(k)), boards: pick(S.boards, k => isFree(k)),
       lockedConcepts: (S.concepts || []).filter(c => !isFree(c.l)).map(c => ({ k: c.k, alt: c.alt, l: c.l })),

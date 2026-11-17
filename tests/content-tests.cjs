@@ -112,11 +112,12 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   const Lw = self.MZ_CONTENT.find(s => s.id === 'law');
   t('قانون: المادة موجودة بالفصل الأول', !!Lw && Lw.lessons.length === 1 && Lw.lessons[0].id === 'lw1');
   const q = Lw.questions;
-  t('قانون: 30 سؤال بالظبط', q.length === 30, q.length);
+  t('قانون: 29 سؤال (زي الامتحان الأصلي، والـ 30 لسه ماوصلش)', q.length === 29, q.length);
   t('قانون: اختيار من متعدد وصح وغلط بس', q.every(x => x.t === 'mcq' || x.t === 'tf'));
   t('قانون: كل MCQ أربع اختيارات وإجابة صح', q.filter(x => x.t === 'mcq').every(x => x.o.length === 4 && x.a >= 0 && x.a < 4 && x.e));
   t('قانون: الإجابات الصح متوزعة على الأماكن', [0, 1, 2, 3].every(i => q.filter(x => x.t === 'mcq' && x.a === i).length >= 2));
-  t('قانون: كل «غلط» معاه العبارة الصح', q.filter(x => x.t === 'tf' && !x.a).every(x => x.fix));
+  t('قانون: كل سؤال ليه شرح', q.every(x => x.e && x.e.length > 20));
+  t('قانون: أول سؤال عن القانون العام', q[0].q.includes('صاحبة سلطة وسيادة') && q[0].a === 2);
   t('قانون: البورد 9 مشاهد', Lw.boards.lw1 && Lw.boards.lw1.length === 9);
   F.reg('law', Lw.figs);
   const refs = (Lw.lessons[0].summary.match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));

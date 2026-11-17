@@ -401,8 +401,8 @@
     let h = '<div class="xintro card mb">'
       + '<div class="xi-top">' + Char.html('', 92) + '<div class="bubble">' + (runs ? (runs.best >= PASS ? (f ? 'نجحتي فيه قبل كده 🎉 يلا نثبّت أكتر؟' : 'نجحت فيه قبل كده 🎉 يلا نثبّت أكتر؟') : (f ? 'المرة دي هتعديها، أنا متأكد 💪🤍' : 'المرة دي هتعديها، أنا متأكد 💪')) : (f ? 'جاهزة يا قمر؟ خدي نفس وابدئي، وأنا معاكي بعد كل سؤال 🤍' : 'جاهز؟ خد نفس وابدأ، وأنا معاك بعد كل سؤال 😉')) + '</div></div>'
       + '<div class="xi-ic">📝</div>'
-      + '<h2 class="xi-t">' + esc(l.title) + '</h2>'
-      + '<div class="xi-s">' + esc(s.name) + '</div>'
+      + '<h2 class="xi-t">' + esc(l.exam || l.title) + '</h2>'
+      + '<div class="xi-s">' + esc(l.exam ? l.title : s.name) + '</div>'
       + '<div class="xi-chips"><span><b>' + qs.length + '</b> سؤال</span><span>⏱ حوالي <b>' + mins + '</b> دقيقة</span><span>🎯 النجاح من <b>' + Math.round(PASS * 100) + '%</b></span></div>'
       + '<div class="xi-kinds">' + (nM ? '<div>☑️ <b>' + nM + '</b> اختيار من متعدد</div>' : '') + (nT ? '<div>✔️ <b>' + nT + '</b> صح وغلط</div>' : '') + (nO ? '<div>✍️ <b>' + nO + '</b> أكمل ومسائل</div>' : '') + (nS ? '<div>⭐ <b>' + nS + '</b> سؤال متوقع</div>' : '') + '</div>'
       + (runs ? '<div class="xi-last ' + (runs.best >= PASS ? 'ok' : '') + '">آخر مرة: <b>' + runs.lastOk + '/' + runs.n + '</b> (' + Math.round(runs.last * 100) + '%) · أحسن نتيجة <b>' + Math.round(runs.best * 100) + '%</b>' + (runs.best >= PASS ? ' ✓ ناجح' : '') + '</div>' : '')
@@ -473,7 +473,7 @@
     }
     const draw = () => {
       const it = QZ.qs[QZ.i], q = it.q, l = LESSONS[q.l];
-      const opts = q.type === 'tf' ? ['صح', 'غلط'] : q.options;
+      const opts = q.type === 'tf' ? ['صح', /^\(صح أم خطأ\)/.test(q.q) ? 'خطأ' : 'غلط'] : q.options;
       let html = '<div class="progress-top"><span class="pill qkind">' + (q.type === 'tf' ? 'صح وغلط' : q.type === 'mcq' ? 'اختيار من متعدد' : q.type === 'num' ? 'مسألة' : 'أكمل') + '</span><span class="num">' + (QZ.i + 1) + '/' + QZ.qs.length + '</span><div class="bar"><i style="width:' + (QZ.i / QZ.qs.length * 100) + '%"></i></div></div>';
       html += '<div class="qcard' + (q.star ? ' starred' : '') + '"><div style="display:flex;gap:6px;flex-wrap:wrap">' + (S(q.s) ? '<span class="pill acc">' + esc(S(q.s).short) + '</span>' : '') + (l ? '<span class="pill">' + esc(l.title) + '</span>' : '') + (q.star ? '<span class="pill star">⭐ هام</span>' : '') + '</div>';
       if (q.star) html += '<div class="star-say">' + Char.html('', 40) + '<div class="bubble"><b>ركّز هنا، ده سؤال هام ⭐</b>' + (q.why ? '<br>' + esc(q.why) : '') + '</div></div>';

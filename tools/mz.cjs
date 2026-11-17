@@ -126,7 +126,7 @@ async function unpack() {
 async function issue() {
   const [, , , name, device, plan = 'term', exp] = process.argv;
   const s = await secrets();
-  const code = await L.issue({ privJwk: s.privJwk, K: s.K, name, device, plan, exp: exp ? new Date(exp + 'T00:00:00Z') : (plan === 'vip' ? null : new Date('2027-02-28T00:00:00Z')), serial: Math.floor(Math.random() * 60000) });
+  const code = await L.issue({ privJwk: s.privJwk, K: s.K, name, device, plan, exp: exp ? new Date(exp + 'T00:00:00Z') : (plan === 'vip' ? null : new Date('2027-02-28T00:00:00Z')), serial: process.env.MZ_SERIAL ? +process.env.MZ_SERIAL : Math.floor(Math.random() * 60000) });
   console.log(code);
 }
 

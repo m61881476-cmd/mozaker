@@ -44,6 +44,8 @@
     net: 'محتاج نت مرة واحدة بس عشان المحتوى ينزل. اتصل بالنت وجرّب تاني.',
     space: 'مساحة المتصفح مليانة. امسح شوية بيانات من المتصفح وجرّب تاني.'
   };
+  /** أكواد أشخاص مميزين (بالرقم المسلسل، والرقم متوقّع جوه الكود فمحدش يقدر يزوّره) */
+  const SPECIAL = { 65001: { who: 'bff', label: 'بيستو فريندو 💜' } };
   /** تفعيل: كود موقّع أو كود خاص */
   async function activate(text, name) {
     text = String(text || '').trim(); name = String(name || '').trim();
@@ -54,8 +56,9 @@
         const r = await License.verify(text, { pubJwk: KEYS.pub, device: device(), name });
         if (!r.ok) return { ok: false, msg: MSG[r.reason] || MSG.format, reason: r.reason };
         if ((LS.get('mz:revoked', []) || []).includes(r.serial)) return { ok: false, msg: 'الكود ده اتلغى. كلّم محمد على واتساب.' };
-        await store(r.K, { kind: 'code', code: License.extract(text), name, plan: r.plan, exp: r.exp ? r.exp.getTime() : null, serial: r.serial, at: Date.now() });
-        return { ok: true, plan: r.plan };
+        const sp = SPECIAL[r.serial] || {};
+        await store(r.K, { kind: 'code', code: License.extract(text), name, plan: r.plan, exp: r.exp ? r.exp.getTime() : null, serial: r.serial, who: sp.who, label: sp.label, at: Date.now() });
+        return { ok: true, plan: r.plan, who: sp.who };
       }
       const v = await License.tryVanity(text, name, KEYS.vanity, KEYS.vsalt);
       if (!v) return { ok: false, msg: MSG.vanity };
@@ -108,7 +111,8 @@
     info: () => LS.get('mz:lic', null),
     expired: () => expired(LS.get('mz:lic', null)),
     device, activate, check, merge,
-    who: () => { const l = LS.get('mz:lic', null); return l && paidOn ? l.who || null : null; },
+    who: () => { const l = LS.get('mz:lic', null); return l && paidOn ? l.who || (SPECIAL[l.serial] || {}).who || null : null; },
+    isAdmin: () => { const l = LS.get('mz:lic', null); return !!(l && paidOn && l.admin); },
     wa: text => 'https://wa.me/' + WA_INTL + '?text=' + encodeURIComponent(text),
     /** المادة دي فيها جزء مقفول؟ */
     lockedSubject: s => !!(s && s.paid && !s.unlocked)
@@ -194,8 +198,9 @@
   /* ---------- (4) لوحة الأدمن ---------- */
   let ADM = null;
   Router.on('admin', view => {
-    header(view, 'لوحة الأدمن', { back: { to: 'subscribe', label: 'الاشتراك' } });
     const LA = LS.get('mz:lic', null);
+    if (!(LA && paidOn && LA.admin)) return Router.go('home', { replace: true }); // لوحة الأدمن لمحمد الشيخ بس
+    header(view, 'لوحة الأدمن', { back: { to: 'subscribe', label: 'الاشتراك' } });
     if (!ADM && LA && LA.admin && LA.ap) { view.insertAdjacentHTML('beforeend', '<p class="note center">بيفتح…</p>'); License.openAdminBundle(LA.ap, KEYS.admin).then(a => { ADM = { privJwk: a.privJwk, K: License.b64u.dec(a.K) }; Router.render(); }).catch(() => { LA.ap = null; LS.set('mz:lic', LA); Router.render(); }); return; }
     if (!ADM) {
       view.insertAdjacentHTML('beforeend', '<div class="card"><b>كلمة سر الأدمن</b><p class="note">بتفتح المفتاح اللي بيطلّع الأكواد. مابتتحفظش، ومحدش يقدر يطلّع كود من غيرها.</p><input class="input" id="admPw" type="password" dir="ltr" autocomplete="current-password" placeholder="MZK-XXXX-XXXX-XXXX-XXXX"><button class="btn block mt" id="admGo">' + icon('lock') + 'افتح</button><p id="admMsg"></p></div>');

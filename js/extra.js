@@ -100,7 +100,7 @@
   const track = () => { const d = D(); return d && TR[d.track] ? d.track : null; };
   const trPill = n => n.for ? ' <span class="pill ' + (n.for === 'ext' ? 'orange' : 'green') + '">' + TR[n.for] + '</span>' : '';
   function trackAskHTML(small) {
-    const f = isF();
+    const f = isF() || (App.bff && App.bff());
     return '<div class="card mb trask">' + Char.html('', small ? 46 : 58) + '<div style="flex:1"><b>' + (f ? 'إنتي' : 'إنت') + ' انتظام ولا انتساب؟ 🤔</b><div class="note">عشان أوريك الأخبار والأسايمنتات اللي تخصّك ' + (f ? 'إنتي' : 'إنت') + ' بس.</div><div class="btns mt"><button class="btn sm" data-tr="reg">🏫 انتظام</button><button class="btn sm tint" data-tr="ext">🏠 انتساب</button></div></div></div>';
   }
   function bindTrack(root) {
@@ -330,6 +330,7 @@
       const ex = App.upcomingExams()[0]; if (ex) { const l = E.daysBetween(new Date(), new Date(ex.date)); if (l > 0 && l <= 10) extra.push('فاضل ' + l + ' يوم على الامتحان، و' + (f ? 'إنتي ماشية' : 'إنت ماشي') + ' كويس 💪'); }
       // من غير تكرار: نشيل آخر 12 جملة اتقالت
       if (f && typeof sweet === 'function' && Math.random() < 0.5) return sweet(Math.random() < 0.5 ? 'da' : 'sh');
+      if (App.bff && App.bff()) return bLine(Math.random() < 0.4 ? 'da' : 'sh');
       const pool = (Math.random() < 0.35 && extra.length ? extra : LINES[f ? 'f' : 'm']);
       P.used = P.used || []; let c = pool.filter(x => !P.used.includes(x)); if (!c.length) { P.used = []; c = pool; }
       const line = pick(c); P.used.push(line); if (P.used.length > 12) P.used.shift();
@@ -338,7 +339,7 @@
     const FOK = ['🤍', '💕', '🌸', '✨', '🥰'];
     const rawReact = P.react.bind(P);
     P.react = function (kind, n) {
-      if (kind === 'bad' && this.on()) { this.wake(); Char.act(this.char(), 'sad'); if (Math.random() < 0.45) this.say(pick(LINES[isF() ? 'bad_f' : 'bad_m']), 'nod', 2600); return; }
+      if (kind === 'bad' && this.on()) { this.wake(); Char.act(this.char(), 'sad'); if (Math.random() < 0.45) this.say(App.bff && App.bff() ? bLine('bad') : pick(LINES[isF() ? 'bad_f' : 'bad_m']), 'nod', 2600); return; }
       if (kind === 'ok' && this.on() && isF()) { this.wake(); this.hop(); Char.fx(this.char(), pick(FOK)); if (n && n % 3 === 0) this.say(pick([n + ' صح ورا بعض يا قمر 😍', 'إيه الشطارة دي يا فطومة 🤍 ' + n + ' صح!', 'محمد هيفرح أوي لما يعرف 🥹 ' + n + ' صح ورا بعض']), 'cheer', 2600, true); return; }
       if (kind === 'ok' && this.on() && n && n % 5 === 0) { rawReact('ok'); this.say(n + ' صح ورا بعض 🔥', 'fire', 2200, true); return; }
       rawReact(kind);
@@ -407,6 +408,7 @@
       ['💬', 'كلّم ' + cname(), '#chat', ''],
       ['📅', 'الجدول', '#plan', '']
     ];
+    if (self.Sub && Sub.isAdmin && Sub.isAdmin()) tiles.push(['🔑', 'لوحة الأدمن', '#admin', 'الأكواد']);
     const h = '<nav class="mtiles" aria-label="القايمة">' + tiles.map(t => '<a class="mtile' + (t[2] === '#subscribe' && !on ? ' hot' : '') + '" href="' + t[2] + '"><span class="mt-ic">' + t[0] + '</span><b>' + t[1] + '</b>' + (t[3] ? '<small>' + t[3] + '</small>' : '') + '</a>').join('') + '</nav>';
     if (hero) hero.insertAdjacentHTML('beforebegin', h); else if (nav) nav.insertAdjacentHTML('afterend', h); else view.insertAdjacentHTML('afterbegin', h);
     if (!track()) { $('.mtiles', view).insertAdjacentHTML('afterend', trackAskHTML(true)); bindTrack(view); }
@@ -539,11 +541,81 @@
   }
   App.fatma = isF;
 
+  /* ================= وضع البيست فريندو (چني): محمد بيدعمها وبيناديها مرة «چني» ومرة «بيستو فريندو» ================= */
+  const isB = () => !!(self.Sub && Sub.who() === 'bff');
+  App.bff = isB;
+  const BN = ['چني', 'بيستو فريندو', 'چني', 'يا بيست'];
+  let bnI = Math.floor(Math.random() * BN.length);
+  const bn = () => { bnI = (bnI + 1) % BN.length; return BN[bnI]; };
+  const fillN = t => t.replace(/\{n\}/g, () => bn().replace(/^يا /, ''));
+  const BG = {
+    night: ['لسه صاحية يا {n}؟ 🌙 ذاكري حتة صغيرة ونامي، الدماغ محتاجة ترتاح 💜', 'السهر ده مش حلو يا {n} 😅 خمس دقايق وعلى النوم', 'نامي بدري يا {n}، بكرة نكمّل سوا 💜'],
+    morning: ['صباح الخير يا {n} ☀️💜 جاهزة نكسّر الدنيا النهارده؟', 'صباح الفل يا {n} 🌼 فطرتي؟ يلا نبدأ بهدوء', 'صحيتي يا {n}؟ النهارده يومك 💪'],
+    noon: ['أهلًا يا {n} 💜 وحشتيني، يلا حتة مذاكرة سوا؟', 'نوّرتي يا {n} 🌟 عاملة إيه النهارده؟', 'يا هلا بـ{n} 😄 جاهزة؟'],
+    evening: ['مساء الفل يا {n} 🌙 يلا نذاكر شوية ونرتاح؟', 'مساء الورد يا {n} 💜 يومك كان عامل إيه؟', 'تعبتي النهارده يا {n}؟ تعالي نعمل حاجة خفيفة سوا']
+  };
+  const BDA = [
+    'إنتي أجدع صاحبة في الدنيا يا {n} 💜', 'أنا في ضهرك دايمًا يا {n}، مهما يحصل 🤝', 'يا {n}، إنتي مش لوحدك أبدًا، أنا هنا 💜',
+    'وجودك في حياتي نعمة يا {n} 🌟', 'أي حاجة تضايقك قوليلي يا {n}، وأنا أحلّها معاكي 🤗', 'يا {n} إنتي أكتر حد بيفهمني 😂💜',
+    'البيست فريندو بتاعتي أحسن من أي حد 💜', 'محدش يقدر يزعّلك وأنا موجود يا {n} 😤💜', 'إنتي قوية أكتر ما إنتي متخيلة يا {n} 💪',
+    'لو الدنيا قفلت، اضحكي وأنا أفتحها 😄', 'يا {n} إنتي ماشاء الله عليكي في كل حاجة 🌸', 'صحابتك دي أحلى حاجة حصلتلي 🤝💜',
+    'يا {n}، خدي نفس… كل حاجة هتبقى تمام، وعد 🤞', 'ابتسمي يا {n} 😄 الضحكة دي بتفرق', 'أنا فخور إنك صاحبتي يا {n} 🥹💜',
+    'مهما تغيبي، مكانك محفوظ يا {n} 💜', 'يا {n} إنتي الضحكة اللي في اليوم الوحش 😂', 'دايمًا جنبك يا {n}، في المذاكرة وفي غيرها 💜',
+    'لو زعلانة من حاجة، أنا جاهز أسمعك يا {n} 👂💜', 'يا {n}، ماحدش زيك والله 🌟', 'البيستو فريندو تستاهل كل حاجة حلوة 💜',
+    'يا {n} إنتي بطلة، حتى في الأيام التقيلة 🦸‍♀️', 'هنعدّي الترم ده سوا يا {n} 🤝', 'إنتي مش محتاجة حد يقولك إنك جامدة… بس هقولها برضه: جامدة 😎💜',
+    'يا {n} لو تعبتي، قوليلي وأنا أذاكرلك الحتة الصعبة 😄', 'الصحاب اللي زيك قليلين يا {n} 💜', 'كل ما أشوفك بتذاكري بفرح بيكي يا {n} 🥹',
+    'يا {n} إنتي دايمًا بتعرفي تطلّعي من أي حاجة 💪', 'صاحبتي الجدعة 💜 ربنا يخليكي', 'يا {n}، النهارده هيعدي حلو، أنا متأكد 🌈'
+  ];
+  const BSH = [
+    'يلا يا {n}، إنتي قدها وقدود 💪', 'كمّلي يا {n}، فاضل شوية صغيرين 🏁', 'يا {n} دماغك ألماظ، يلا نخلّص الفصل ده 💎',
+    'خطوة صغيرة كل يوم يا {n} وهتلاقي نفسك خلصتي المنهج 🌱', 'الامتحان هيتكسف منك يا {n} 😎', 'يلا يا {n}، 5 أسئلة بس وبعدين استراحة 🍫',
+    'شطورة يا {n} 👏 كمّلي', 'إنتي بتعملي حاجة صعبة وبتعمليها حلو يا {n}', 'يا {n} لو غلطتي، عادي، المهم تتعلمي 💜',
+    'أنا شايفك في الامتياز يا {n} 🎓', 'ركّزي ربع ساعة بس يا {n}، وأنا مستنيكي بكلمة حلوة 😄', 'يا {n} التعب ده هيتحول فرحة يوم النتيجة 🎊',
+    'يلا نجيب الامتياز ونحتفل سوا يا {n} 🎉', 'يا {n} إنتي عملتيها قبل كده، وهتعمليها تاني 💪', 'نفس عميق… كوباية مية… وقومي يا {n} 💧',
+    'يا {n} الخوف ده طبيعي، بس إنتي أقوى منه 🦁', 'كل فصل بتقفليه بفرح كأني أنا اللي قفلته يا {n} 🥹', 'يا {n} ابدئي بالأسهل، وكل صح هيشجعك 👌'
+  ];
+  const BBAD = ['ولا يهمك يا {n} 😂 كلنا بنغلط', 'عادي يا {n}، الغلط هنا ببلاش 💜', 'دي بسيطة يا {n}، اقري الشرح وهتفتكريها', 'ماتزعليش يا {n}، المرة الجاية صح 💪'];
+  const bLine = k => fillN(deck('b-' + k, k === 'da' ? BDA : k === 'sh' ? BSH : BBAD));
+  const BGREET = () => fillN(deck('bg-' + slot(), BG[slot()]));
+  const BSET = ['💜', '🤝', '✨', '🌟', '💫'];
+  App.bffSay = kind => {
+    if (!self.Pal || !Pal.el) return;
+    Props.pal(kind === 'sh' ? 'thumbs' : 'wave', 6000);
+    Pal.say(bLine(kind), kind === 'sh' ? 'cheer' : 'happy', 6500, true);
+    hearts(Pal.el.querySelector('.pal-c'), 8, kind === 'sh' ? ['💪', '⭐', '🔥', '💜', '✨'] : BSET);
+    haptic('success');
+  };
+  if (self.Pal) {
+    const P = self.Pal, tb = P.tap.bind(P);
+    P.tap = function () {
+      tb();
+      if (!isB()) return;
+      const m = this.el && this.el.querySelector('.pal-menu'); if (!m || m.hidden) return;
+      $$('button', m).forEach(b => { if (/شجعني/.test(b.textContent) && !b.dataset.bf) b.remove(); });
+      const hd = m.querySelector('.pal-mh'), bf = '<button data-bf="da" class="fz bf">💜 دعم البيست فريندو</button><button data-bf="sh" class="fz bf">💪 شجّعني</button>';
+      if (hd) { hd.insertAdjacentHTML('afterend', bf); hd.textContent = fillN('محمد معاكي يا {n}، عايزة إيه؟ 💜'); } else m.insertAdjacentHTML('afterbegin', bf);
+      $$('button:not([data-bf])', m).forEach(b => { b.textContent = b.textContent.replace('ذاكر «', 'ذاكري «').replace(/^👉 راجع /, '👉 راجعي ').replace(/^👉 كمّل /, '👉 كمّلي ').replace(/^👉 ضيف /, '👉 ضيفي '); });
+      $$('[data-bf]', m).forEach(b => b.onclick = e => { e.stopPropagation(); this.hideMenu(); App.bffSay(b.dataset.bf); });
+    };
+  }
+  function bffHome(view) {
+    const b = $('#homeBubble', view); if (!b) return;
+    const d = D(), st = App.streakNow(), mins = ((d.days || {})[App.today()] || {}).min || 0;
+    b.innerHTML = BGREET() + (mins >= 20 ? '<br>' + fillN('ذاكرتي ' + mins + ' دقيقة النهارده يا {n}، جامدة 👏') : st >= 2 ? '<br>' + fillN(st + ' أيام ورا بعض يا {n} 🔥 ماتقطعيهاش') : '');
+    b.insertAdjacentHTML('beforeend', '<div class="fzrow"><button class="chip fz bf" data-hb="da">💜 دعم البيست فريندو</button><button class="chip fz" data-hb="sh">💪 شجّعني</button></div>');
+    const c = $('.hero .char', view); if (c) { Props.put(c, 'wave'); setTimeout(() => Char.act(c, 'happy'), 500); }
+    $$('[data-hb]', b).forEach(x => x.onclick = () => {
+      const k = x.dataset.hb, row = $('.fzrow', b); b.innerHTML = bLine(k); b.appendChild(row);
+      if (c) { Props.put(c, k === 'sh' ? 'thumbs' : 'wave'); Char.act(c, k === 'sh' ? 'cheer' : 'happy'); hearts(c, 8, k === 'sh' ? ['💪', '⭐', '🔥', '💜', '✨'] : BSET); }
+      haptic('success');
+    });
+  }
+
   /* ================= بعد كل صفحة ================= */
   App.afterRender = (view, r) => {
     try {
       if (!Store.data) return;
-      if (r.name === 'home' && $('.hero', view)) { homeExtra(view); if (isF()) fatmaHome(view); }
+      if (r.name === 'home' && $('.hero', view)) { homeExtra(view); if (isF()) fatmaHome(view); else if (isB()) bffHome(view); }
       else if (r.name === 'subjects') subjectsExtra(view);
       else if (r.name === 'settings') settingsExtra(view);
       if (r.name === 'lesson' || r.name === 'teach') setTimeout(() => watchImportant(view), 800); else if (io) { io.disconnect(); io = null; }
@@ -556,13 +628,14 @@
     const w = sessionStorage.getItem('mz:welcome'); if (!w) return; sessionStorage.removeItem('mz:welcome');
     const T = {
       owner: ['👑', 'أهلًا يا مخترع!', 'النسخة الكاملة مفتوحة، ولوحة الأدمن مستنياك في صفحة الاشتراك. يلا نكسّر الدنيا 😎'],
+      bff: ['💜', 'أهلًا يا بيستو فريندو!', 'النسخة دي VIP هدية من محمد لچني 💜 كل المواد والفصول مفتوحة، وأنا هفضل أشجعك وأدعمك طول الترم. يلا بينا!'],
       fatma: ['🤍', 'أهلًا يا فاطمة', 'النسخة دي هدية من محمد 🤍 كل المواد والفصول مفتوحة ليكي، وأنا معاكي في كل خطوة.'],
       sub: ['🎉', 'اشتراكك اتفعّل!', 'كل الفصول والبورد والماراثون والمراجعة النهائية بقوا مفتوحين. يلا بينا!']
     }[w] || ['🎉', 'اشتراكك اتفعّل!', 'كل حاجة بقت مفتوحة.'];
     const el = document.createElement('div'); el.className = 'award-pop welcome';
     el.innerHTML = '<div class="ap-in">' + Char.html('', 96) + '<div class="ap-ic">' + T[0] + '</div><b>' + esc(T[1]) + '</b><small>' + esc(T[2]) + '</small><div class="btns"><button class="btn" data-x>يلا بينا</button></div></div>';
     document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
-    const c = $('.char', el); Props.put(c, w === 'owner' ? 'crown' : w === 'fatma' ? 'heart' : 'trophy'); setTimeout(() => Char.act(c, 'cheer'), 300);
+    const c = $('.char', el); Props.put(c, w === 'owner' ? 'crown' : w === 'fatma' ? 'heart' : w === 'bff' ? 'wave' : 'trophy'); setTimeout(() => Char.act(c, 'cheer'), 300);
     beep('ok'); haptic('success');
     el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) { el.classList.remove('on'); setTimeout(() => el.remove(), 300); Awards.check(); } };
   }
@@ -574,7 +647,7 @@
     think: '<g class="pp-tk"><circle cx="200" cy="200" r="13" fill="#f2c39b" stroke="#6b3f22" stroke-width="3"/><path d="M222 288 Q215 240 200 210" stroke="#5b6b3a" stroke-width="18" fill="none" stroke-linecap="round"/><text x="250" y="70" font-size="64" text-anchor="middle">💭</text></g>'
   });
   const TOUR = [
-    { mood: 'cheer', prop: 'wave', t: d => isF() ? 'أهلًا يا فطومة 👋🤍 أنا <b>محمد</b>، وعملتلك البرنامج ده مخصوص. تعالي أفرّجك عليه في دقيقة!' : 'أهلًا يا ' + esc(d.name || 'بطل') + '! 👋 أنا <b>' + cname() + '</b>، هعرّفك على <b>مذاكِر</b> في أقل من دقيقة. يلا بينا!' },
+    { mood: 'cheer', prop: 'wave', t: d => isF() ? 'أهلًا يا فطومة 👋🤍 أنا <b>محمد</b>، وعملتلك البرنامج ده مخصوص. تعالي أفرّجك عليه في دقيقة!' : isB() ? 'أهلًا يا بيستو فريندو 👋💜 أنا <b>محمد</b>، تعالي أفرّجك على البرنامج في دقيقة!' : 'أهلًا يا ' + esc(d.name || 'بطل') + '! 👋 أنا <b>' + cname() + '</b>، هعرّفك على <b>مذاكِر</b> في أقل من دقيقة. يلا بينا!' },
     { sel: '.mtile[href="#subjects"]', mood: 'happy', prop: 'stick', t: () => 'هنا <b>المواد</b> 📚 دوس هنا وتلاقي الاقتصاد والتسويق بكل فصولهم.' },
     { sel: '.mtile[href="#subscribe"]', mood: 'nod', prop: 'stick', t: () => '<b>الفصل الأول في الاقتصاد مجاني</b> 🎁 جرّبه براحتك. ولو عجبك، دوس هنا تشترك <b>' + (self.Sub ? Sub.PRICE : 250) + ' ج للترم كله</b> وكل الفصول تتفتح.' },
     { sel: '#askForm', mood: 'think', prop: 'think', t: () => 'اكتبلي هنا أي حاجة <b>بالعامية</b> ✍️ زي «امتحني 10 أسئلة» أو «يعني إيه المضاعف؟» وأنا أفهمك.' },
@@ -657,7 +730,8 @@
     Awards.check(true);
     if (self.Pal && Pal.el) Pal.base();
     // فاطمة: الشخصية اسمها «محمد»
-    if (isF() && D().charName === 'سَنَد') { D().charName = 'محمد'; Store.save(); }
+    if ((isF() || isB()) && D().charName === 'سَنَد') { D().charName = 'محمد'; Store.save(); }
+    if (isB() && Store.data && !sessionStorage.getItem('mz:bhi')) { sessionStorage.setItem('mz:bhi', 1); setTimeout(() => { if (self.Pal && Pal.on() && !Tour.on) { Props.pal('wave', 5000); Pal.say(BGREET(), 'happy', 5200, true); } }, 3500); }
     if (isF() && Store.data && !sessionStorage.getItem('mz:fhi')) { sessionStorage.setItem('mz:fhi', 1); setTimeout(() => { if (self.Pal && Pal.on() && !Tour.on) { Props.pal('heart', 5000); Pal.say(FGREET(), 'happy', 5200, true); } }, 3500); }
     if (!D().tourDone && !sessionStorage.getItem('mz:welcome')) setTimeout(() => { if (!Tour.on && !$('.award-pop') && !$('.lock') && Router.cur && Router.cur.name === 'home' && !D().tourDone) Tour.start(); }, 1400);
   }

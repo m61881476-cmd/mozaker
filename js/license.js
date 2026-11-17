@@ -33,7 +33,7 @@
   /* ---------- الاسم ورقم الجهاز ---------- */
   function normName(s) {
     return String(s || '').normalize('NFKC').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[ً-ٰٟـ]/g, '')
-      .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+      .replace(/[إأآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/چ/g, 'ج').replace(/پ/g, 'ب').replace(/[ڤ]/g, 'ف').replace(/گ/g, 'ك').replace(/ی/g, 'ي').replace(/ک/g, 'ك').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
       .toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
   }
   const normPhrase = s => normName(s).replace(/ /g, '');

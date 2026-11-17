@@ -257,7 +257,7 @@
     else if (canTeach) html += '<a class="card tap teachcard mb" href="#teach/' + l.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🎓 ذاكر معايا الدرس ده</b><span class="note" style="display:block">' + esc(d.charName) + ' يشرحهولك حتة حتة ويسألك بعد كل جزء.</span></span>' + icon('chev', 'chev') + '</a>';
     html += l.summary && l.summary.trim() ? '<article class="card prose">' + md(l.summary, r.q.hl) + '</article>' : '<div class="empty" style="padding:16px 0">' + Char.html('', 70) + '<p>المحاضرة دي لسه فاضية. اضغط ✏️ فوق واكتب الشرح أو الملخص.</p></div>';
     if (App.Board && App.Board.has(l.id)) html += '<a class="boardbar tap" href="#board/' + l.id + '" id="boardBar"><span><b>🎬 عايز شرح على البورد؟</b><span class="s">' + esc(d.charName) + ' يكتب ويرسم ويشرح بصوته، خطوة خطوة (' + App.Board.count(l.id) + ' مشاهد)</span></span><span class="go">' + icon('play') + '</span></a>';
-    if (nq && !isFinal) html += '<a class="card tap quizcard mb" href="#quiz?l=' + l.id + '&n=' + nq + '&go=1" id="quizBar">' + Char.html('', 46) + '<span style="flex:1"><b>📝 اختبر نفسك في الفصل ده</b><span class="note" style="display:block">' + nq + ' سؤال اختيار من متعدد وصح وغلط، وكل إجابة بشرحها.</span></span><span class="go">' + icon('play') + '</span></a>';
+    if (nq && !isFinal) html += '<a class="card tap quizcard mb" href="#exam/' + l.id + '" id="quizBar">' + Char.html('', 46) + '<span style="flex:1"><b>📝 اختبر نفسك في الفصل ده</b><span class="note" style="display:block">' + nq + ' سؤال اختيار من متعدد وصح وغلط، وكل إجابة بشرحها.</span></span><span class="go">' + icon('play') + '</span></a>';
     if (s.custom) html += '<div class="btns mt"><button class="btn sm tint" id="addLC">' + icon('plus') + 'بطاقة</button><button class="btn sm tint" id="addLQ">' + icon('plus') + 'سؤال</button></div>';
     const myNotes = d.notes.filter(n => n.l === l.id);
     if (myNotes.length) html += '<div class="group-h">ملاحظاتي على الدرس</div><div class="group">' + myNotes.map(n => '<div class="row noicon"><span class="tx"><small style="color:var(--fg);font-size:15px">' + esc(n.text) + '</small></span></div>').join('') + '</div>';
@@ -386,6 +386,39 @@
     weighted.sort((a, b) => b.w - a.w);
     return weighted.slice(0, n).map(x => x.q).sort(() => Math.random() - 0.5);
   }
+
+  /* ---------- شاشة قبل امتحان الفصل ---------- */
+  const PASS = 0.7;
+  Router.on('exam', (view, r) => {
+    const l = LESSONS[r.args[0]]; if (!l) return Router.go('subjects', { replace: true });
+    const s = S(l.s), qs = questionsOf(null, l.id), d = D();
+    header(view, 'امتحان الفصل', { back: { to: 'lesson/' + l.id, label: 'الملخص' } });
+    if (l.locked && self.Sub) { view.insertAdjacentHTML('beforeend', Sub.wallHTML('امتحان الفصل للمشتركين', 'اشترك مرة واحدة للترم كله وكل الفصول وامتحاناتها تتفتح.')); return; }
+    const nM = qs.filter(q => q.type === 'mcq').length, nT = qs.filter(q => q.type === 'tf').length, nO = qs.length - nM - nT, nS = qs.filter(q => q.star).length;
+    const runs = (d.examRuns || {})[l.id], mins = Math.max(5, Math.round(qs.length * 0.5));
+    let mode = 'practice', ord = 'ch';
+    const f = App.fatma && App.fatma();
+    let h = '<div class="xintro card mb">'
+      + '<div class="xi-top">' + Char.html('', 92) + '<div class="bubble">' + (runs ? (runs.best >= PASS ? (f ? 'نجحتي فيه قبل كده 🎉 يلا نثبّت أكتر؟' : 'نجحت فيه قبل كده 🎉 يلا نثبّت أكتر؟') : (f ? 'المرة دي هتعديها، أنا متأكد 💪🤍' : 'المرة دي هتعديها، أنا متأكد 💪')) : (f ? 'جاهزة يا قمر؟ خدي نفس وابدئي، وأنا معاكي بعد كل سؤال 🤍' : 'جاهز؟ خد نفس وابدأ، وأنا معاك بعد كل سؤال 😉')) + '</div></div>'
+      + '<div class="xi-ic">📝</div>'
+      + '<h2 class="xi-t">' + esc(l.title) + '</h2>'
+      + '<div class="xi-s">' + esc(s.name) + '</div>'
+      + '<div class="xi-chips"><span><b>' + qs.length + '</b> سؤال</span><span>⏱ حوالي <b>' + mins + '</b> دقيقة</span><span>🎯 النجاح من <b>' + Math.round(PASS * 100) + '%</b></span></div>'
+      + '<div class="xi-kinds">' + (nM ? '<div>☑️ <b>' + nM + '</b> اختيار من متعدد</div>' : '') + (nT ? '<div>✔️ <b>' + nT + '</b> صح وغلط</div>' : '') + (nO ? '<div>✍️ <b>' + nO + '</b> أكمل ومسائل</div>' : '') + (nS ? '<div>⭐ <b>' + nS + '</b> سؤال متوقع</div>' : '') + '</div>'
+      + (runs ? '<div class="xi-last ' + (runs.best >= PASS ? 'ok' : '') + '">آخر مرة: <b>' + runs.lastOk + '/' + runs.n + '</b> (' + Math.round(runs.last * 100) + '%) · أحسن نتيجة <b>' + Math.round(runs.best * 100) + '%</b>' + (runs.best >= PASS ? ' ✓ ناجح' : '') + '</div>' : '')
+      + '</div>';
+    h += '<div class="group-h">النظام</div><div class="seg" id="xMode"><button data-m="practice" class="on">🎯 تدريب</button><button data-m="exam">⏱️ امتحان بالوقت</button></div><p class="group-f" id="xModeT" style="margin-top:-8px"></p>';
+    h += '<div class="group-h">ترتيب الأسئلة</div><div class="seg" id="xOrd"><button data-o="ch" class="on">بترتيب الفصل</button><button data-o="rnd">عشوائي</button></div>';
+    h += '<button class="btn block xi-go" id="xGo">' + icon('play') + 'يلا نبدأ 🚀</button>';
+    h += '<p class="note center mt">💡 لو غلطت، هتلاقي تحت الشرح «الاختيار ده كان يبقى صح لو…». ودي أحسن طريقة تفهم بيها الفخ.</p>';
+    view.insertAdjacentHTML('beforeend', h);
+    const modeT = () => { $('#xModeT').textContent = mode === 'exam' ? 'دقيقة ونص لكل سؤال، والتصحيح والشرح في الآخر زي الامتحان الحقيقي.' : 'بعد كل سؤال هتعرف الإجابة الصح وشرحها على طول.'; };
+    modeT();
+    $$('#xMode [data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; $$('#xMode button').forEach(x => x.classList.toggle('on', x === b)); modeT(); haptic(); });
+    $$('#xOrd [data-o]').forEach(b => b.onclick = () => { ord = b.dataset.o; $$('#xOrd button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
+    $('#xGo').onclick = () => { const list = ord === 'ch' ? qs.slice() : E.shuffle(qs); startQuiz(list, mode, { lid: l.id, sel: [s.id], chapter: l.id, pass: PASS }); };
+    setTimeout(() => { const c = $('.xi-top .char', view); if (c && App.Props) { App.Props.put(c, 'stick'); Char.act(c, 'happy'); } }, 300);
+  });
   Router.on('quiz', (view, r) => {
     if (QZ && !QZ.finished && r.q.run) return runQuiz(view);
     if (QZ && QZ.finished && r.q.result) return quizResult(view);
@@ -441,7 +474,7 @@
     const draw = () => {
       const it = QZ.qs[QZ.i], q = it.q, l = LESSONS[q.l];
       const opts = q.type === 'tf' ? ['صح', 'غلط'] : q.options;
-      let html = '<div class="progress-top"><span class="num">' + (QZ.i + 1) + '/' + QZ.qs.length + '</span><div class="bar"><i style="width:' + (QZ.i / QZ.qs.length * 100) + '%"></i></div></div>';
+      let html = '<div class="progress-top"><span class="pill qkind">' + (q.type === 'tf' ? 'صح وغلط' : q.type === 'mcq' ? 'اختيار من متعدد' : q.type === 'num' ? 'مسألة' : 'أكمل') + '</span><span class="num">' + (QZ.i + 1) + '/' + QZ.qs.length + '</span><div class="bar"><i style="width:' + (QZ.i / QZ.qs.length * 100) + '%"></i></div></div>';
       html += '<div class="qcard' + (q.star ? ' starred' : '') + '"><div style="display:flex;gap:6px;flex-wrap:wrap">' + (S(q.s) ? '<span class="pill acc">' + esc(S(q.s).short) + '</span>' : '') + (l ? '<span class="pill">' + esc(l.title) + '</span>' : '') + (q.star ? '<span class="pill star">⭐ هام</span>' : '') + '</div>';
       if (q.star) html += '<div class="star-say">' + Char.html('', 40) + '<div class="bubble"><b>ركّز هنا، ده سؤال هام ⭐</b>' + (q.why ? '<br>' + esc(q.why) : '') + '</div></div>';
       html += '<div class="q">' + esc(q.q) + '</div>';
@@ -497,6 +530,12 @@
     const byL = {}; QZ.qs.forEach(it => { const k = it.q.l; const x = byL[k] || (byL[k] = { n: 0, ok: 0 }); x.n++; if (it.res.ok) x.ok++; });
     const msg = p >= 0.9 ? 'إيه ده! ممتاز جدًا 🏆' : p >= 0.75 ? 'شغل حلو أوي 👏 فاضل حبة تفاصيل.' : p >= 0.5 ? 'نص الطريق. ركز على الدروس اللي تحت دي.' : 'ولا يهمك، الغلط هنا أحسن من الغلط في الامتحان. يلا نراجع الدروس دي.';
     let html = '<div class="result-big">' + ring(p, 110, p >= 0.75 ? 'var(--green)' : p >= 0.5 ? 'var(--orange)' : 'var(--red)') + '<div><div style="font-size:22px;font-weight:700"><span class="num">' + ok + '/' + tot + '</span></div><div class="note">' + (Math.round((QZ.end - QZ.start) / 60000) < 1 ? 'أقل من دقيقة' : Math.round((QZ.end - QZ.start) / 60000) + ' دقيقة') + '</div></div></div>';
+    if (QZ.meta && QZ.meta.chapter) {
+      const pass = QZ.meta.pass || 0.7, need = Math.ceil(pass * tot), d0 = D(); d0.examRuns = d0.examRuns || {};
+      const old = d0.examRuns[QZ.meta.chapter] || { best: 0, times: 0 };
+      if (!QZ.saved) { QZ.saved = 1; d0.examRuns[QZ.meta.chapter] = { best: Math.max(old.best, p), last: p, lastOk: ok, n: tot, times: (old.times || 0) + 1, at: now() }; Store.save(); }
+      html += '<div class="passbar ' + (p >= pass ? 'ok' : 'no') + '">' + (p >= pass ? '🎉 <b>ناجح!</b> جبت ' + Math.round(p * 100) + '% والنجاح من ' + Math.round(pass * 100) + '%' : '<b>لسه شوية</b> · النجاح من ' + Math.round(pass * 100) + '% (' + need + ' صح). فاضلك <b>' + (need - ok) + '</b> ' + ((need - ok) === 1 ? 'سؤال' : (need - ok) === 2 ? 'سؤالين' : (need - ok) <= 10 ? 'أسئلة' : 'سؤال') + ' صح كمان') + '</div>';
+    }
     html += '<div class="hero">' + Char.html('', 70) + '<div class="bubble">' + esc(msg) + '</div></div>';
     if (QZ.meta.share) html += App.takeResultHTML(QZ);
     html += '<div class="group-h">حسب الدرس</div><div class="group">' + Object.entries(byL).sort((a, b) => a[1].ok / a[1].n - b[1].ok / b[1].n).map(([lid, x]) => { const l = LESSONS[lid]; return '<a class="row tap" href="#lesson/' + lid + '">' + ring(x.ok / x.n, 34, x.ok / x.n >= 0.75 ? 'var(--green)' : x.ok / x.n >= 0.5 ? 'var(--orange)' : 'var(--red)') + '<span class="tx"><b>' + esc(l ? l.title : lid) + '</b><small>' + x.ok + ' من ' + x.n + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>';

@@ -797,3 +797,18 @@ select.input.sel{width:auto;min-width:96px;padding:8px 12px;font-size:15px}
 /* كارت «اختبر نفسك» بعد الملخص والبورد */
 .quizcard{display:flex;gap:12px;align-items:center;margin-top:12px;background:linear-gradient(135deg,color-mix(in srgb,var(--green) 14%,var(--bg2)),var(--bg2));box-shadow:var(--shadow),inset 0 0 0 1.5px color-mix(in srgb,var(--green) 40%,transparent)}
 .quizcard .char{width:46px;flex:none}.quizcard .go{width:40px;height:40px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;flex:none}.quizcard .go .i{width:18px;height:18px}
+
+/* شاشة قبل امتحان الفصل */
+.xintro{text-align:center;padding:20px 16px 18px;background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 13%,var(--bg2)),var(--bg2) 60%)}
+.xi-top{display:flex;gap:10px;align-items:flex-end;text-align:start;margin-bottom:6px}.xi-top .char{width:92px;flex:none}
+.xi-top .bubble{position:relative;flex:1;background:var(--bg2);border-radius:16px;padding:10px 12px;box-shadow:var(--shadow);font-size:14.5px;line-height:1.6}
+.xi-ic{width:76px;height:76px;margin:14px auto 8px;border-radius:50%;display:grid;place-items:center;font-size:36px;background:color-mix(in srgb,var(--accent) 18%,var(--bg2));box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 8%,transparent)}
+.xi-t{font-size:22px;font-weight:800;margin:4px 0 2px;line-height:1.4}.xi-s{color:var(--fg2);font-size:14px;margin-bottom:12px}
+.xi-chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+.xi-chips span{background:var(--fill);border-radius:20px;padding:6px 12px;font-size:13.5px}
+.xi-kinds{display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:start;font-size:14px;background:var(--fill2);border-radius:14px;padding:10px 12px}
+.xi-last{margin-top:12px;font-size:13.5px;color:var(--fg2);background:var(--fill2);border-radius:12px;padding:8px}.xi-last.ok{color:var(--green);background:color-mix(in srgb,var(--green) 10%,transparent)}
+.xi-go{min-height:54px;font-size:17px;font-weight:800;margin-top:6px}
+.qkind{margin-inline-end:8px;font-size:12px;white-space:nowrap}
+.passbar{border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:15px;text-align:center}
+.passbar.ok{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--fg)}.passbar.no{background:color-mix(in srgb,var(--orange) 14%,transparent)}

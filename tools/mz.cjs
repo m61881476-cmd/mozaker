@@ -89,6 +89,8 @@ async function build() {
   fs.mkdirSync(path.join(ROOT, 'content'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'content/paid.mz'), Buffer.from(await L.encryptJSON(K, { ver, subjects: paid })));
   const files = Object.fromEntries(SRC_ORDER.map(f => [f, fs.readFileSync(path.join(SRC, f), 'utf8')]));
+  // مولّدات حلول الأسايمنت (content-src/sol) بتتحفظ متشفّرة برضه
+  const solDir = path.join(SRC, 'sol'); if (fs.existsSync(solDir)) for (const f of fs.readdirSync(solDir).filter(x => /\.(py|js|cjs)$/.test(x))) files['sol/' + f] = fs.readFileSync(path.join(solDir, f), 'utf8');
   fs.writeFileSync(path.join(ROOT, 'content/src.mz'), Buffer.from(await L.encryptJSON(K, { files })));
   fs.writeFileSync(path.join(ROOT, 'js/content/free.js'), '/* المحتوى المجاني (اتولّد بـ tools/mz.cjs build — ماتعدّلش هنا، عدّل في content-src) */\nself.MZ_PAID_VER = ' + JSON.stringify(ver) + ';\n(self.MZ_CONTENT = self.MZ_CONTENT || []).push(...' + JSON.stringify(free) + ');\n');
   const kb = n => (fs.statSync(path.join(ROOT, n)).size / 1024).toFixed(0) + 'KB';
@@ -117,7 +119,7 @@ async function unpack() {
   const { K } = await secrets();
   const { files } = await L.decryptJSON(K, new Uint8Array(fs.readFileSync(path.join(ROOT, 'content/src.mz'))));
   fs.mkdirSync(SRC, { recursive: true });
-  for (const [f, t] of Object.entries(files)) fs.writeFileSync(path.join(SRC, f), t);
+  for (const [f, t] of Object.entries(files)) { fs.mkdirSync(path.dirname(path.join(SRC, f)), { recursive: true }); fs.writeFileSync(path.join(SRC, f), t); }
   console.log('اتفك ' + Object.keys(files).length + ' ملف في content-src/');
 }
 

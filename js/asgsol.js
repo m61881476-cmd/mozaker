@@ -55,35 +55,33 @@
     try { if (document.fonts && document.fonts.load) await Promise.all([document.fonts.load('700 40px ' + FONT, 'تكليف'), document.fonts.load('400 30px ' + FONT, 'الاسم')]); } catch (e) {}
     const W = 1159, H = 1639, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
-    c.strokeStyle = '#0f2d5c'; c.lineWidth = 6; c.strokeRect(40, 40, W - 80, H - 80); c.lineWidth = 2; c.strokeRect(54, 54, W - 108, H - 108);
+    c.strokeStyle = '#000'; c.lineWidth = 2.5; c.strokeRect(50, 50, W - 100, H - 100);
     const txt = (t, x, y, size, weight, color, align, dir) => { c.direction = dir || 'rtl'; c.textAlign = align || 'center'; c.fillStyle = color || '#111'; c.font = (weight || 400) + ' ' + size + 'px ' + FONT; c.fillText(t, x, y); };
-    txt('Assignment', W / 2, 200, 84, 700, '#0f2d5c', 'center', 'ltr');
+    txt('Assignment', W / 2, 200, 80, 700, '#000', 'center', 'ltr');
     txt(sol.title, W / 2, 300, fit(c, sol.title, W - 200, 60, 700), 700, '#111');
     txt(sol.sub, W / 2, 370, fit(c, sol.sub, W - 200, 32), 400, '#333');
     txt('الدرجة: ' + sol.grade, W / 2, 425, 30, 400, '#333');
-    c.fillStyle = '#0f2d5c'; c.fillRect(W / 2 - 180, 465, 360, 4);
-    txt('أسماء الطلاب', W / 2, 545, 40, 700, '#0f2d5c');
+    c.fillStyle = '#000'; c.fillRect(W / 2 - 180, 465, 360, 2);
+    txt('أسماء الطلاب', W / 2, 545, 40, 700, '#000');
     const team = sol.team().filter(m => (m.n || '').trim()), x0 = 100, x1 = W - 100, top = 590, hh = 74, rh = Math.min(96, Math.floor((H - 210 - top - hh) / Math.max(4, team.length)));
     // الأعمدة من اليمين: م · الاسم · الكود · ملاحظات
     const cols = [{ t: 'م', w: 80 }, { t: 'الاسم', w: 520 }, { t: 'الكود', w: 230 }, { t: 'ملاحظات', w: x1 - x0 - 830 }];
     let xr = x1; cols.forEach(cl => { cl.r = xr; cl.l = xr - cl.w; xr = cl.l; });
-    c.fillStyle = '#0f2d5c'; c.fillRect(x0, top, x1 - x0, hh);
-    cols.forEach(cl => txt(cl.t, (cl.l + cl.r) / 2, top + hh / 2 + 12, 32, 700, '#fff'));
+    c.fillStyle = '#e6e6e6'; c.fillRect(x0, top, x1 - x0, hh);
+    cols.forEach(cl => txt(cl.t, (cl.l + cl.r) / 2, top + hh / 2 + 12, 32, 700, '#000'));
     const rows = Math.max(team.length, 4);
     for (let i = 0; i < rows; i++) {
       const y = top + hh + i * rh, m = team[i];
-      if (i % 2) { c.fillStyle = '#f2f5fa'; c.fillRect(x0, y, x1 - x0, rh); }
       if (m) {
         txt(String(i + 1), (cols[0].l + cols[0].r) / 2, y + rh / 2 + 11, 30, 700, '#111');
         const nm = m.n.trim(); txt(nm, cols[1].r - 18, y + rh / 2 + 11, fit(c, nm, cols[1].w - 36, 34), 400, '#111', 'right');
         if (m.c) txt(String(m.c), (cols[2].l + cols[2].r) / 2, y + rh / 2 + 11, fit(c, String(m.c), cols[2].w - 24, 32), 400, '#111', 'center', 'ltr');
-        if (m.t) txt('محوّل', (cols[3].l + cols[3].r) / 2, y + rh / 2 + 11, 30, 700, '#b42318');
+        if (m.t) txt('محوّل', (cols[3].l + cols[3].r) / 2, y + rh / 2 + 11, 30, 700, '#000');
       }
     }
-    c.strokeStyle = '#7f93b5'; c.lineWidth = 2; c.strokeRect(x0, top, x1 - x0, hh + rows * rh);
+    c.strokeStyle = '#000'; c.lineWidth = 1.6; c.strokeRect(x0, top, x1 - x0, hh + rows * rh);
     for (let i = 1; i <= rows; i++) { c.beginPath(); c.moveTo(x0, top + hh + (i - 1) * rh); c.lineTo(x1, top + hh + (i - 1) * rh); c.stroke(); }
     cols.slice(1).forEach(cl => { c.beginPath(); c.moveTo(cl.r, top); c.lineTo(cl.r, top + hh + rows * rh); c.stroke(); });
-    txt('عدد أعضاء الفريق: ' + team.length, W / 2, H - 120, 28, 400, '#555');
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.9));
     return { bytes: new Uint8Array(await blob.arrayBuffer()), url: URL.createObjectURL(blob) };
   }
@@ -108,7 +106,7 @@
     if (team.length && team.length < 4) h += '<p class="warn-t">⚠️ التيم لازم يكون من 4 لـ 6 طلاب (الأحسن 5 أو 6).</p>';
     if (team.length && team.some(m => !String(m.c || '').trim())) h += '<p class="warn-t">⚠️ فيه اسم من غير كود.</p>';
     h += '<div class="btns mt solbtns"><button class="btn green" id="solUp"' + (team.length ? '' : ' disabled') + '>📤 ارفع على الدرايف</button><button class="btn" id="solDl"' + (team.length ? '' : ' disabled') + '>⬇️ نزّل الـ PDF</button></div>';
-    h += '<p class="note center">الملف = صفحة الغلاف + الحل كامل (7 صفحات) في PDF واحد. <a href="' + sol.link + '" target="_blank" rel="noopener">افتح فولدر الدرايف</a></p>';
+    h += '<p class="note center">الملف = صفحة الغلاف + الحل كامل في PDF واحد. <a href="' + sol.link + '" target="_blank" rel="noopener">افتح فولدر الدرايف</a></p>';
     h += '<div class="card mb note">☝️ <b>واحد بس</b> من التيم يرفع، <b>مرة واحدة</b> بس.<br>🧾 الحل معتبر دالة الطلب على النقود <b dir="ltr">MD = 0.8Y − 160r</b> (بـ r). لو الدكتور قال غير كده كلّم محمد.</div>';
     h += '<div class="group-h">معاينة</div><div id="solPrev" class="solprev"><div class="note center">بيجهّز الحل…</div></div>';
     view.insertAdjacentHTML('beforeend', h);

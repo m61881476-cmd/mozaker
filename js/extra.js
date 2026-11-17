@@ -13,7 +13,20 @@
   const DRIVE = 'https://drive.google.com/drive/folders/1Was38RzlLQnV1eFczQIZ25l9QeBCmHWJ?usp=drive_link';
   const NEWS_DEFAULT = [
     {
-      id: 'asg-eco-1', kind: 'asg', date: '2026-11-15', icon: '📝', title: 'أسايمنت الاقتصاد نزل!', short: 'بـ 15 درجة بدل الميدترم، تيم من 5 لـ 6، ويترفع PDF على الدرايف.',
+      id: 'asg-stat-1', for: 'ext', kind: 'asg', date: '2026-11-17', icon: '📊', title: 'أسايمنت الإحصاء (انتساب)', short: 'غالبًا تيم وأسئلة PDF وتسليم على لينك. التفاصيل الخميس الساعة 1 في المحاضرة الأونلاين.',
+      say: 'خبر للانتساب 🎤 فيه أسايمنت إحصاء! كل التفاصيل يوم الخميس الساعة 1 في المحاضرة الأونلاين، ماتفوّتهاش',
+      points: [
+        ['📊', 'فيه أسايمنت <b>إحصاء</b> لطلاب <b>الانتساب</b>.'],
+        ['👥', 'غالبًا هيبقى <b>تيم</b>.'],
+        ['📄', 'غالبًا الأسئلة هتنزل <b>PDF</b>، والتسليم هيبقى على <b>لينك</b>.'],
+        ['🖥️', '<b>كل التفاصيل</b> هتتقال يوم <b>الخميس 19 نوفمبر الساعة 1 الضهر</b> في <b>المحاضرة الأونلاين</b>. احضرها.'],
+        ['⚠️', 'لسه مفيش تفاصيل رسمية من د. أمل. أول ما تتأكد هتنزل هنا.']
+      ],
+      checks: ['حضرت محاضرة الخميس الأونلاين وعرفت التفاصيل', 'كوّنت تيم', 'جمعت أسامي وأكواد التيم', 'عملت صفحة الغلاف', 'وصلت الأسئلة PDF', 'حلّينا وعملناه PDF', 'سلّمنا على اللينك'],
+      cover: 'الإحصاء', wait: 'تفاصيل الأسايمنت والأسئلة لسه ماوصلتش. أول ما تتقال يوم الخميس هتنزل هنا.'
+    },
+    {
+      id: 'asg-eco-1', for: 'reg', kind: 'asg', date: '2026-11-15', link: DRIVE, cover: 'مبادئ الاقتصاد', wait: 'أسئلة الدكتور لسه ماوصلتش. أول ما توصل هتنزل هنا.', icon: '📝', title: 'أسايمنت الاقتصاد نزل! (انتظام)', short: 'بـ 15 درجة بدل الميدترم، تيم من 5 لـ 6، ويترفع PDF على الدرايف.',
       say: 'خبر عاجل 🎤 فيه أسايمنت اقتصاد بـ 15 درجة بدل الميدترم! تعالى أقولك التفاصيل',
       points: [
         ['🎯', 'الأسايمنت عليه <b>15 درجة</b> بدل الميدترم.'],
@@ -47,21 +60,43 @@
       try { const r = await fetch('data/news.json', { cache: 'no-cache' }); if (!r.ok) return; const j = await r.json(); if (Array.isArray(j.items) && j.items.length) { this.list = j.items; if (Router.cur && ['home', 'news'].includes(Router.cur.name)) Router.render(); } } catch (e) { /* أوفلاين: النسخة اللي جوه */ }
     },
     seen() { const d = D(); return (d && d.newsSeen) || {}; },
-    unseen() { const s = this.seen(); return this.list.filter(n => !s[n.id]); },
+    /** الأخبار اللي تخص الطالب ده: انتظام (reg) ولا انتساب (ext). لو لسه ماختارش بيشوف الكل */
+    mine() { const t = track(); return this.list.filter(n => !n.for || !t || n.for === t); },
+    unseen() { const s = this.seen(); return this.mine().filter(n => !s[n.id]); },
     mark(id) { const d = D(); d.newsSeen = d.newsSeen || {}; if (!d.newsSeen[id]) { d.newsSeen[id] = now(); Store.save(); } },
     get(id) { return this.list.find(n => n.id === id); }
   };
   App.News = News;
 
-  const asg = () => { const d = D(); return d.asg || (d.asg = { chk: {}, team: [] }); };
+  /* حالة كل أسايمنت لوحده (الاقتصاد متخزّن في d.asg من الأول) */
+  const asg = id => { const d = D(); if (!id || id === 'asg-eco-1') return d.asg || (d.asg = { chk: {}, team: [] }); d.asgs = d.asgs || {}; return d.asgs[id] || (d.asgs[id] = { chk: {}, team: [] }); };
+  /* انتظام ولا انتساب؟ */
+  const TR = { reg: 'انتظام', ext: 'انتساب' };
+  const track = () => { const d = D(); return d && TR[d.track] ? d.track : null; };
+  const trPill = n => n.for ? ' <span class="pill ' + (n.for === 'ext' ? 'orange' : 'green') + '">' + TR[n.for] + '</span>' : '';
+  function trackAskHTML(small) {
+    const f = isF();
+    return '<div class="card mb trask">' + Char.html('', small ? 46 : 58) + '<div style="flex:1"><b>' + (f ? 'إنتي' : 'إنت') + ' انتظام ولا انتساب؟ 🤔</b><div class="note">عشان أوريك الأخبار والأسايمنتات اللي تخصّك ' + (f ? 'إنتي' : 'إنت') + ' بس.</div><div class="btns mt"><button class="btn sm" data-tr="reg">🏫 انتظام</button><button class="btn sm tint" data-tr="ext">🏠 انتساب</button></div></div></div>';
+  }
+  function bindTrack(root) {
+    $$('[data-tr]', root).forEach(b => b.onclick = () => {
+      const d = D(); d.track = b.dataset.tr; Store.save(); haptic('success');
+      toast('تمام، ' + (isF() ? 'إنتي' : 'إنت') + ' ' + TR[d.track] + ' ✓ هوريك الأخبار اللي تخصّك', 'check');
+      Router.render();
+      const nw = News.unseen()[0];
+      if (nw && self.Pal && Pal.on()) setTimeout(() => { Props.pal('mic', 6000); Pal.say('🎤 ' + esc(nw.say || nw.title), 'happy', 5500, true); }, 700);
+    });
+  }
+  App.track = track;
 
   Router.on('news', (view, r) => {
     const id = r.args[0], n = id && News.get(id);
     if (!n) {
       header(view, 'آخر الأخبار', { back: { to: 'home', label: 'الرئيسية' } });
-      let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + (News.unseen().length ? 'معايا ' + News.unseen().length + ' ' + (News.unseen().length === 1 ? 'خبر جديد' : 'أخبار جديدة') + ' 🎤 دوس على أي خبر' : 'دي كل الأخبار لحد دلوقتي 🎤 أول ما يجي جديد هقولك') + '</div></div>';
-      h += '<div class="group">' + News.list.map(x => '<a class="row tap" href="#news/' + esc(x.id) + '"><span class="ic newsic">' + x.icon + '</span><span class="tx"><b>' + esc(x.title) + (News.seen()[x.id] ? '' : ' <span class="pill red">جديد</span>') + '</b><small>' + esc(x.short) + '</small></span>' + icon('chev', 'chev') + '</a>').join('') + '</div>';
-      view.insertAdjacentHTML('beforeend', h);
+      let h = (track() ? '' : trackAskHTML()) + '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + (News.unseen().length ? 'معايا ' + News.unseen().length + ' ' + (News.unseen().length === 1 ? 'خبر جديد' : 'أخبار جديدة') + ' 🎤 دوس على أي خبر' : 'دي كل الأخبار لحد دلوقتي 🎤 أول ما يجي جديد هقولك') + '</div></div>';
+      h += '<div class="group">' + News.mine().map(x => '<a class="row tap" href="#news/' + esc(x.id) + '"><span class="ic newsic">' + x.icon + '</span><span class="tx"><b>' + esc(x.title) + (track() ? '' : trPill(x)) + (News.seen()[x.id] ? '' : ' <span class="pill red">جديد</span>') + '</b><small>' + esc(x.short) + '</small></span>' + icon('chev', 'chev') + '</a>').join('') + '</div>';
+      if (track()) h += '<p class="note center">بتشوف أخبار <b>' + TR[track()] + '</b> · <a href="#settings">غيّر</a></p>';
+      view.insertAdjacentHTML('beforeend', h); bindTrack(view);
       setTimeout(() => { const c = $('.newshead .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 200);
       return;
     }
@@ -70,31 +105,32 @@
     let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + esc(n.say || n.short) + '</div></div>';
     h += '<div class="card mb newsbody"><ul class="pts">' + n.points.map(p => '<li><span>' + p[0] + '</span><div>' + p[1] + '</div></li>').join('') + '</ul></div>';
     if (n.kind === 'asg') {
-      const A = asg(), done = n.checks.filter((_, i) => A.chk[i]).length;
-      h += '<div class="btns mb"><a class="btn green" href="' + DRIVE + '" target="_blank" rel="noopener">📤 لينك الدرايف للتسليم</a><a class="btn tint" href="#cover">🪪 اعمل صفحة الغلاف</a></div>';
+      const A = asg(n.id), done = n.checks.filter((_, i) => A.chk[i]).length;
+      h += '<div class="btns mb">' + (n.link ? '<a class="btn green" href="' + esc(n.link) + '" target="_blank" rel="noopener">📤 لينك التسليم</a>' : '') + '<a class="btn tint" href="#cover/' + esc(n.id) + '">🪪 اعمل صفحة الغلاف</a></div>';
       h += '<div class="group-h">جهّزت إيه؟ (' + done + ' من ' + n.checks.length + ')</div><div class="group">' + n.checks.map((c, i) => '<label class="row noicon chk"><input type="checkbox" data-ck="' + i + '"' + (A.chk[i] ? ' checked' : '') + '><span class="tx"><b>' + esc(c) + '</b></span></label>').join('') + '</div>';
-      h += '<div class="card mb note">📨 أسئلة الدكتور لسه ماوصلتش. أول ما توصل هتنزل هنا، و' + cname() + ' هيذاكرها معاك.</div>';
+      h += '<div class="card mb note">📨 ' + esc(n.wait || 'الأسئلة لسه ماوصلتش.') + ' و' + cname() + ' هيذاكرها معاك.</div>';
     }
     view.insertAdjacentHTML('beforeend', h);
     setTimeout(() => { const c = $('.newshead .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 200);
-    $$('[data-ck]', view).forEach(b => b.onchange = () => { const A = asg(); A.chk[b.dataset.ck] = b.checked; Store.save(); if (b.checked) { haptic('success'); if (n.checks.every((_, i) => A.chk[i])) { toast('الأسايمنت جاهز 🎉', 'spark'); Awards.check(); } } Router.render(); });
+    $$('[data-ck]', view).forEach(b => b.onchange = () => { const A = asg(n.id); A.chk[b.dataset.ck] = b.checked; Store.save(); if (b.checked) { haptic('success'); if (n.checks.every((_, i) => A.chk[i])) { toast('الأسايمنت جاهز 🎉', 'spark'); Awards.check(); } } Router.render(); });
   });
 
   /* صفحة الغلاف للأسايمنت */
-  Router.on('cover', view => {
-    header(view, 'صفحة الغلاف', { back: { to: 'news/asg-eco-1', label: 'الأسايمنت' } });
-    const A = asg(); if (!A.team.length) A.team = [{ n: D().name || '', c: '', t: false }];
+  Router.on('cover', (view, r) => {
+    const nid = r.args[0] || 'asg-eco-1', N = News.get(nid) || {}, subj = N.cover || 'مبادئ الاقتصاد', ci = Math.max(0, (N.checks || []).findIndex(c => /الغلاف/.test(c)));
+    header(view, 'صفحة الغلاف', { back: { to: 'news/' + nid, label: 'الأسايمنت' } });
+    const A = asg(nid); if (!A.team.length) A.team = [{ n: D().name || '', c: '', t: false }];
     const draw = () => {
       let h = '<div class="card mb note">اكتب أسامي التيم وأكوادهم، وعلّم على «محوّل» للي محوّل. بعدها دوس «اطبع / احفظ PDF» وهتطلع صفحة أولى جاهزة.</div>';
       h += '<div class="group cover-in">' + A.team.map((m, i) => '<div class="row noicon cm"><span class="cm-n">' + (i + 1) + '</span><input class="input" data-f="n" data-i="' + i + '" placeholder="الاسم بالكامل" value="' + esc(m.n) + '"><input class="input" data-f="c" data-i="' + i + '" placeholder="الكود" inputmode="numeric" dir="ltr" value="' + esc(m.c) + '"><label class="cm-t"><input type="checkbox" data-f="t" data-i="' + i + '"' + (m.t ? ' checked' : '') + '> محوّل</label>' + (A.team.length > 1 ? '<button class="btn-x" data-del="' + i + '" aria-label="شيل">✕</button>' : '') + '</div>').join('') + '</div>';
       h += '<div class="btns mb">' + (A.team.length < 6 ? '<button class="btn tint" id="cvAdd">' + icon('plus') + 'ضيف طالب</button>' : '') + '<button class="btn" id="cvPrint">🖨️ اطبع / احفظ PDF</button></div>';
-      h += '<div class="cover-sheet" id="cvSheet"><div class="cv-t">Assignment</div><div class="cv-s">مبادئ الاقتصاد</div><table><thead><tr><th>#</th><th>الاسم</th><th>الكود</th><th></th></tr></thead><tbody>' + A.team.filter(m => m.n.trim()).map((m, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(m.n) + '</td><td dir="ltr">' + esc(m.c) + '</td><td>' + (m.t ? 'محوّل' : '') + '</td></tr>').join('') + '</tbody></table></div>';
+      h += '<div class="cover-sheet" id="cvSheet"><div class="cv-t">Assignment</div><div class="cv-s">' + esc(subj) + '</div><table><thead><tr><th>#</th><th>الاسم</th><th>الكود</th><th></th></tr></thead><tbody>' + A.team.filter(m => m.n.trim()).map((m, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(m.n) + '</td><td dir="ltr">' + esc(m.c) + '</td><td>' + (m.t ? 'محوّل' : '') + '</td></tr>').join('') + '</tbody></table></div>';
       view.querySelectorAll('.cvx').forEach(x => x.remove());
       const w = document.createElement('div'); w.className = 'cvx'; w.innerHTML = h; view.appendChild(w);
       $$('[data-f]', w).forEach(inp => inp.oninput = inp.onchange = () => { const m = A.team[+inp.dataset.i]; if (inp.dataset.f === 't') m.t = inp.checked; else m[inp.dataset.f] = inp.value; Store.save(); const sh = $('#cvSheet'); if (sh && inp.dataset.f === 't') draw(); else if (sh) sh.querySelector('tbody').innerHTML = A.team.filter(x => x.n.trim()).map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(x.n) + '</td><td dir="ltr">' + esc(x.c) + '</td><td>' + (x.t ? 'محوّل' : '') + '</td></tr>').join(''); });
       $$('[data-del]', w).forEach(b => b.onclick = () => { A.team.splice(+b.dataset.del, 1); Store.save(); draw(); });
       const ad = $('#cvAdd'); if (ad) ad.onclick = () => { A.team.push({ n: '', c: '', t: false }); Store.save(); draw(); const ins = $$('[data-f="n"]', w); setTimeout(() => { const l = $$('.cover-in [data-f="n"]'); l[l.length - 1].focus(); }, 30); };
-      $('#cvPrint').onclick = () => { if (!A.team.some(m => m.n.trim())) return toast('اكتب اسم واحد على الأقل', 'info'); const ch = asg().chk; ch[2] = true; Store.save(); document.body.classList.add('printing'); setTimeout(() => { print(); setTimeout(() => document.body.classList.remove('printing'), 500); }, 50); };
+      $('#cvPrint').onclick = () => { if (!A.team.some(m => m.n.trim())) return toast('اكتب اسم واحد على الأقل', 'info'); const ch = asg(nid).chk; ch[ci] = true; Store.save(); document.body.classList.add('printing'); setTimeout(() => { print(); setTimeout(() => document.body.classList.remove('printing'), 500); }, 50); };
     };
     draw();
   });
@@ -117,8 +153,8 @@
     const dk = Object.keys(days).filter(k => days[k].min || days[k].cards || days[k].q).sort();
     let comeback = false; for (let i = 1; i < dk.length; i++) if ((new Date(dk[i]) - new Date(dk[i - 1])) / 864e5 >= 3) comeback = true;
     const chat = (d.chat || []).filter(m => m.me || m.who === 'me' || m.from === 'me' || m.role === 'user').length;
-    const n0 = (NEWS_DEFAULT[0].checks || []).length, A = d.asg || { chk: {} };
-    return { q: at.length, ok, teachDone, boards, figs, lessons, cards, maxMin, mar, night: hours.some(h => h >= 0 && h < 4), early: hours.some(h => h >= 4 && h < 7), starOk, fixed, comeback, chat, streak: Math.max(App.streakNow ? App.streakNow() : 0, d.bestStreak || 0), perfect: d.perfect || 0, asg: Object.keys(A.chk || {}).filter(k => A.chk[k]).length >= n0, sub: !!(self.Sub && Sub.on()) };
+    const asgDone = News.list.filter(n => n.kind === 'asg' && n.checks).some(n => { const A = asg(n.id); return n.checks.every((_, i) => A.chk[i]); });
+    return { q: at.length, ok, teachDone, boards, figs, lessons, cards, maxMin, mar, night: hours.some(h => h >= 0 && h < 4), early: hours.some(h => h >= 4 && h < 7), starOk, fixed, comeback, chat, streak: Math.max(App.streakNow ? App.streakNow() : 0, d.bestStreak || 0), perfect: d.perfect || 0, asg: asgDone, sub: !!(self.Sub && Sub.on()) };
   }
   const AW = [
     ['first', '🐣', 'أول خطوة', 'حلّيت أول سؤال', f => [f.q, 1]],
@@ -323,6 +359,8 @@
     row.insertAdjacentHTML('afterend', '<div class="row noicon"><span class="tx"><b>كلام ' + cname() + '</b><small>كتير: بيشجع أكتر · عادي · هادي: مابيتكلمش غير لما تكلمه</small></span><select id="sTalk" class="input sel">' + [['more', 'كتير'], ['normal', 'عادي'], ['quiet', 'هادي']].map(o => '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>');
     row.parentNode.querySelector('#sTalk').closest('.row').insertAdjacentHTML('afterend', '<button class="row tap noicon" id="sTour" style="width:100%;text-align:start"><span class="tx"><b>🧭 خلّي ' + cname() + ' يعرّفك على البرنامج</b><small>جولة سريعة بيشاورلك فيها على كل حاجة</small></span></button>');
     $('#sTour', view).onclick = () => Tour.start();
+    $('#sTour', view).insertAdjacentHTML('afterend', '<div class="row noicon"><span class="tx"><b>انتظام ولا انتساب؟</b><small>عشان الأخبار والأسايمنتات اللي تخصّك</small></span><select id="sTrack" class="input sel"><option value="">مش محدد</option><option value="reg"' + (track() === 'reg' ? ' selected' : '') + '>انتظام</option><option value="ext"' + (track() === 'ext' ? ' selected' : '') + '>انتساب</option></select></div>');
+    $('#sTrack', view).onchange = e => { D().track = e.target.value || null; Store.save(); toast(e.target.value ? 'تمام ✓ ' + TR[e.target.value] : 'هوريك كل الأخبار', 'check'); };
     $('#sTalk', view).onchange = e => { D().settings.palTalk = e.target.value; Store.save(); toast(e.target.value === 'quiet' ? 'تمام، هسكت ومش هتكلم غير لما تكلمني 🤐' : e.target.value === 'more' ? 'هشجعك أكتر 💪' : 'تمام 👌', 'check'); };
   }
 
@@ -340,9 +378,10 @@
     ];
     const h = '<nav class="mtiles" aria-label="القايمة">' + tiles.map(t => '<a class="mtile' + (t[2] === '#subscribe' && !on ? ' hot' : '') + '" href="' + t[2] + '"><span class="mt-ic">' + t[0] + '</span><b>' + t[1] + '</b>' + (t[3] ? '<small>' + t[3] + '</small>' : '') + '</a>').join('') + '</nav>';
     if (hero) hero.insertAdjacentHTML('beforebegin', h); else if (nav) nav.insertAdjacentHTML('afterend', h); else view.insertAdjacentHTML('afterbegin', h);
+    if (!track()) { $('.mtiles', view).insertAdjacentHTML('afterend', trackAskHTML(true)); bindTrack(view); }
     const nw = News.unseen()[0];
     if (nw) {
-      const at = $('.mtiles', view);
+      const at = $('.trask', view) || $('.mtiles', view);
       at.insertAdjacentHTML('afterend', '<a class="card tap newsbar mb" href="#news/' + esc(nw.id) + '">' + Char.html('', 48) + '<span style="flex:1"><span class="nb-k">🎤 آخر الأخبار</span><b>' + esc(nw.title) + '</b><span class="note" style="display:block">' + esc(nw.short) + '</span></span>' + icon('chev', 'chev') + '</a>');
       setTimeout(() => { const c = $('.newsbar .char', view); if (c) { Props.put(c, 'mic'); Char.act(c, 'happy'); } }, 300);
       if (self.Pal && Pal.on() && !sessionStorage.getItem('mz:newsSaid:' + nw.id)) { sessionStorage.setItem('mz:newsSaid:' + nw.id, 1); setTimeout(() => { if (!Pal.on() || !Router.cur || Router.cur.name !== 'home') return; Props.pal('mic', 6000); Pal.say('🎤 ' + esc(nw.say || nw.title), 'happy', 5500, true); }, 2600); }

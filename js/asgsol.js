@@ -124,7 +124,8 @@
     badpdf: 'الملف ده مش PDF سليم، أو عليه باسورد. صدّره PDF تاني وجرّب.',
     baddoc: 'ملف الوورد ده مش سليم. افتحه في Word واحفظه .docx وجرّب تاني.',
     olddoc: 'ده ملف وورد قديم (.doc). افتحه في Word واحفظه بصيغة .docx أو PDF وجرّب تاني.',
-    type: 'الملف لازم يكون PDF أو Word (.docx) بس.'
+    type: 'الملف لازم يكون PDF أو Word (.docx) بس.',
+    pdfonly: 'الأسايمنت ده بخط الإيد: صوّروا الورق سكان واعملوه PDF، وضيفوا ملف الـ PDF.'
   };
 
   /* ---------- الصفحة ---------- */
@@ -136,11 +137,11 @@
     const T = team(id), f = App.fatma && App.fatma(), ck = state(id).chk, fd = re => (n.checks || []).findIndex(c => re.test(c));
     const mark = (...res) => { res.forEach(re => { const i = fd(re); if (i >= 0) ck[i] = true; }); Store.save(); };
     let h = '<div class="card mb solhero">' + Char.html('', 70) + '<div class="bubble">' + (f ? 'إنتي بتحلّي، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪' : 'إنت بتحل، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪') + '</div></div>';
-    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. حلّوه بنفسكم، وضيفوا ملفكم هنا (<b>PDF أو Word</b>). الغلاف بأسامي التيم بيتحط <b>أول صفحة</b>، والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
+    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. ' + (n.pdfOnly ? 'اكتبوه <b>بخط الإيد</b>، صوّروا الورق <b>سكان PDF</b>، وضيفوا الملف هنا.' : 'حلّوه بنفسكم، وضيفوا ملفكم هنا (<b>PDF أو Word</b>).') + ' الغلاف بأسامي التيم بيتحط <b>أول صفحة</b>، والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
     h += '<div class="group-h">1. التيم (صفحة الغلاف) <a href="#cover/' + esc(id) + '">✏️ عدّل</a></div>';
     h += T.length ? '<div class="group">' + T.map((m, i) => '<div class="row noicon"><span class="tx"><b>' + (i + 1) + '. ' + esc(m.n) + '</b><small dir="ltr" style="text-align:right">' + esc(m.c || 'من غير كود') + (m.t ? ' · محوّل' : '') + '</small></span></div>').join('') + '</div>'
       : '<div class="card mb warn">لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).</div>';
-    h += '<div class="group-h">2. ملف حلّكم</div><label class="card tap mb upfile" id="upPick"><input type="file" id="upIn" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden><span class="up-ic">📎</span><span style="flex:1"><b id="upName">اختار ملف الحل</b><span class="note" id="upInfo" style="display:block">PDF أو Word (.docx)</span></span></label>';
+    h += '<div class="group-h">2. ملف حلّكم</div><label class="card tap mb upfile" id="upPick"><input type="file" id="upIn" accept="' + (n.pdfOnly ? '.pdf,application/pdf' : '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document') + '" hidden><span class="up-ic">📎</span><span style="flex:1"><b id="upName">اختار ملف الحل</b><span class="note" id="upInfo" style="display:block">' + (n.pdfOnly ? 'ملف PDF (الورق متصوّر سكان)' : 'PDF أو Word (.docx)') + '</span></span></label>';
     h += '<div class="btns mt solbtns"><button class="btn green" id="solUp" disabled>📤 ' + (n.link ? 'ارفع على الدرايف' : 'شارك الملف') + '</button><button class="btn" id="solDl" disabled>⬇️ نزّل الملف</button></div>';
     if (n.link) h += '<p class="note center"><a href="' + esc(n.link) + '" target="_blank" rel="noopener">افتح فولدر التسليم</a></p>';
     h += '<div class="group-h">معاينة الغلاف</div><div id="solPrev" class="solprev">' + (T.length ? '<div class="note center">بيجهّز…</div>' : '<div class="note center">ضيف التيم الأول.</div>') + '</div>';
@@ -155,11 +156,12 @@
     $('#upIn').onchange = async e => {
       const file = e.target.files && e.target.files[0]; if (!file) return;
       const nm = file.name.toLowerCase();
+      if (n.pdfOnly && !/\.pdf$/.test(nm) && file.type !== 'application/pdf') { fail(new Error('pdfonly')); e.target.value = ''; return; }
       if (!/\.(pdf|docx)$/.test(nm) && file.type !== 'application/pdf') { fail(new Error(/\.doc$/.test(nm) ? 'olddoc' : 'type')); e.target.value = ''; return; }
       src = file; out = null; $('#upName').textContent = file.name; $('#upInfo').textContent = /\.docx$/i.test(file.name) ? 'بيحوّل الوورد لـ PDF…' : 'بيتأكد من الملف…'; btns();
       if (!T.length) { $('#upInfo').textContent = 'ضيف التيم الأول عشان الغلاف'; return; }
-      try { const o = await make(); $('#upInfo').textContent = (o.kind === 'pdf' ? '✓ PDF' : '✓ Word ← اتحوّل PDF') + ' · ' + o.pages + ' صفحة + الغلاف = ' + (o.pages + 1); mark(/عملناه/); }
-      catch (err) { src = null; $('#upName').textContent = 'اختار ملف الحل'; $('#upInfo').textContent = 'PDF أو Word (.docx)'; e.target.value = ''; btns(); fail(err); }
+      try { const o = await make(); $('#upInfo').textContent = (o.kind === 'pdf' ? '✓ PDF' : '✓ Word ← اتحوّل PDF') + ' · ' + o.pages + ' صفحة + الغلاف = ' + (o.pages + 1); mark(/سكان|عملناه/); }
+      catch (err) { src = null; $('#upName').textContent = 'اختار ملف الحل'; $('#upInfo').textContent = n.pdfOnly ? 'ملف PDF (الورق متصوّر سكان)' : 'PDF أو Word (.docx)'; e.target.value = ''; btns(); fail(err); }
     };
     const download = file => { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
     $('#solDl').onclick = async () => { const b = $('#solDl'); busy(b, true, 'بيجهّز…'); try { download((await make()).file); mark(/الغلاف/); toast('اتنزّل الملف ✓', 'check'); haptic('success'); } catch (e) { fail(e); } busy(b, false); };

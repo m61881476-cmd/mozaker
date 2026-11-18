@@ -69,33 +69,46 @@
     return { file: new File([bytes], file.name, { type: 'application/pdf' }), pages: src.getPageCount() };
   }
 
-  /* ---------- Word: صفحة غلاف حقيقية (نص وجدول) أول المستند ---------- */
-  const X = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const run = (t, o = {}) => '<w:r><w:rPr>' + (o.rtl === false ? '' : '<w:rtl/>') + (o.b ? '<w:b/><w:bCs/>' : '') + '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="' + (o.sz || 28) + '"/><w:szCs w:val="' + (o.sz || 28) + '"/></w:rPr><w:t xml:space="preserve">' + X(t) + '</w:t></w:r>';
-  const para = (t, o = {}) => '<w:p><w:pPr>' + (o.rtl === false ? '' : '<w:bidi/>') + '<w:jc w:val="' + (o.jc || 'center') + '"/><w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after == null ? 160 : o.after) + '"/></w:pPr>' + (t ? run(t, o) : '') + '</w:p>';
-  function coverXml(id) {
-    const M = meta(id), T = team(id), rows = Math.max(4, T.length), W = [700, 4300, 2000, 1600];
-    const bd = '<w:top w:val="single" w:sz="8" w:color="000000"/><w:left w:val="single" w:sz="8" w:color="000000"/><w:bottom w:val="single" w:sz="8" w:color="000000"/><w:right w:val="single" w:sz="8" w:color="000000"/><w:insideH w:val="single" w:sz="6" w:color="000000"/><w:insideV w:val="single" w:sz="6" w:color="000000"/>';
-    const cell = (t, i, o = {}) => '<w:tc><w:tcPr><w:tcW w:w="' + W[i] + '" w:type="dxa"/>' + (o.head ? '<w:shd w:val="clear" w:color="auto" w:fill="E6E6E6"/>' : '') + '<w:vAlign w:val="center"/></w:tcPr>' + para(t, { jc: i === 1 && !o.head ? 'right' : 'center', after: 0, b: o.head || o.b, sz: 26, rtl: o.rtl }) + '</w:tc>';
-    const row = (cells, head) => '<w:tr><w:trPr><w:trHeight w:val="' + (head ? 560 : 620) + '"/></w:trPr>' + cells.map((t, i) => cell(t, i, { head, b: !head && i === 3, rtl: !(i === 2 && !head) })).join('') + '</w:tr>';
-    let tbl = '<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="' + W.reduce((a, b) => a + b) + '" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>' + bd + '</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>' + W.map(w => '<w:gridCol w:w="' + w + '"/>').join('') + '</w:tblGrid>';
-    tbl += row(['م', 'الاسم', 'الكود', 'ملاحظات'], true);
-    for (let i = 0; i < rows; i++) { const m = T[i]; tbl += row(m ? [String(i + 1), m.n.trim(), String(m.c || ''), m.t ? 'محوّل' : ''] : ['', '', '', '']); }
-    tbl += '</w:tbl>';
-    return para('Assignment', { b: true, sz: 64, rtl: false, before: 1600, after: 400 })
-      + para(M.title, { b: true, sz: 48, after: 200 })
-      + (M.sub ? para(M.sub, { sz: 28, after: 120 }) : '') + (M.grade ? para('الدرجة: ' + M.grade, { sz: 26 }) : '')
-      + para('أسماء الطلاب', { b: true, sz: 34, before: 500, after: 240 }) + tbl
-      + '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  /* ---------- Word ← صفحات PDF: بنعرض المستند جوه الصفحة ونصوّر كل صفحة ---------- */
+  const docxLib = () => zipLib().then(() => lib('docx', 'js/vendor/docx-preview.min.js', 'docx'));
+  const shotLib = () => lib('h2c', 'js/vendor/html2canvas.min.js', 'html2canvas');
+  /** بيقطّع صفحة طويلة على مقاس A4، والقطع بيدوّر على سطر فاضي عشان مايقطعش في نص الكلام */
+  function slices(cv) {
+    const W = cv.width, H = cv.height, PH = Math.round(W * 841.89 / 595.28), out = [];
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    const blank = y => { const d = g.getImageData(0, y, W, 1).data; for (let i = 0; i < d.length; i += 16) if (d[i] < 235 || d[i + 1] < 235 || d[i + 2] < 235) return false; return true; };
+    const M = Math.round(PH * 0.06); let y = 0; // هامش فوق وتحت للصفحات اللي بتتقسم
+    while (y < H - 4) {
+      const top = y ? M : 0, room = PH - top - (H - y > PH ? M : 0);
+      let end = Math.min(H, y + room);
+      if (end < H) { for (let t = end; t > y + room * 0.75; t--) if (blank(t)) { end = t; break; } }
+      const c = document.createElement('canvas'); c.width = W; c.height = PH; const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, W, PH); x.drawImage(cv, 0, y, W, end - y, 0, top, W, end - y); out.push(c); y = end;
+    }
+    return out;
+  }
+  const jpeg = c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.88)).then(b => b.arrayBuffer()).then(a => new Uint8Array(a));
+  async function docxPages(file) {
+    const [docx, h2c] = await Promise.all([docxLib(), shotLib()]);
+    const box = document.createElement('div'); box.className = 'docx-render';
+    box.style.cssText = 'position:fixed;left:-20000px;top:0;width:auto;background:#fff;color:#000;direction:ltr;text-align:left;font-size:16px;line-height:normal;z-index:-1';
+    document.body.appendChild(box);
+    try {
+      try { await docx.renderAsync(await file.arrayBuffer(), box, null, { inWrapper: false, breakPages: true, ignoreLastRenderedPageBreak: false, renderHeaders: true, renderFooters: true, experimental: true }); }
+      catch (e) { throw new Error('baddoc'); }
+      box.querySelectorAll('p').forEach(p => { p.dir = 'auto'; }); // الفقرة العربي تتعرض من اليمين، والإنجليزي اللي جواها يفضل في مكانه
+      try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+      const secs = [...box.querySelectorAll('section.docx')]; if (!secs.length) throw new Error('baddoc');
+      const pages = [];
+      for (const s of secs) { const cv = await h2c(s, { scale: 2, backgroundColor: '#fff', logging: false, useCORS: true }); for (const c of slices(cv)) pages.push(await jpeg(c)); }
+      return pages;
+    } finally { box.remove(); }
   }
   async function withCoverDocx(id, file) {
-    const JSZip = await zipLib(); let zip;
-    try { zip = await JSZip.loadAsync(await file.arrayBuffer()); } catch (e) { throw new Error('baddoc'); }
-    const f = zip.file('word/document.xml'); if (!f) throw new Error('baddoc');
-    const xml = await f.async('string'), m = xml.match(/<w:body(\s[^>]*)?>/); if (!m) throw new Error('baddoc');
-    zip.file('word/document.xml', xml.slice(0, m.index + m[0].length) + coverXml(id) + xml.slice(m.index + m[0].length));
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    return { file: new File([blob], file.name, { type: blob.type }) };
+    const { PDFDocument } = await pdfLib(), pages = await docxPages(file), cover = await coverJpeg(id);
+    const out = await PDFDocument.create(), PW = 595.28, PH = 841.89;
+    for (const b of [cover.bytes].concat(pages)) { const img = await out.embedJpg(b), sc = Math.min(PW / img.width, PH / img.height); out.addPage([PW, PH]).drawImage(img, { x: (PW - img.width * sc) / 2, y: (PH - img.height * sc) / 2, width: img.width * sc, height: img.height * sc }); }
+    return { file: new File([await out.save()], file.name.replace(/\.docx$/i, '') + '.pdf', { type: 'application/pdf' }), pages: pages.length };
   }
   async function withCover(id, file) {
     const nm = (file.name || '').toLowerCase();
@@ -104,7 +117,7 @@
     if (nm.endsWith('.doc')) throw new Error('olddoc');
     throw new Error('type');
   }
-  App.AsgUp = { coverJpeg, coverXml, withCover };
+  App.AsgUp = { coverJpeg, withCover };
 
   const ERR = {
     net: 'محتاج نت مرة واحدة عشان الأداة تنزل. اتصل وجرّب تاني.',
@@ -123,7 +136,7 @@
     const T = team(id), f = App.fatma && App.fatma(), ck = state(id).chk, fd = re => (n.checks || []).findIndex(c => re.test(c));
     const mark = (...res) => { res.forEach(re => { const i = fd(re); if (i >= 0) ck[i] = true; }); Store.save(); };
     let h = '<div class="card mb solhero">' + Char.html('', 70) + '<div class="bubble">' + (f ? 'إنتي بتحلّي، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪' : 'إنت بتحل، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪') + '</div></div>';
-    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. حلّوه بنفسكم، واعملوه <b>PDF أو Word</b>، وضيفوه هنا. الغلاف بأسامي التيم بيتحط <b>أول صفحة</b> في نفس الملف.</div>';
+    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. حلّوه بنفسكم، وضيفوا ملفكم هنا (<b>PDF أو Word</b>). الغلاف بأسامي التيم بيتحط <b>أول صفحة</b>، والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
     h += '<div class="group-h">1. التيم (صفحة الغلاف) <a href="#cover/' + esc(id) + '">✏️ عدّل</a></div>';
     h += T.length ? '<div class="group">' + T.map((m, i) => '<div class="row noicon"><span class="tx"><b>' + (i + 1) + '. ' + esc(m.n) + '</b><small dir="ltr" style="text-align:right">' + esc(m.c || 'من غير كود') + (m.t ? ' · محوّل' : '') + '</small></span></div>').join('') + '</div>'
       : '<div class="card mb warn">لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).</div>';
@@ -143,9 +156,9 @@
       const file = e.target.files && e.target.files[0]; if (!file) return;
       const nm = file.name.toLowerCase();
       if (!/\.(pdf|docx)$/.test(nm) && file.type !== 'application/pdf') { fail(new Error(/\.doc$/.test(nm) ? 'olddoc' : 'type')); e.target.value = ''; return; }
-      src = file; out = null; $('#upName').textContent = file.name; $('#upInfo').textContent = 'بيتأكد من الملف…'; btns();
+      src = file; out = null; $('#upName').textContent = file.name; $('#upInfo').textContent = /\.docx$/i.test(file.name) ? 'بيحوّل الوورد لـ PDF…' : 'بيتأكد من الملف…'; btns();
       if (!T.length) { $('#upInfo').textContent = 'ضيف التيم الأول عشان الغلاف'; return; }
-      try { const o = await make(); $('#upInfo').textContent = o.kind === 'pdf' ? '✓ PDF · ' + o.pages + ' صفحة + الغلاف = ' + (o.pages + 1) : '✓ Word · الغلاف هيبقى أول صفحة'; mark(/عملناه/); }
+      try { const o = await make(); $('#upInfo').textContent = (o.kind === 'pdf' ? '✓ PDF' : '✓ Word ← اتحوّل PDF') + ' · ' + o.pages + ' صفحة + الغلاف = ' + (o.pages + 1); mark(/عملناه/); }
       catch (err) { src = null; $('#upName').textContent = 'اختار ملف الحل'; $('#upInfo').textContent = 'PDF أو Word (.docx)'; e.target.value = ''; btns(); fail(err); }
     };
     const download = file => { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };

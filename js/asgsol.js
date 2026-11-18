@@ -152,7 +152,7 @@
     const id = r.args[0] || 'asg-eco-1', n = News().get(id);
     if (!n || n.kind !== 'asg') return Router.go('news', { replace: true });
     header(view, 'ضيف حلّك + الغلاف', { back: { to: 'news/' + id, label: 'الأسايمنت' } });
-    if (!(self.Sub && Sub.on())) { view.insertAdjacentHTML('beforeend', Sub.wallHTML('ضيف حلّك + الغلاف للمشتركين', 'إنتو بتحلّوا الأسايمنت، وأنا بحط صفحة الغلاف بأسامي التيم أول صفحة في ملفكم وأجهّزه للرفع.')); return; }
+    // مجاني للكل: الغلاف وتجميع الصفحات ورفع الأسايمنت (البرنامج مابيحلّش حاجة)
     const T = team(id), f = App.fatma && App.fatma(), ck = state(id).chk, fd = re => (n.checks || []).findIndex(c => re.test(c));
     const mark = (...res) => { res.forEach(re => { const i = fd(re); if (i >= 0) ck[i] = true; }); Store.save(); };
     let h = '<div class="card mb solhero">' + Char.html('', 70) + '<div class="bubble">' + (f ? 'إنتي بتحلّي، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪' : 'إنت بتحل، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪') + '</div></div>';

@@ -130,7 +130,7 @@
     let h = '<div class="newshead">' + Char.html('', 70) + '<div class="bubble">' + esc(n.say || n.short) + '</div></div>';
     h += '<div class="card mb newsbody"><ul class="pts">' + n.points.map(p => '<li><span>' + p[0] + '</span><div>' + p[1] + '</div></li>').join('') + '</ul></div>';
     if (n.go) h += '<a class="btn block mb green" href="' + esc(n.go) + '">' + esc(n.goT || 'افتح') + '</a>';
-    if (n.kind === 'asg') h += '<a class="card tap solcard mb" href="#asgup/' + esc(n.id) + '">' + Char.html('', 46) + '<span style="flex:1"><b>📎 ضيف ملف حلّكم + الغلاف' + (self.Sub && Sub.on() ? '' : ' 🔒') + '</b><span class="note" style="display:block">إنتو بتحلّوا، وأنا بحط الغلاف بأسامي التيم أول صفحة في ملفكم (PDF أو Word) وأجهّزه للرفع.</span></span><span class="chev">‹</span></a>';
+    if (n.kind === 'asg') h += '<a class="card tap solcard mb" href="#asgup/' + esc(n.id) + '">' + Char.html('', 46) + '<span style="flex:1"><b>📎 ضيف ملف حلّكم + الغلاف <span class="pill">مجاني</span></b><span class="note" style="display:block">إنتو بتحلّوا، وأنا بحط الغلاف بأسامي التيم أول صفحة في ملفكم (PDF أو Word) وأجهّزه للرفع.</span></span><span class="chev">‹</span></a>';
     if (n.kind === 'asg') {
       const A = asg(n.id), done = n.checks.filter((_, i) => A.chk[i]).length;
       h += '<div class="btns mb">' + (n.link ? '<a class="btn green" href="' + esc(n.link) + '" target="_blank" rel="noopener">📤 لينك التسليم</a>' : '') + '<a class="btn tint" href="#cover/' + esc(n.id) + '">🪪 اعمل صفحة الغلاف</a></div>';

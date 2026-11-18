@@ -5,6 +5,15 @@
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
   const PRICE = 250, INSTAPAY = '01284134090', WHATSAPP = '01206580045', WA_INTL = '201206580045';
   const TERM_END = '2027-02-28';
+  /** سوبابيز: كل كود بيتفعّل مرة واحدة بس على جهاز واحد (المفتاح ده عام ومسموح يبقى في التطبيق) */
+  const SUPA = { url: 'https://xavantbtoszkhthqakjw.supabase.co', key: '' };
+  const ONLINE = !!SUPA.key; // لما يشتغل: الأكواد القديمة (MZ1) بتتقفل
+  const ONE = /^MZ-?[A-Z2-9]{4}-?[A-Z2-9]{4}-?[A-Z2-9]{4}$/;
+  const oneCode = t => { const c = String(t || '').toUpperCase().replace(/[\s\u200e\u200f]/g, '').replace(/[^A-Z0-9-]/g, ''); const m = c.match(/MZ-?([A-Z2-9]{4})-?([A-Z2-9]{4})-?([A-Z2-9]{4})/); return m ? 'MZ-' + m[1] + '-' + m[2] + '-' + m[3] : null; };
+  async function rpc(fn, body) {
+    const res = await fetch(SUPA.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: SUPA.key, Authorization: 'Bearer ' + SUPA.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+    if (!res.ok) throw new Error('net'); return res.json();
+  }
   const KEYS = self.MZ_KEYS || {};
 
   /* ---------- (1) فتح المحتوى فورًا لو فيه اشتراك ---------- */
@@ -28,6 +37,8 @@
   function device() { let d = LS.get('mz:dev', null); if (!d) { d = License.newDevice(); LS.set('mz:dev', d); } return d; }
   const fmtDate = d => { try { return new Date(d).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return String(d).slice(0, 10); } };
   async function fetchPaid() { const r = await fetch('content/paid.mz', { cache: 'no-cache' }); if (!r.ok) throw new Error('net'); return new Uint8Array(await r.arrayBuffer()); }
+  /** مفتاح سري للجهاز (مش بيظهر لحد، ومختلف عن رقم الجهاز): الكود بيتربط بيه على السيرفر */
+  function dtok() { let t = LS.get('mz:dtok', null); if (!t) { t = License.b64u.enc(License.rand(18)); LS.set('mz:dtok', t); } return t; }
   function wipe() { ['mz:lic', 'mz:paid', 'mz:k'].forEach(LS.del); }
   async function store(K, licObj) {
     const paid = await License.decryptJSON(K, await fetchPaid());
@@ -42,7 +53,12 @@
     expired: 'الكود ده مدته خلصت. جدّد الاشتراك من نفس الصفحة.',
     vanity: 'الكود ده مش صحيح، أو الاسم مش مطابق ليه.',
     net: 'محتاج نت مرة واحدة بس عشان المحتوى ينزل. اتصل بالنت وجرّب تاني.',
-    space: 'مساحة المتصفح مليانة. امسح شوية بيانات من المتصفح وجرّب تاني.'
+    space: 'مساحة المتصفح مليانة. امسح شوية بيانات من المتصفح وجرّب تاني.',
+    used: 'الكود ده اتفعّل قبل كده على جهاز تاني. كل كود بيشتغل مرة واحدة بس. لو ده جهازك الجديد كلّم محمد.',
+    bad: 'الكود ده مش صحيح. اتأكد إنك كاتبه زي ما وصلك بالظبط (بيبدأ بـ MZ-).',
+    revoked: 'الكود ده اتلغى. كلّم محمد على واتساب.',
+    old: 'ده كود من النظام القديم وبطّل يشتغل. كلّم محمد على واتساب وهيبعتلك كود جديد.',
+    soon: 'التفعيل بالأكواد الجديدة لسه بيتجهز. جرّب كمان شوية.'
   };
   /** أكواد أشخاص مميزين (بالرقم المسلسل، والرقم متوقّع جوه الكود فمحدش يقدر يزوّره) */
   const SPECIAL = { 65001: { who: 'bff', label: 'بيستو فريندو 💜' } };
@@ -52,7 +68,17 @@
     if (!text) return { ok: false, msg: 'الصق الكود الأول.' };
     if (!name) return { ok: false, msg: 'اكتب اسمك الأول (نفس الاسم اللي بعته في رسالة الاشتراك).' };
     try {
+      const oc = License.extract(text) ? null : oneCode(text);
+      if (oc) {
+        if (!ONLINE) return { ok: false, msg: MSG.soon };
+        const r = await rpc('mz_redeem', { p_code: oc, p_device: dtok(), p_name: name });
+        if (!r || !r.ok) return { ok: false, msg: MSG[r && r.reason] || MSG.bad, reason: r && r.reason };
+        const sp = SPECIAL[r.serial] || {};
+        await store(License.b64u.dec(r.k), { kind: 'online', code: oc, name, plan: r.plan, exp: r.exp ? new Date(r.exp + 'T23:59:59Z').getTime() : null, serial: r.serial, who: sp.who, label: sp.label, at: Date.now() });
+        return { ok: true, plan: r.plan, who: sp.who };
+      }
       if (License.extract(text)) {
+        if (ONLINE) return { ok: false, msg: MSG.old };
         const r = await License.verify(text, { pubJwk: KEYS.pub, device: device(), name });
         if (!r.ok) return { ok: false, msg: MSG[r.reason] || MSG.format, reason: r.reason };
         if ((LS.get('mz:revoked', []) || []).includes(r.serial)) return { ok: false, msg: 'الكود ده اتلغى. كلّم محمد على واتساب.' };
@@ -70,6 +96,10 @@
   async function check() {
     const L0 = LS.get('mz:lic', null); if (!L0) return;
     if ('ap' in L0 || 'admin' in L0) { delete L0.ap; delete L0.admin; LS.set('mz:lic', L0); } // نسخ قديمة كانت شايلة كلمة سر الأدمن: نمسحها
+    if (L0.kind === 'code' && ONLINE) { wipe(); location.reload(); return; } // الأكواد القديمة بطّلت
+    if (L0.kind === 'online') {
+      try { const s = await rpc('mz_status', { p_code: L0.code, p_device: dtok() }); if (s && s.ok === false) { wipe(); location.reload(); return; } } catch (e) { /* من غير نت: نكمّل */ }
+    }
     if (L0.kind === 'code') {
       const r = await License.verify(L0.code, { pubJwk: KEYS.pub, device: device(), name: L0.name });
       if (!r.ok && r.reason !== 'expired') { wipe(); location.reload(); return; }
@@ -155,7 +185,7 @@
     h += '<div class="card subhero">' + Char.html('', 78) + '<div><span class="pill star">الترم كامل</span><b class="price">' + PRICE + ' <small>جنيه</small></b><span>كل المواد، كل الفصول، ومن غير اشتراك شهري</span></div></div>';
     h += '<div class="group-h">هتاخد إيه</div>' + featHTML();
     h += '<div class="group-h" id="steps">خطوات الاشتراك</div><div class="card steps">'
-      + '<div class="st"><span class="stepn">1</span><div><b>اكتب اسمك الثلاثي</b><span class="note">الكود هيتربط باسمك وجهازك، فمحدش غيرك يقدر يستخدمه.</span><input class="input mt" id="sbName" placeholder="مثال: أحمد محمد علي" value="' + esc(pend.name || '') + '" autocomplete="name"></div></div>'
+      + '<div class="st"><span class="stepn">1</span><div><b>اكتب اسمك الثلاثي</b><span class="note">الكود بيتفعّل مرة واحدة بس على جهازك، فمحدش غيرك يقدر يستخدمه.</span><input class="input mt" id="sbName" placeholder="مثال: أحمد محمد علي" value="' + esc(pend.name || '') + '" autocomplete="name"></div></div>'
       + '<div class="st"><span class="stepn">2</span><div><b>حوّل ' + PRICE + ' جنيه إنستا باي</b><span class="note">على الرقم ده، واكتب اسمك في ملاحظة التحويل.</span><div class="paynum"><b dir="ltr">' + INSTAPAY + '</b><button class="btn sm tint" id="cpPay">' + icon('note') + 'انسخ</button></div></div></div>'
       + '<div class="st"><span class="stepn">3</span><div><b>ابعت سكرين التحويل على واتساب</b><span class="note">لمحمد على <b dir="ltr">' + WHATSAPP + '</b>. الرسالة جاهزة فيها اسمك ورقم جهازك.</span><button class="btn block green mt" id="waGo">' + icon('chat') + 'افتح واتساب وابعت</button></div></div>'
       + '<div class="st"><span class="stepn">4</span><div><b>هيوصلك كود التفعيل</b><span class="note">الصقه هنا ودوس فعّل. أو دوس على اللينك اللي هيوصلك.</span></div></div>'

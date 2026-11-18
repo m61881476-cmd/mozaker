@@ -136,4 +136,70 @@ async function issue() {
 }
 
 const cmd = process.argv[2];
-({ init, build, unpack, issue, assets: () => assets(), vanity: vanityCmd }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });
+/** سوبابيز: بيطلّع ملف SQL (الجداول + دالة التفعيل + الأكواد) وقايمة الأكواد — في content-src/supabase (مش بيترفع على جيت هب) */
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { const b = require('crypto').randomBytes(12); let s = ''; for (const x of b) s += CODE_ABC[x & 31]; return 'MZ-' + s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12); }
+async function supaCmd() {
+  const { K } = await secrets();
+  const dir = path.join(SRC, 'supabase'); fs.mkdirSync(dir, { recursive: true });
+  const rows = [];
+  for (let i = 1; i <= 90; i++) rows.push({ serial: i, plan: 'term', exp: '2027-02-28', note: '' });
+  for (let i = 91; i <= 100; i++) rows.push({ serial: i, plan: 'vip', exp: null, note: '' });
+  rows.push({ serial: 65001, plan: 'vip', exp: null, note: 'چني علي أنور (بيستو فريندو)' });
+  rows.forEach(r => r.code = newCode());
+  const q = s => s == null ? 'null' : "'" + String(s).replace(/'/g, "''") + "'";
+  const sql = `-- مذاكِر: أكواد بتشتغل مرة واحدة بس. الصق الملف ده كله في Supabase ← SQL Editor ← Run
+create table if not exists public.mz_codes (
+  code text primary key,
+  serial int unique not null,
+  plan text not null check (plan in ('term','vip')),
+  exp date,
+  note text,
+  device text,
+  name text,
+  used_at timestamptz,
+  revoked boolean not null default false
+);
+create table if not exists public.mz_secret (id int primary key, k text not null);
+alter table public.mz_codes enable row level security;
+alter table public.mz_secret enable row level security;
+-- مفيش أي policy: محدش من برّه يقدر يقرا أو يعدّل الجدولين. الدخول بس من الدالتين اللي تحت.
+revoke all on public.mz_codes, public.mz_secret from anon, authenticated;
+
+create or replace function public.mz_redeem(p_code text, p_device text, p_name text)
+returns json language plpgsql security definer set search_path = public as $$
+declare r public.mz_codes; k text;
+begin
+  if p_code is null or p_device is null or length(p_device) < 6 then return json_build_object('ok', false, 'reason', 'bad'); end if;
+  select * into r from public.mz_codes where code = upper(trim(p_code)) for update;
+  if not found then perform pg_sleep(0.5); return json_build_object('ok', false, 'reason', 'bad'); end if;
+  if r.revoked then return json_build_object('ok', false, 'reason', 'revoked'); end if;
+  if r.used_at is not null and r.device <> p_device then return json_build_object('ok', false, 'reason', 'used'); end if;
+  if r.exp is not null and r.exp < current_date then return json_build_object('ok', false, 'reason', 'expired'); end if;
+  if r.used_at is null then
+    update public.mz_codes set used_at = now(), device = p_device, name = left(p_name, 80) where code = r.code;
+  end if;
+  select s.k into k from public.mz_secret s where id = 1;
+  return json_build_object('ok', true, 'plan', r.plan, 'exp', r.exp, 'serial', r.serial, 'k', k);
+end $$;
+
+create or replace function public.mz_status(p_code text, p_device text)
+returns json language sql security definer set search_path = public as $$
+  select json_build_object('ok', coalesce((select not revoked and device = p_device from public.mz_codes where code = upper(trim(p_code))), false));
+$$;
+
+revoke all on function public.mz_redeem(text, text, text), public.mz_status(text, text) from public;
+grant execute on function public.mz_redeem(text, text, text), public.mz_status(text, text) to anon, authenticated;
+
+insert into public.mz_secret (id, k) values (1, ${q(L.b64u.enc(K))}) on conflict (id) do update set k = excluded.k;
+insert into public.mz_codes (code, serial, plan, exp, note) values
+${rows.map(r => '  (' + [q(r.code), r.serial, q(r.plan), q(r.exp), q(r.note || null)].join(', ') + ')').join(',\n')}
+on conflict (serial) do nothing;
+`;
+  fs.writeFileSync(path.join(dir, 'setup.sql'), sql);
+  const csv = '﻿' + [['رقم', 'النوع', 'الكود', 'ملاحظة']].concat(rows.map(r => [r.serial, r.plan === 'vip' ? 'VIP' : 'ترم', r.code, r.note])).map(x => x.join(',')).join('\n') + '\n';
+  fs.writeFileSync(path.join(dir, 'codes.csv'), csv);
+  console.log('اتعمل: content-src/supabase/setup.sql و codes.csv (' + rows.length + ' كود)');
+}
+
+({ init, build, unpack, issue, assets: () => assets(), vanity: vanityCmd, supa: supaCmd }[cmd] || (async () => console.log('الأوامر: init | build | unpack | issue')))().catch(e => { console.error('✗ ' + e.message); process.exit(1); });

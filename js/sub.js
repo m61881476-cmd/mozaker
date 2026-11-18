@@ -182,8 +182,16 @@
     if (L0 && expired(L0)) h += '<div class="warn">' + icon('info') + ' اشتراكك خلص في ' + esc(fmtDate(L0.exp)) + '. جدّده من هنا.</div>';
     const pend = LS.get('mz:subreq', {});
     const rq = pend.req || ('R' + License.b32enc(License.rand(3)).slice(0, 5));
-    h += '<div class="card subhero">' + Char.html('', 78) + '<div><span class="pill star">الترم كامل</span><b class="price">' + PRICE + ' <small>جنيه</small></b><span>كل المواد، كل الفصول، ومن غير اشتراك شهري</span></div></div>';
-    h += '<div class="group-h">هتاخد إيه</div>' + featHTML();
+    const PLUS = [['كل فصول المواد', 'التسويق والاقتصاد كاملين، وأي فصل جديد أول ما ينزل'], ['المواد الجاية من غير فلوس زيادة', 'الإنتاج والقانون والمحاسبة والإحصاء'], ['شرح البورد بالصوت و«ذاكر معايا»', ''], ['الأسئلة المتوقعة والامتحانات بالشرح', ''], ['المراجعة النهائية والماراثون', ''], ['شغال من غير نت', 'بعد التفعيل كل حاجة على موبايلك']];
+    const FREEL = [['الفصل الأول من الاقتصاد', 'بالفيديو والملخص والبورد والامتحان'], ['رفع الأسايمنت والغلاف', 'صوّر صفحاتك وهو يعملها PDF واحد'], ['الجدول وتنظيم المذاكرة', '']];
+    const li = a => '<ul class="plan-l">' + a.map(x => '<li><span class="plan-ck" aria-hidden="true">✓</span><span><b>' + esc(x[0]) + '</b>' + (x[1] ? '<small>' + esc(x[1]) + '</small>' : '') + '</span></li>').join('') + '</ul>';
+    const openSteps = !!(pend.name || r.args[0] || r.q.have);
+    h += '<div class="plan-h"><h2>ذاكر أكتر مع مذاكِر</h2><p>اختار اللي يناسبك</p></div>';
+    h += '<div class="plan"><div class="plan-top"><b class="plan-n">الترم كامل</b><span class="plan-s">لكل المواد طول الترم</span><div class="plan-p"><b>' + PRICE + '</b> ج.م</div><span class="plan-b">مرة واحدة للترم · من غير اشتراك شهري</span>'
+      + '<button class="plan-go" id="planGo">اشترك في الترم كامل</button><button class="plan-have" id="haveGo">معايا كود</button></div>'
+      + '<div class="plan-f"><div class="plan-fh">كل اللي في المجاني، وكمان:</div>' + li(PLUS) + '<p class="plan-note">بتدفع مرة واحدة بإنستا باي، والكود بيتفعّل على جهازك إنت بس.</p></div></div>';
+    h += '<div class="plan free"><div class="plan-top"><b class="plan-n">مجاني</b><span class="plan-s">عشان تجرّب</span><div class="plan-p"><b>0</b> ج.م</div><span class="plan-b">على طول</span><div class="plan-cur">باقتك دلوقتي</div></div><div class="plan-f">' + li(FREEL) + '</div></div>';
+    h += '<div id="subSteps"' + (openSteps ? '' : ' hidden') + '>';
     h += '<div class="group-h" id="steps">خطوات الاشتراك</div><div class="card steps">'
       + '<div class="st"><span class="stepn">1</span><div><b>اكتب اسمك الثلاثي</b><span class="note">الكود بيتفعّل مرة واحدة بس على جهازك، فمحدش غيرك يقدر يستخدمه.</span><input class="input mt" id="sbName" placeholder="مثال: أحمد محمد علي" value="' + esc(pend.name || '') + '" autocomplete="name"></div></div>'
       + '<div class="st"><span class="stepn">2</span><div><b>حوّل ' + PRICE + ' جنيه إنستا باي</b><span class="note">على الرقم ده، واكتب اسمك في ملاحظة التحويل.</span><div class="paynum"><b dir="ltr">' + INSTAPAY + '</b><button class="btn sm tint" id="cpPay">' + icon('note') + 'انسخ</button></div></div></div>'
@@ -191,6 +199,7 @@
       + '<div class="st"><span class="stepn">4</span><div><b>هيوصلك كود التفعيل</b><span class="note">الصقه هنا ودوس فعّل. أو دوس على اللينك اللي هيوصلك.</span></div></div>'
       + '</div>';
     h += '<div class="group-h" id="have">معاك كود؟</div><div class="card"><textarea class="input" id="sbCode" rows="3" dir="ltr" placeholder="الصق كود التفعيل هنا (أو الكود الخاص)"></textarea><button class="btn block mt" id="sbGo">' + icon('check') + 'فعّل</button><div id="sbMsg"></div></div>';
+    h += '</div>';
     h += '<p class="note center mt">رقم جهازك: <b dir="ltr">' + esc(License.prettyDevice(d)) + '</b> · أي مشكلة كلّم محمد على <a href="' + Sub.wa('محتاج مساعدة في مذاكِر. رقم جهازي: ' + License.prettyDevice(d)) + '" target="_blank" rel="noopener" dir="ltr">' + WHATSAPP + '</a></p>';
     view.insertAdjacentHTML('beforeend', h);
     const nameIn = $('#sbName'), save = () => LS.set('mz:subreq', { name: nameIn.value.trim(), req: rq, at: Date.now() });
@@ -217,7 +226,10 @@
     };
     $('#sbGo').onclick = go;
     if (r.args[0] && (pend.name || nameIn.value)) setTimeout(go, 300);
-    if (r.q.have) setTimeout(() => $('#have').scrollIntoView({ behavior: 'smooth' }), 300);
+    const showSteps = to => { const st = $('#subSteps'); st.hidden = false; setTimeout(() => $(to).scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); };
+    $('#planGo').onclick = () => { showSteps('#steps'); setTimeout(() => nameIn.focus({ preventScroll: true }), 500); };
+    $('#haveGo').onclick = () => showSteps('#have');
+    if (r.q.have) setTimeout(() => showSteps('#have'), 300);
   });
   Router.on('activate', (view, r) => Router.go('subscribe/' + r.args.join('/'), { replace: true }));
   function copy(t) { try { navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); } }

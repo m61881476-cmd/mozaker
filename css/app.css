@@ -840,3 +840,14 @@ select.input.sel{width:auto;min-width:96px;padding:8px 12px;font-size:15px}
 .upthumbs .ib{border:0;background:var(--bg3,rgba(127,127,127,.15));color:var(--fg);border-radius:6px;width:26px;height:26px;font-size:13px;margin-inline-start:2px;cursor:pointer}
 .upthumbs .ib:disabled{opacity:.3}
 #upPhotos,#upPick{cursor:pointer}
+
+/* فيديو الدرس */
+.vidcard{padding:0;overflow:hidden}
+.vid-poster{display:flex;align-items:center;gap:14px;width:100%;border:0;cursor:pointer;text-align:right;padding:18px 16px;color:#fff;font:inherit;
+  background:linear-gradient(135deg,#E2622B,#b8441a 60%,#2b2118);min-height:120px}
+.vid-play{flex:none;width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.95);color:#E2622B;display:grid;place-items:center;font-size:24px;padding-inline-start:4px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.vid-tx{display:flex;flex-direction:column;gap:4px}.vid-tx b{font-size:18px}.vid-tx small{opacity:.9;font-size:13.5px}
+.vid-frame{position:relative;width:100%;padding-bottom:calc(56.25% + 58px);background:#1b1612}
+.vid-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-links{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;padding:10px 14px;font-size:13.5px;color:var(--fg2)}
+@media (max-width:560px){.vid-frame{padding-bottom:calc(56.25% + 92px)}}

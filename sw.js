@@ -1,5 +1,5 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-3.10.3';
+const VERSION = 'mozaker-3.11.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',
@@ -20,6 +20,7 @@ self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
+    if (/\/lectures\//.test(url.pathname)) return; // فيديوهات الدروس: من النت على طول (الصوت بيتطلب على أجزاء)
     if (/\/data\/[^/]+\.json$/.test(url.pathname) || /\/content\/paid\.mz$/.test(url.pathname)) {
       e.respondWith((async () => { try { const res = await fetch(req, { cache: 'no-store' }); if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(url.pathname.endsWith('.mz') ? './content/paid.mz' : req.url.split('?')[0], copy)); } return res; } catch (err) { return (await caches.match(req, { ignoreSearch: true })) || new Response('{}', { status: 504 }); } })());
       return;

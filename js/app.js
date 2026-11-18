@@ -177,7 +177,8 @@
     header(view, s.name, { back: { to: 'subjects', label: 'المواد' }, right: s.custom ? '<button class="btn-nav" id="editS" aria-label="تعديل المادة">' + icon('edit') + '</button>' : '' });
     const p = subjectProgress(s.id), due = dueCards(s.id).length, nw = newCards(s.id).length, qs = questionsOf(s.id).length;
     const nextEx = upcomingExams().find(e => e.subject === s.id);
-    let html = '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + (s.lessons.length === 1 ? 'درس واحد' : s.lessons.length === 2 ? 'درسين' : s.lessons.length + (s.lessons.length <= 10 ? ' دروس' : ' درس')) + ' · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
+    let html = s.lessons[0] && VIDEOS[s.lessons[0].id] && !s.lessons[0].locked ? videoHTML(s.lessons[0].id, true) : '';
+    html += '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + (s.lessons.length === 1 ? 'درس واحد' : s.lessons.length === 2 ? 'درسين' : s.lessons.length + (s.lessons.length <= 10 ? ' دروس' : ' درس')) + ' · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
     if (s.partial) html += '<div class="warn">' + icon('info') + ' ' + esc(s.partial) + '</div>';
     if (s.paid && !s.unlocked) html += '<a class="card tap subbar mb" href="#subscribe">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ افتح كل فصول ' + esc(s.short) + '</b><span class="note" style="display:block">الدروس اللي عليها 🎁 مجانية. اشتراك الترم كامل ' + self.Sub.PRICE + ' ج ويفتح كل المواد.</span></span>' + icon('chev', 'chev') + '</a>';
     html += '<div class="btns mb"><a class="btn" href="#review/' + s.id + '">' + icon('cards') + (due ? 'راجع ' + due : nw ? 'ابدأ البطاقات' : 'راجع') + '</a><a class="btn tint" href="#quiz?s=' + s.id + '">' + icon('quiz') + 'امتحني</a></div>';
@@ -185,6 +186,7 @@
     const tabs = [['lessons', 'الدروس'], ...(s.tools.length ? [['tools', 'تمارين وحاسبات']] : []), ...(self.Figs && Figs.list(s.id).length ? [['figs', 'الرسومات']] : []), ['cards', 'البطاقات'], ['qs', 'الأسئلة']];
     html += '<div class="seg" role="tablist">' + tabs.map(([k, t]) => '<button role="tab" aria-selected="' + (k === tab) + '" class="' + (k === tab ? 'on' : '') + '" data-tab2="' + k + '">' + t + '</button>').join('') + '</div><div id="tabBody"></div>';
     view.insertAdjacentHTML('beforeend', html);
+    bindVideo(view);
     const es = $('#editS'); if (es) es.onclick = () => App.subjectSheet(s);
     $$('[data-tab2]').forEach(b => b.onclick = () => Router.go('subject/' + s.id + '?tab=' + b.dataset.tab2, { replace: true }));
     const body = $('#tabBody');
@@ -240,6 +242,25 @@
   function cardRow(c) { const st = D().srs[c.id]; return '<button class="row noicon" data-card="' + esc(c.id) + '"><span class="tx"><b>' + esc(c.front) + (c.custom ? ' <span class="pill acc">بطاقتي</span>' : '') + '</b><small hidden class="pre">' + esc(c.back) + '</small></span><span class="v">' + (st ? Math.round(E.mastery(st) * 100) + '%' : 'جديدة') + '</span></button>'; }
 
   /* ---------- الدرس ---------- */
+  /* فيديوهات الدروس (صفحة تشغيل تفاعلية: رسوم + صوت + ترجمة + فصول) */
+  const VIDEOS = { ec1: { src: 'lectures/income-y/', title: 'الدخل Y: أول درس اقتصاد', sub: 'شرح بالمصري · 8 دقايق ونص · ترجمة وفصول وسرعة' } };
+  function videoHTML(lid, withNext) {
+    const v = VIDEOS[lid]; if (!v) return '';
+    return '<div class="card vidcard mb" data-vid="' + lid + '"><button class="vid-poster" type="button" aria-label="شغّل الفيديو"><span class="vid-play">▶</span><span class="vid-tx"><b>🎬 ' + esc(v.title) + '</b><small>' + esc(v.sub) + '</small></span></button>'
+      + '<div class="vid-links"><a href="' + v.src + '" target="_blank" rel="noopener">⛶ افتحه بملء الشاشة</a>' + (withNext ? '<span>بعده: <a href="#lesson/' + lid + '">📖 الملخص والبورد</a> ← <a href="#exam/' + lid + '">📝 الامتحان</a></span>' : '') + '</div></div>';
+  }
+  function bindVideo(view) {
+    $$('.vidcard', view).forEach(c => {
+      const b = c.querySelector('.vid-poster'); if (!b) return;
+      b.onclick = () => {
+        const v = VIDEOS[c.dataset.vid], w = document.createElement('div'); w.className = 'vid-frame';
+        w.innerHTML = '<iframe src="' + v.src + '" title="' + esc(v.title) + '" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+        b.replaceWith(w); const d = D(); d.vidSeen = d.vidSeen || {}; d.vidSeen[c.dataset.vid] = now(); Store.save();
+      };
+    });
+  }
+  App.videoHTML = videoHTML;
+
   Router.on('lesson', (view, r) => {
     const l = LESSONS[r.args[0]]; if (!l) return Router.go('subjects', { replace: true });
     const s = S(l.s), d = D();
@@ -253,6 +274,7 @@
     const nc = cardsOf(null, l.id).length, nq = questionsOf(null, l.id).length, idx = s.lessons.indexOf(l);
     let html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px"><span class="pill acc">' + esc(s.name) + '</span>' + (l.source ? '<span class="pill">' + esc(l.source) + '</span>' : '') + '</div>';
     const isFinal = s.final === l.id, canTeach = !!(l.summary && /^##\s/m.test(l.summary));
+    html += videoHTML(l.id);
     if (isFinal) html += '<a class="btn block mb" href="#final/' + s.id + '">🏁 افتح صفحة المراجعة النهائية (رسومات وماراثون وامتحان)</a>';
     else if (canTeach) html += '<a class="card tap teachcard mb" href="#teach/' + l.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🎓 ذاكر معايا الدرس ده</b><span class="note" style="display:block">' + esc(d.charName) + ' يشرحهولك حتة حتة ويسألك بعد كل جزء.</span></span>' + icon('chev', 'chev') + '</a>';
     html += l.summary && l.summary.trim() ? '<article class="card prose">' + md(l.summary, r.q.hl) + '</article>' : '<div class="empty" style="padding:16px 0">' + Char.html('', 70) + '<p>المحاضرة دي لسه فاضية. اضغط ✏️ فوق واكتب الشرح أو الملخص.</p></div>';
@@ -265,6 +287,7 @@
     html += '<button class="btn block ' + (d.lessonsDone[l.id] ? 'gray' : 'green') + ' mt" id="doneBtn">' + icon('check') + (d.lessonsDone[l.id] ? 'خلصت الدرس ده (اضغط للإلغاء)' : 'خلصت الدرس ده') + '</button>';
     html += '<div class="btns mt">' + (idx > 0 ? '<a class="btn gray" href="#lesson/' + s.lessons[idx - 1].id + '">→ اللي قبله</a>' : '') + (idx < s.lessons.length - 1 ? '<a class="btn gray" href="#lesson/' + s.lessons[idx + 1].id + '">اللي بعده ←</a>' : '') + '</div>';
     view.insertAdjacentHTML('beforeend', html);
+    bindVideo(view);
     $('#doneBtn').onclick = () => { if (d.lessonsDone[l.id]) delete d.lessonsDone[l.id]; else { d.lessonsDone[l.id] = now(); buddy('برافو! الدرس ده اتقفل ✅ ماتنساش تراجع بطاقاته بكرة.', 'happy'); beep('ok'); haptic('success'); } Store.save(); Router.render(); };
     $('#noteBtn').onclick = () => App.noteSheet({ s: s.id, l: l.id });
     const el2 = $('#editL'); if (el2) el2.onclick = () => App.lessonSheet(l);

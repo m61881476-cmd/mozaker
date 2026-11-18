@@ -28,13 +28,13 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log('✗ ' + m); } 
   const enc = await L.encryptJSON(K, { a: 1 }); ok((await L.decryptJSON(K, enc)).a === 1, 'فك المحتوى');
   // الأكواد الخاصة في المفاتيح الحقيقية
   const ctx = { self: {} }; vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/keys.js'), 'utf8'), ctx); const KEYS = ctx.self.MZ_KEYS;
-  const v1 = await L.tryVanity('Muhammad 2007', 'محمد الشيخ', KEYS.vanity, KEYS.vsalt); ok(v1 && v1.who === 'owner' && v1.admin && v1.ap, 'كود محمد الشيخ ومعاه الأدمن');
+  const v1 = await L.tryVanity('Muhammad 2007', 'محمد الشيخ', KEYS.vanity, KEYS.vsalt); ok(v1 && v1.who === 'owner' && !v1.admin && !v1.ap, 'كود محمد الشيخ (من غير أي سر أدمن جوّاه)');
+  ok(!KEYS.admin && !/privJwk|"d"\s*:/.test(fs.readFileSync(path.join(__dirname, '../js/keys.js'), 'utf8')), 'js/keys.js مفيهوش حزمة الأدمن ولا مفتاح خاص');
   const v1b = await L.tryVanity('muhammad2007', 'Mohamed Elsheikh', KEYS.vanity, KEYS.vsalt); ok(v1b && v1b.who === 'owner', 'كود محمد الشيخ بالإنجليزي');
   const v1c = await L.tryVanity('Muhammad 2007', 'محمد هاني الشيخ', KEYS.vanity, KEYS.vsalt); ok(v1c && v1c.who === 'owner', 'محمد هاني الشيخ (اسم ثلاثي) شغال');
   ok(!(await L.tryVanity('Muhammad 2007', 'محمد هاني', KEYS.vanity, KEYS.vsalt)), 'محمد هاني من غير الشيخ مرفوض');
   ok(!(await L.tryVanity('Muhammad 2007', 'محمد', KEYS.vanity, KEYS.vsalt)), 'محمد لوحده مرفوض');
   ok(!(await L.tryVanity('Muhammad 2007', 'محمد احمد', KEYS.vanity, KEYS.vsalt)), 'محمد تاني مرفوض');
-  ok((await L.openAdminBundle(v1.ap, KEYS.admin)).privJwk, 'لوحة الأدمن تتفتح بكود محمد الشيخ');
   const v2 = await L.tryVanity('I love you', 'فاطمة', KEYS.vanity, KEYS.vsalt); ok(v2 && v2.who === 'fatma' && !v2.admin, 'كود فاطمة');
   const v2b = await L.tryVanity('i love you', 'Fatma Ali', KEYS.vanity, KEYS.vsalt); ok(v2b && v2b.who === 'fatma', 'كود فاطمة بالإنجليزي');
   ok(!(await L.tryVanity('I love you', 'أحمد', KEYS.vanity, KEYS.vsalt)), 'كود فاطمة باسم تاني مرفوض');

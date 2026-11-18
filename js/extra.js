@@ -408,7 +408,6 @@
       ['💬', 'كلّم ' + cname(), '#chat', ''],
       ['📅', 'الجدول', '#plan', '']
     ];
-    if (self.Sub && Sub.isAdmin && Sub.isAdmin()) tiles.push(['🔑', 'لوحة الأدمن', '#admin', 'الأكواد']);
     const h = '<nav class="mtiles" aria-label="القايمة">' + tiles.map(t => '<a class="mtile' + (t[2] === '#subscribe' && !on ? ' hot' : '') + '" href="' + t[2] + '"><span class="mt-ic">' + t[0] + '</span><b>' + t[1] + '</b>' + (t[3] ? '<small>' + t[3] + '</small>' : '') + '</a>').join('') + '</nav>';
     if (hero) hero.insertAdjacentHTML('beforebegin', h); else if (nav) nav.insertAdjacentHTML('afterend', h); else view.insertAdjacentHTML('afterbegin', h);
     if (!track()) { $('.mtiles', view).insertAdjacentHTML('afterend', trackAskHTML(true)); bindTrack(view); }
@@ -627,7 +626,7 @@
   function welcome() {
     const w = sessionStorage.getItem('mz:welcome'); if (!w) return; sessionStorage.removeItem('mz:welcome');
     const T = {
-      owner: ['👑', 'أهلًا يا مخترع!', 'النسخة الكاملة مفتوحة، ولوحة الأدمن مستنياك في صفحة الاشتراك. يلا نكسّر الدنيا 😎'],
+      owner: ['👑', 'أهلًا يا مخترع!', 'النسخة الكاملة مفتوحة كلها ليك. يلا نكسّر الدنيا 😎'],
       bff: ['💜', 'أهلًا يا بيستو فريندو!', 'النسخة دي VIP هدية من محمد لچني 💜 كل المواد والفصول مفتوحة، وأنا هفضل أشجعك وأدعمك طول الترم. يلا بينا!'],
       fatma: ['🤍', 'أهلًا يا فاطمة', 'النسخة دي هدية من محمد 🤍 كل المواد والفصول مفتوحة ليكي، وأنا معاكي في كل خطوة.'],
       sub: ['🎉', 'اشتراكك اتفعّل!', 'كل الفصول والبورد والماراثون والمراجعة النهائية بقوا مفتوحين. يلا بينا!']

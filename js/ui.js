@@ -283,7 +283,8 @@
     go(hash, { replace } = {}) { if (location.hash === '#' + hash) this.render(); else if (replace) { history.replaceState(null, '', '#' + hash); this.render(); } else location.hash = hash; },
     parse() { const h = decodeURIComponent(location.hash.slice(1) || 'home'); const [path, qs] = h.split('?'); const parts = path.split('/'); return { name: parts[0], args: parts.slice(1), q: Object.fromEntries(new URLSearchParams(qs || '')), raw: h }; },
     render() {
-      const r = this.parse();
+      let r = this.parse();
+      if (r.name && !this.routes[r.name]) { history.replaceState(null, '', '#home'); r = this.parse(); } // صفحة مش موجودة ← الرئيسية
       const fn = this.routes[r.name] || this.routes.home;
       const prev = this.cur; this.cur = r;
       const depth = r.args.length + (r.name === 'home' ? 0 : 1), pdepth = prev ? prev.args.length + (prev.name === 'home' ? 0 : 1) : 0;

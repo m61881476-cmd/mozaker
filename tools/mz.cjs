@@ -16,41 +16,46 @@ function readKeysJs() {
   const ctx = { self: {} }; vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'js/keys.js'), 'utf8'), ctx);
   return ctx.self.MZ_KEYS;
 }
+const ADMIN_FILE = path.join(ROOT, 'tools/admin.bundle.json');
+function readAdmin() { return JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8')); }
+function writeKeysJs(k) {
+  const pub = { pub: k.pub, vsalt: k.vsalt, vanity: k.vanity }; // العام بس: مفيش أي حاجة سرية بتنزل على الموبايل
+  fs.writeFileSync(path.join(ROOT, 'js/keys.js'), '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs. مفيهاش أي مفتاح سري. */\nself.MZ_KEYS = ' + JSON.stringify(pub, null, 1) + ';\n');
+}
 async function secrets() {
   const p = pass(); if (!p) throw new Error('محتاج كلمة سر الأدمن: MZ_PASS أو .mz-secret');
-  const keys = readKeysJs(); const a = await L.openAdminBundle(p, keys.admin);
+  const keys = readKeysJs(); const a = await L.openAdminBundle(p, readAdmin());
   return { privJwk: a.privJwk, K: L.b64u.dec(a.K), pubJwk: keys.pub, keys };
 }
 
 async function init() {
-  if (fs.existsSync(path.join(ROOT, 'js/keys.js')) && !process.argv.includes('--force')) throw new Error('js/keys.js موجود. استخدم --force لو متأكد (هيلغي كل الأكواد القديمة)');
+  if (fs.existsSync(ADMIN_FILE) && !process.argv.includes('--force')) throw new Error('js/keys.js موجود. استخدم --force لو متأكد (هيلغي كل الأكواد القديمة)');
   const { privJwk, pubJwk, K } = await L.genKeys();
   const word = () => L.b32enc(L.rand(3)).slice(0, 4);
   const password = 'MZK-' + [word(), word(), word(), word()].join('-');
   const admin = await L.makeAdminBundle(password, { privJwk, K: L.b64u.enc(K) });
   const vsalt = L.b64u.enc(L.rand(16));
   const Kb = L.b64u.enc(K);
-  const vanity = await makeVanities(Kb, vsalt, password);
-  const js = '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs init. المفتاح الخاص هنا متشفّر بكلمة سر الأدمن ومينفعش يتفك من غيرها. */\n'
-    + 'self.MZ_KEYS = ' + JSON.stringify({ pub: { kty: pubJwk.kty, crv: pubJwk.crv, x: pubJwk.x, y: pubJwk.y }, admin, vsalt, vanity }, null, 1) + ';\n';
-  fs.writeFileSync(path.join(ROOT, 'js/keys.js'), js);
+  const vanity = await makeVanities(Kb, vsalt);
+  fs.writeFileSync(ADMIN_FILE, JSON.stringify(admin) + '\n');
+  writeKeysJs({ pub: { kty: pubJwk.kty, crv: pubJwk.crv, x: pubJwk.x, y: pubJwk.y }, vsalt, vanity });
   fs.writeFileSync(path.join(ROOT, '.mz-secret'), 'ADMIN_PASSWORD=' + password + '\n');
   console.log('اتعمل. كلمة سر الأدمن في .mz-secret');
 }
 
-/** الأكواد الخاصة: «Muhammad 2007» لمحمد الشيخ بس (ومعاه لوحة الأدمن)، و«I love you» لفاطمة */
-async function makeVanities(Kb, vsalt, password) {
+/** الأكواد الخاصة: «Muhammad 2007» لمحمد الشيخ بس، و«I love you» لفاطمة (من غير أي صلاحية أدمن) */
+async function makeVanities(Kb, vsalt) {
   const vanity = [];
   const owner = [];
   for (const f of ['محمد', 'muhammad', 'mohamed', 'mohammed', 'mohammad', 'mohamad']) for (const l of ['الشيخ', 'elsheikh', 'alsheikh', 'elshaikh', 'alshaikh', 'sheikh', 'elshiekh']) owner.push(f + l);
-  for (const n of owner) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع', admin: true, ap: password }, vsalt));
+  for (const n of owner) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع' }, vsalt));
   for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {
   const s = await secrets(), k = s.keys;
-  k.vanity = await makeVanities(L.b64u.enc(s.K), k.vsalt, pass());
-  fs.writeFileSync(path.join(ROOT, 'js/keys.js'), '/* مفاتيح الاشتراك العامة — اتولّدت بـ tools/mz.cjs init. المفتاح الخاص هنا متشفّر بكلمة سر الأدمن ومينفعش يتفك من غيرها. */\nself.MZ_KEYS = ' + JSON.stringify(k, null, 1) + ';\n');
+  k.vanity = await makeVanities(L.b64u.enc(s.K), k.vsalt);
+  writeKeysJs(k);
   console.log('اتعمل ' + k.vanity.length + ' كود خاص');
 }
 

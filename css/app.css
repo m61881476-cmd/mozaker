@@ -831,3 +831,4 @@ select.input.sel{width:auto;min-width:96px;padding:8px 12px;font-size:15px}
 
 /* البيست فريندو */
 .pal-menu button.fz.bf,.fzrow .chip.fz.bf{background:linear-gradient(135deg,color-mix(in srgb,var(--purple) 18%,var(--bg2)),var(--bg2))}
+.upfile{display:flex;gap:12px;align-items:center;cursor:pointer}.upfile .up-ic{font-size:30px;flex:none}

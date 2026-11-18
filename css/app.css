@@ -832,3 +832,11 @@ select.input.sel{width:auto;min-width:96px;padding:8px 12px;font-size:15px}
 /* البيست فريندو */
 .pal-menu button.fz.bf,.fzrow .chip.fz.bf{background:linear-gradient(135deg,color-mix(in srgb,var(--purple) 18%,var(--bg2)),var(--bg2))}
 .upfile{display:flex;gap:12px;align-items:center;cursor:pointer}.upfile .up-ic{font-size:30px;flex:none}
+.upthumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+@media (min-width:700px){.upthumbs{grid-template-columns:repeat(5,1fr)}}
+.upthumbs figure{margin:0;background:var(--bg2);border-radius:10px;padding:5px}
+.upthumbs img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:6px;display:block;background:#fff}
+.upthumbs figcaption{display:flex;align-items:center;justify-content:space-between;margin-top:4px;font-size:13px}
+.upthumbs .ib{border:0;background:var(--bg3,rgba(127,127,127,.15));color:var(--fg);border-radius:6px;width:26px;height:26px;font-size:13px;margin-inline-start:2px;cursor:pointer}
+.upthumbs .ib:disabled{opacity:.3}
+#upPhotos,#upPick{cursor:pointer}

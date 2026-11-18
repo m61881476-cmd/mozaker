@@ -2,7 +2,7 @@
    البرنامج مابيحلّش أي أسايمنت. */
 (function () {
   'use strict';
-  const U = self.UI, { $, esc, Store, Router, header, toast, Char, haptic } = U;
+  const U = self.UI, { $, $$, esc, Store, Router, header, toast, Char, haptic } = U;
   const D = () => Store.data;
   const News = () => App.News;
   const state = id => App.asgOf(id);
@@ -56,17 +56,33 @@
     return { bytes: new Uint8Array(await blob.arrayBuffer()), url: URL.createObjectURL(blob) };
   }
 
-  /* ---------- PDF: الغلاف + صفحات ملفكم ---------- */
-  async function withCoverPdf(id, file) {
+  /* ---------- PDF: (الغلاف) + صفحات ملفكم ---------- */
+  const PW = 595.28, PH = 841.89;
+  async function addJpeg(out, bytes, pad) { const img = await out.embedJpg(bytes), m = pad || 0, sc = Math.min((PW - 2 * m) / img.width, (PH - 2 * m) / img.height); out.addPage([PW, PH]).drawImage(img, { x: (PW - img.width * sc) / 2, y: (PH - img.height * sc) / 2, width: img.width * sc, height: img.height * sc }); }
+  async function startDoc(id, cover) { const { PDFDocument } = await pdfLib(), out = await PDFDocument.create(); if (cover) await addJpeg(out, (await coverJpeg(id)).bytes); return out; }
+  async function withCoverPdf(id, file, cover) {
     const { PDFDocument } = await pdfLib();
     let src; try { src = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), { ignoreEncryption: true }); } catch (e) { throw new Error('badpdf'); }
     if (!src.getPageCount()) throw new Error('badpdf');
-    const out = await PDFDocument.create(), cover = await coverJpeg(id);
-    const img = await out.embedJpg(cover.bytes), PW = 595.28, PH = 841.89, sc = Math.min(PW / img.width, PH / img.height);
-    out.addPage([PW, PH]).drawImage(img, { x: (PW - img.width * sc) / 2, y: (PH - img.height * sc) / 2, width: img.width * sc, height: img.height * sc });
+    const out = await startDoc(id, cover);
     (await out.copyPages(src, src.getPageIndices())).forEach(p => out.addPage(p));
-    const bytes = await out.save();
-    return { file: new File([bytes], file.name, { type: 'application/pdf' }), pages: src.getPageCount() };
+    return { file: new File([await out.save()], file.name, { type: 'application/pdf' }), pages: src.getPageCount() };
+  }
+
+  /* ---------- صور الورق (متصوّرة بالموبايل) ← صفحات PDF ---------- */
+  async function photoJpeg(file) {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) { bmp = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('badimg')); i.src = URL.createObjectURL(file); }); }
+    const w0 = bmp.width || bmp.naturalWidth, h0 = bmp.height || bmp.naturalHeight; if (!w0 || !h0) throw new Error('badimg');
+    const k = Math.min(1, 2000 / Math.max(w0, h0)), c = document.createElement('canvas'); c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); if (bmp.close) bmp.close();
+    return jpeg(c);
+  }
+  async function withCoverImgs(id, files, cover, name) {
+    const out = await startDoc(id, cover);
+    for (const fl of files) await addJpeg(out, await photoJpeg(fl), 14);
+    return { file: new File([await out.save()], name, { type: 'application/pdf' }), pages: files.length };
   }
 
   /* ---------- Word ← صفحات PDF: بنعرض المستند جوه الصفحة ونصوّر كل صفحة ---------- */
@@ -104,16 +120,18 @@
       return pages;
     } finally { box.remove(); }
   }
-  async function withCoverDocx(id, file) {
-    const { PDFDocument } = await pdfLib(), pages = await docxPages(file), cover = await coverJpeg(id);
-    const out = await PDFDocument.create(), PW = 595.28, PH = 841.89;
-    for (const b of [cover.bytes].concat(pages)) { const img = await out.embedJpg(b), sc = Math.min(PW / img.width, PH / img.height); out.addPage([PW, PH]).drawImage(img, { x: (PW - img.width * sc) / 2, y: (PH - img.height * sc) / 2, width: img.width * sc, height: img.height * sc }); }
+  async function withCoverDocx(id, file, cover) {
+    const pages = await docxPages(file), out = await startDoc(id, cover);
+    for (const b of pages) await addJpeg(out, b);
     return { file: new File([await out.save()], file.name.replace(/\.docx$/i, '') + '.pdf', { type: 'application/pdf' }), pages: pages.length };
   }
-  async function withCover(id, file) {
-    const nm = (file.name || '').toLowerCase();
-    if (nm.endsWith('.pdf') || file.type === 'application/pdf') return Object.assign({ kind: 'pdf' }, await withCoverPdf(id, file));
-    if (nm.endsWith('.docx')) return Object.assign({ kind: 'docx' }, await withCoverDocx(id, file));
+  const isImg = f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name || '');
+  /** src = { files: [...] } صور، أو { file } ملف PDF/Word */
+  async function withCover(id, src, cover = true) {
+    if (src.files) return Object.assign({ kind: 'img' }, await withCoverImgs(id, src.files, cover, src.name || 'Assignment.pdf'));
+    const file = src.file || src, nm = (file.name || '').toLowerCase();
+    if (nm.endsWith('.pdf') || file.type === 'application/pdf') return Object.assign({ kind: 'pdf' }, await withCoverPdf(id, file, cover));
+    if (nm.endsWith('.docx')) return Object.assign({ kind: 'docx' }, await withCoverDocx(id, file, cover));
     if (nm.endsWith('.doc')) throw new Error('olddoc');
     throw new Error('type');
   }
@@ -125,7 +143,8 @@
     baddoc: 'ملف الوورد ده مش سليم. افتحه في Word واحفظه .docx وجرّب تاني.',
     olddoc: 'ده ملف وورد قديم (.doc). افتحه في Word واحفظه بصيغة .docx أو PDF وجرّب تاني.',
     type: 'الملف لازم يكون PDF أو Word (.docx) بس.',
-    pdfonly: 'الأسايمنت ده بخط الإيد: صوّروا الورق سكان واعملوه PDF، وضيفوا ملف الـ PDF.'
+    pdfonly: 'الأسايمنت ده بخط الإيد: صوّروا الورق وضيفوا الصور، أو ضيفوا ملف PDF.',
+    badimg: 'فيه صورة مش عارف أفتحها. صوّرها تاني وجرّب.'
   };
 
   /* ---------- الصفحة ---------- */
@@ -137,31 +156,61 @@
     const T = team(id), f = App.fatma && App.fatma(), ck = state(id).chk, fd = re => (n.checks || []).findIndex(c => re.test(c));
     const mark = (...res) => { res.forEach(re => { const i = fd(re); if (i >= 0) ck[i] = true; }); Store.save(); };
     let h = '<div class="card mb solhero">' + Char.html('', 70) + '<div class="bubble">' + (f ? 'إنتي بتحلّي، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪' : 'إنت بتحل، وأنا بحط الغلاف وأجهّز الملف للرفع 🪪') + '</div></div>';
-    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. ' + (n.pdfOnly ? 'اكتبوه <b>بخط الإيد</b>، صوّروا الورق <b>سكان PDF</b>، وضيفوا الملف هنا.' : 'حلّوه بنفسكم، وضيفوا ملفكم هنا (<b>PDF أو Word</b>).') + ' الغلاف بأسامي التيم بيتحط <b>أول صفحة</b>، والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
-    h += '<div class="group-h">1. التيم (صفحة الغلاف) <a href="#cover/' + esc(id) + '">✏️ عدّل</a></div>';
-    h += T.length ? '<div class="group">' + T.map((m, i) => '<div class="row noicon"><span class="tx"><b>' + (i + 1) + '. ' + esc(m.n) + '</b><small dir="ltr" style="text-align:right">' + esc(m.c || 'من غير كود') + (m.t ? ' · محوّل' : '') + '</small></span></div>').join('') + '</div>'
-      : '<div class="card mb warn">لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).</div>';
-    h += '<div class="group-h">2. ملف حلّكم</div><label class="card tap mb upfile" id="upPick"><input type="file" id="upIn" accept="' + (n.pdfOnly ? '.pdf,application/pdf' : '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document') + '" hidden><span class="up-ic">📎</span><span style="flex:1"><b id="upName">اختار ملف الحل</b><span class="note" id="upInfo" style="display:block">' + (n.pdfOnly ? 'ملف PDF (الورق متصوّر سكان)' : 'PDF أو Word (.docx)') + '</span></span></label>';
-    h += '<div class="btns mt solbtns"><button class="btn green" id="solUp" disabled>📤 ' + (n.link ? 'ارفع على الدرايف' : 'شارك الملف') + '</button><button class="btn" id="solDl" disabled>⬇️ نزّل الملف</button></div>';
+    const A = state(id), own = () => !!A.ownCover;
+    h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. ' + (n.pdfOnly ? 'اكتبوه <b>بخط الإيد</b>، <b>صوّروا الصفحات</b> وضيفوا الصور هنا (أو ملف PDF).' : 'حلّوه بنفسكم، وضيفوا صور الورق أو ملفكم هنا (<b>PDF أو Word</b>).') + ' والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
+    h += '<div class="group-h">1. صفحة الغلاف</div><div class="seg mb" id="cvMode"><button data-cv="app"' + (own() ? '' : ' class="on"') + '>🪪 من البرنامج</button><button data-cv="own"' + (own() ? ' class="on"' : '') + '>✍️ كاتبينها بخط الإيد</button></div>';
+    h += '<div id="cvTeam">' + (T.length ? '<div class="group">' + T.map((m, i) => '<div class="row noicon"><span class="tx"><b>' + (i + 1) + '. ' + esc(m.n) + '</b><small dir="ltr" style="text-align:right">' + esc(m.c || 'من غير كود') + (m.t ? ' · محوّل' : '') + '</small></span></div>').join('') + '</div><p class="note"><a href="#cover/' + esc(id) + '">✏️ عدّل الأسامي</a></p>'
+      : '<div class="card mb warn">لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).</div>') + '</div>';
+    h += '<p class="note" id="cvOwnNote">صفحة الغلاف اللي كاتبينها صوّروها مع الصفحات وخلّوها <b>أول صورة</b>.</p>';
+    const acc = 'image/*,.pdf,application/pdf' + (n.pdfOnly ? '' : ',.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    h += '<div class="group-h">2. حلّكم</div><div class="btns mb"><label class="btn tint" id="upPhotos"><input type="file" id="upImg" accept="image/*" multiple hidden>📷 ضيف صور الصفحات</label><label class="btn gray" id="upPick"><input type="file" id="upIn" accept="' + acc + '" hidden>📎 ' + (n.pdfOnly ? 'أو ملف PDF' : 'أو ملف PDF / Word') + '</label></div>';
+    h += '<div class="card mb upfile"><span class="up-ic">📄</span><span style="flex:1"><b id="upName">لسه مفيش صفحات</b><span class="note" id="upInfo" style="display:block">صوّروا كل صفحة لوحدها، في نور كويس ومن فوق.</span></span></div><div id="upThumbs" class="upthumbs"></div>';
+    h += '<div class="btns mt solbtns"><button class="btn green" id="solUp" disabled>📤 ' + (n.link ? 'ارفع على الدرايف' : 'شارك الملف') + '</button><button class="btn" id="solDl" disabled>⬇️ نزّل الـ PDF</button></div>';
     if (n.link) h += '<p class="note center"><a href="' + esc(n.link) + '" target="_blank" rel="noopener">افتح فولدر التسليم</a></p>';
-    h += '<div class="group-h">معاينة الغلاف</div><div id="solPrev" class="solprev">' + (T.length ? '<div class="note center">بيجهّز…</div>' : '<div class="note center">ضيف التيم الأول.</div>') + '</div>';
+    h += '<div id="prevW"><div class="group-h">معاينة الغلاف</div><div id="solPrev" class="solprev">' + (T.length ? '<div class="note center">بيجهّز…</div>' : '<div class="note center">ضيف التيم الأول.</div>') + '</div></div>';
     view.insertAdjacentHTML('beforeend', h);
     setTimeout(() => { const c = $('.solhero .char', view); if (c && App.Props) { App.Props.put(c, 'stick'); Char.act(c, 'happy'); } }, 250);
 
-    let src = null, out = null;
-    const btns = () => { const on = !!(src && T.length); $('#solUp').disabled = !on; $('#solDl').disabled = !on; };
+    let src = null, imgs = [], out = null;
+    const ready = () => !!src && (own() || T.length);
+    const btns = () => { $('#solUp').disabled = !ready(); $('#solDl').disabled = !ready(); };
     const busy = (b, on, t) => { b.disabled = on; if (on) { b.dataset.t = b.innerHTML; b.textContent = t; } else b.innerHTML = b.dataset.t; };
     const fail = e => { toast(ERR[e && e.message] || 'حصلت مشكلة، جرّب تاني', 'info'); haptic('error'); };
-    const make = async () => out || (out = await withCover(id, src));
+    const make = async () => out || (out = await withCover(id, src, !own()));
+    const pdfName = () => n.fileName || 'Assignment.pdf'; // اسم إنجليزي: الأسامي العربي بتبوّظ التنزيل في بعض المتصفحات
+    const modeUI = () => { $('#cvTeam').hidden = own(); $('#cvOwnNote').hidden = !own(); $('#prevW').hidden = own(); $$('#cvMode button').forEach(x => x.classList.toggle('on', (x.dataset.cv === 'own') === own())); };
+    const info = async () => {
+      btns();
+      if (!src) { $('#upName').textContent = 'لسه مفيش صفحات'; $('#upInfo').textContent = 'صوّروا كل صفحة لوحدها، في نور كويس ومن فوق.'; return; }
+      if (!own() && !T.length) { $('#upInfo').textContent = 'ضيف التيم الأول عشان الغلاف'; return; }
+      $('#upInfo').textContent = src.files ? 'بيجهّز الصفحات…' : /\.docx$/i.test(src.file.name) ? 'بيحوّل الوورد لـ PDF…' : 'بيتأكد من الملف…';
+      try {
+        const o = await make(), cv = own() ? 0 : 1;
+        $('#upInfo').textContent = (o.kind === 'img' ? '✓ ' + o.pages + ' صورة' : o.kind === 'pdf' ? '✓ PDF · ' + o.pages + ' صفحة' : '✓ Word ← اتحوّل PDF · ' + o.pages + ' صفحة') + (cv ? ' + الغلاف = ' + (o.pages + 1) + ' صفحة' : '') + ' في PDF واحد';
+        mark(/سكان|عملناه|صوّرنا/);
+      } catch (err) { if (!src.files) { src = null; $('#upName').textContent = 'لسه مفيش صفحات'; } btns(); fail(err); $('#upInfo').textContent = 'جرّب تاني.'; }
+    };
+    const thumbs = () => {
+      const box = $('#upThumbs'); [...box.querySelectorAll('img')].forEach(i => URL.revokeObjectURL(i.src));
+      box.innerHTML = imgs.map((fl, i) => '<figure><img src="' + URL.createObjectURL(fl) + '" alt="صفحة ' + (i + 1) + '"><figcaption><b>' + (i + 1) + '</b><span><button class="ib" data-mv="' + i + '" data-d="-1" aria-label="قبلها"' + (i ? '' : ' disabled') + '>→</button><button class="ib" data-mv="' + i + '" data-d="1" aria-label="بعدها"' + (i < imgs.length - 1 ? '' : ' disabled') + '>←</button><button class="ib" data-rm="' + i + '" aria-label="شيل">✕</button></span></figcaption></figure>').join('');
+      box.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const i = +b.dataset.mv, j = i + +b.dataset.d; [imgs[i], imgs[j]] = [imgs[j], imgs[i]]; setImgs(); });
+      box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { imgs.splice(+b.dataset.rm, 1); setImgs(); });
+    };
+    const setImgs = () => { out = null; src = imgs.length ? { files: imgs.slice(), name: pdfName() } : null; $('#upName').textContent = imgs.length ? imgs.length + ' صفحة متصوّرة' : 'لسه مفيش صفحات'; thumbs(); info(); };
+    $$('#cvMode button').forEach(b => b.onclick = () => { A.ownCover = b.dataset.cv === 'own'; Store.save(); out = null; modeUI(); info(); });
+    modeUI();
+    $('#upImg').onchange = e => {
+      const fs = [...(e.target.files || [])]; e.target.value = ''; if (!fs.length) return;
+      if (fs.some(x => !isImg(x))) { fail(new Error('badimg')); return; }
+      if (src && src.file) imgs = []; imgs = imgs.concat(fs); setImgs();
+    };
     $('#upIn').onchange = async e => {
-      const file = e.target.files && e.target.files[0]; if (!file) return;
+      const file = e.target.files && e.target.files[0]; e.target.value = ''; if (!file) return;
       const nm = file.name.toLowerCase();
-      if (n.pdfOnly && !/\.pdf$/.test(nm) && file.type !== 'application/pdf') { fail(new Error('pdfonly')); e.target.value = ''; return; }
-      if (!/\.(pdf|docx)$/.test(nm) && file.type !== 'application/pdf') { fail(new Error(/\.doc$/.test(nm) ? 'olddoc' : 'type')); e.target.value = ''; return; }
-      src = file; out = null; $('#upName').textContent = file.name; $('#upInfo').textContent = /\.docx$/i.test(file.name) ? 'بيحوّل الوورد لـ PDF…' : 'بيتأكد من الملف…'; btns();
-      if (!T.length) { $('#upInfo').textContent = 'ضيف التيم الأول عشان الغلاف'; return; }
-      try { const o = await make(); $('#upInfo').textContent = (o.kind === 'pdf' ? '✓ PDF' : '✓ Word ← اتحوّل PDF') + ' · ' + o.pages + ' صفحة + الغلاف = ' + (o.pages + 1); mark(/سكان|عملناه/); }
-      catch (err) { src = null; $('#upName').textContent = 'اختار ملف الحل'; $('#upInfo').textContent = n.pdfOnly ? 'ملف PDF (الورق متصوّر سكان)' : 'PDF أو Word (.docx)'; e.target.value = ''; btns(); fail(err); }
+      if (isImg(file)) { imgs = (src && src.file ? [] : imgs).concat([file]); setImgs(); return; }
+      if (n.pdfOnly && !/\.pdf$/.test(nm) && file.type !== 'application/pdf') { fail(new Error('pdfonly')); return; }
+      if (!/\.(pdf|docx)$/.test(nm) && file.type !== 'application/pdf') { fail(new Error(/\.doc$/.test(nm) ? 'olddoc' : 'type')); return; }
+      imgs = []; thumbs(); src = { file }; out = null; $('#upName').textContent = file.name; info();
     };
     const download = file => { const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
     $('#solDl').onclick = async () => { const b = $('#solDl'); busy(b, true, 'بيجهّز…'); try { download((await make()).file); mark(/الغلاف/); toast('اتنزّل الملف ✓', 'check'); haptic('success'); } catch (e) { fail(e); } busy(b, false); };

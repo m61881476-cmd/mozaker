@@ -9,7 +9,7 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const L = require('../js/license.js');
 const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
 const FREE = { eco: ['ec1'] };
-const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'law.js', 'law-b1.js', 'law-q.js'];
+const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'law.js', 'law-b1.js', 'law-q.js'];
 
 const pass = () => process.env.MZ_PASS || (fs.existsSync(path.join(ROOT, '.mz-secret')) ? fs.readFileSync(path.join(ROOT, '.mz-secret'), 'utf8').match(/ADMIN_PASSWORD=(\S+)/)[1] : null);
 function readKeysJs() {

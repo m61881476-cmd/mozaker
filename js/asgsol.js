@@ -18,7 +18,7 @@
   const zipLib = () => lib('zip', 'js/vendor/jszip.min.js', 'JSZip');
 
   /* بيانات الغلاف من خبر الأسايمنت */
-  function meta(id) { const n = News().get(id) || {}; return { title: n.cover || 'Assignment', sub: n.coverSub || '', grade: n.grade || '' }; }
+  function meta(id) { const n = News().get(id) || {}; return { title: n.cover || 'Assignment', sub: n.coverSub || '', grade: n.grade || '', solo: !!n.solo }; }
 
   /* ---------- صفحة الغلاف كصورة (للـ PDF والمعاينة) ---------- */
   const FONT = '"Noto Naskh Arabic","Noto Sans Arabic","Segoe UI",Tahoma,"Geeza Pro",Arial,sans-serif';
@@ -35,13 +35,13 @@
     if (M.sub) { y += 70; txt(M.sub, W / 2, y, fit(c, M.sub, W - 200, 32), 400, '#333'); }
     if (M.grade) { y += 55; txt('الدرجة: ' + M.grade, W / 2, y, 30, 400, '#333'); }
     y += 40; c.fillStyle = '#000'; c.fillRect(W / 2 - 180, y, 360, 2);
-    txt('أسماء الطلاب', W / 2, y + 80, 40, 700, '#000');
+    txt(M.solo ? 'بيانات الطالب' : 'أسماء الطلاب', W / 2, y + 80, 40, 700, '#000');
     const x0 = 100, x1 = W - 100, top = y + 125, hh = 74, rh = Math.min(96, Math.floor((H - 210 - top - hh) / Math.max(4, T.length)));
     const cols = [{ t: 'م', w: 80 }, { t: 'الاسم', w: 520 }, { t: 'الكود', w: 230 }, { t: 'ملاحظات', w: x1 - x0 - 830 }];
     let xr = x1; cols.forEach(cl => { cl.r = xr; cl.l = xr - cl.w; xr = cl.l; });
     c.fillStyle = '#e6e6e6'; c.fillRect(x0, top, x1 - x0, hh);
     cols.forEach(cl => txt(cl.t, (cl.l + cl.r) / 2, top + hh / 2 + 12, 32, 700, '#000'));
-    const rows = Math.max(T.length, 4);
+    const rows = M.solo ? Math.max(1, T.length) : Math.max(T.length, 4);
     for (let i = 0; i < rows; i++) {
       const yy = top + hh + i * rh, m = T[i]; if (!m) continue;
       txt(String(i + 1), (cols[0].l + cols[0].r) / 2, yy + rh / 2 + 11, 30, 700, '#111');
@@ -160,7 +160,7 @@
     h += '<div class="card mb note">✍️ البرنامج <b>مابيحلّش</b> الأسايمنت. ' + (n.pdfOnly ? 'اكتبوه <b>بخط الإيد</b>، <b>صوّروا الصفحات</b> وضيفوا الصور هنا (أو ملف PDF).' : 'حلّوه بنفسكم، وضيفوا صور الورق أو ملفكم هنا (<b>PDF أو Word</b>).') + ' والملف كله بيطلع <b>PDF واحد</b> جاهز للرفع.</div>';
     h += '<div class="group-h">1. صفحة الغلاف</div><div class="seg mb" id="cvMode"><button data-cv="app"' + (own() ? '' : ' class="on"') + '>🪪 من البرنامج</button><button data-cv="own"' + (own() ? ' class="on"' : '') + '>✍️ كاتبينها بخط الإيد</button></div>';
     h += '<div id="cvTeam">' + (T.length ? '<div class="group">' + T.map((m, i) => '<div class="row noicon"><span class="tx"><b>' + (i + 1) + '. ' + esc(m.n) + '</b><small dir="ltr" style="text-align:right">' + esc(m.c || 'من غير كود') + (m.t ? ' · محوّل' : '') + '</small></span></div>').join('') + '</div><p class="note"><a href="#cover/' + esc(id) + '">✏️ عدّل الأسامي</a></p>'
-      : '<div class="card mb warn">لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).</div>') + '</div>';
+      : '<div class="card mb warn">' + (n.solo ? 'لسه مكتبتش اسمك. <a href="#cover/' + esc(id) + '">اكتب اسمك وكودك</a>.' : 'لسه مفيش أسامي. <a href="#cover/' + esc(id) + '">ضيف التيم</a> (الأسامي والأكواد، وعلّم على «محوّل»).') + '</div>') + '</div>';
     h += '<p class="note" id="cvOwnNote">صفحة الغلاف اللي كاتبينها صوّروها مع الصفحات وخلّوها <b>أول صورة</b>.</p>';
     const acc = 'image/*,.pdf,application/pdf' + (n.pdfOnly ? '' : ',.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     h += '<div class="group-h">2. حلّكم</div><div class="btns mb"><label class="btn tint" id="upPhotos"><input type="file" id="upImg" accept="image/*" multiple hidden>📷 ضيف صور الصفحات</label><label class="btn gray" id="upPick"><input type="file" id="upIn" accept="' + acc + '" hidden>📎 ' + (n.pdfOnly ? 'أو ملف PDF' : 'أو ملف PDF / Word') + '</label></div>';
@@ -182,12 +182,12 @@
     const info = async () => {
       btns();
       if (!src) { $('#upName').textContent = 'لسه مفيش صفحات'; $('#upInfo').textContent = 'صوّروا كل صفحة لوحدها، في نور كويس ومن فوق.'; return; }
-      if (!own() && !T.length) { $('#upInfo').textContent = 'ضيف التيم الأول عشان الغلاف'; return; }
+      if (!own() && !T.length) { $('#upInfo').textContent = n.solo ? 'اكتب اسمك الأول عشان الغلاف' : 'ضيف التيم الأول عشان الغلاف'; return; }
       $('#upInfo').textContent = src.files ? 'بيجهّز الصفحات…' : /\.docx$/i.test(src.file.name) ? 'بيحوّل الوورد لـ PDF…' : 'بيتأكد من الملف…';
       try {
         const o = await make(), cv = own() ? 0 : 1;
         $('#upInfo').textContent = (o.kind === 'img' ? '✓ ' + o.pages + ' صورة' : o.kind === 'pdf' ? '✓ PDF · ' + o.pages + ' صفحة' : '✓ Word ← اتحوّل PDF · ' + o.pages + ' صفحة') + (cv ? ' + الغلاف = ' + (o.pages + 1) + ' صفحة' : '') + ' في PDF واحد';
-        mark(/سكان|عملناه|صوّرنا/);
+        mark(/سكان|عملناه|صوّرنا|صوّرت/);
       } catch (err) { if (!src.files) { src = null; $('#upName').textContent = 'لسه مفيش صفحات'; } btns(); fail(err); $('#upInfo').textContent = 'جرّب تاني.'; }
     };
     const thumbs = () => {
@@ -216,7 +216,7 @@
     $('#solDl').onclick = async () => { const b = $('#solDl'); busy(b, true, 'بيجهّز…'); try { download((await make()).file); mark(/الغلاف/); toast('اتنزّل الملف ✓', 'check'); haptic('success'); } catch (e) { fail(e); } busy(b, false); };
     const sure = () => new Promise(res => {
       let done = false;
-      const warn = (n.warn || []).concat(['<b>واحد بس</b> من التيم يرفع، و<b>مرة واحدة</b> بس.', 'اتأكدوا إن ده <b>ملف حلّكم النهائي</b>.']);
+      const warn = (n.warn || []).concat([n.solo ? 'ارفع <b>مرة واحدة</b> بس.' : '<b>واحد بس</b> من التيم يرفع، و<b>مرة واحدة</b> بس.', 'اتأكدوا إن ده <b>ملف حلّكم النهائي</b>.']);
       U.sheet({ title: 'متأكد إنك عايز ترفع؟', cancelText: 'رجوع',
         body: '<div class="sure">' + Char.html('', 64) + '<div class="bubble">' + (f ? 'استني ثانية قبل ما ترفعي 🤚' : 'استنى ثانية قبل ما ترفع 🤚') + '</div></div><ul class="surel">' + warn.map(w => '<li>⚠️ ' + w + '</li>').join('') + '</ul>'
           + '<button class="btn block green" data-yes>📤 أيوه، ارفع دلوقتي</button><button class="btn block gray mt" data-no>⏳ لسه</button>',

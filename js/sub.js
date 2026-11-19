@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
-  const PRICE = 250, INSTAPAY = '01284134090', WHATSAPP = '01206580045', WA_INTL = '201206580045';
+  const PRICE = 99, INSTAPAY = '01284134090', WHATSAPP = '01206580045', WA_INTL = '201206580045';
   const TERM_END = '2027-02-28';
   /** سوبابيز: كل كود بيتفعّل مرة واحدة بس على جهاز واحد (المفتاح ده عام ومسموح يبقى في التطبيق) */
   const SUPA = { url: 'https://xavantbtoszkhthqakjw.supabase.co', key: '' };

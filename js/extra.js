@@ -443,7 +443,7 @@
     const on = self.Sub && Sub.on(), info = on && Sub.info(), un = News.unseen().length, aw = Object.keys(D().awards || {}).length;
     const tiles = [
       ['📚', 'المواد', '#subjects', ''],
-      on ? ['💎', 'مشترك ✓', '#subscribe', info && info.label ? esc(info.label) : 'كل حاجة مفتوحة'] : ['⭐', 'اشتراك الترم', '#subscribe', (self.Sub ? Sub.PRICE : 250) + ' ج بس'],
+      on ? ['💎', 'مشترك ✓', '#subscribe', info && info.label ? esc(info.label) : 'كل حاجة مفتوحة'] : ['⭐', 'اشتراك الترم', '#subscribe', (self.Sub ? Sub.PRICE : 99) + ' ج بس'],
       ['📰', 'آخر الأخبار', '#news', un ? '<span class="tbadge">' + un + '</span>' : ''],
       ['🏆', 'جوايزي', '#awards', aw ? aw + ' جايزة' : ''],
       ['💬', 'كلّم ' + cname(), '#chat', ''],
@@ -689,7 +689,7 @@
   const TOUR = [
     { mood: 'cheer', prop: 'wave', t: d => isF() ? 'أهلًا يا فطومة 👋🤍 أنا <b>محمد</b>، وعملتلك البرنامج ده مخصوص. تعالي أفرّجك عليه في دقيقة!' : isB() ? 'أهلًا يا بيستو فريندو 👋💜 أنا <b>محمد</b>، تعالي أفرّجك على البرنامج في دقيقة!' : 'أهلًا يا ' + esc(d.name || 'بطل') + '! 👋 أنا <b>' + cname() + '</b>، هعرّفك على <b>مذاكِر</b> في أقل من دقيقة. يلا بينا!' },
     { sel: '.mtile[href="#subjects"]', mood: 'happy', prop: 'stick', t: () => 'هنا <b>المواد</b> 📚 دوس هنا وتلاقي الاقتصاد والتسويق بكل فصولهم.' },
-    { sel: '.mtile[href="#subscribe"]', mood: 'nod', prop: 'stick', t: () => '<b>الفصل الأول في الاقتصاد مجاني</b> 🎁 جرّبه براحتك. ولو عجبك، دوس هنا تشترك <b>' + (self.Sub ? Sub.PRICE : 250) + ' ج للترم كله</b> وكل الفصول تتفتح.' },
+    { sel: '.mtile[href="#subscribe"]', mood: 'nod', prop: 'stick', t: () => '<b>الفصل الأول في الاقتصاد مجاني</b> 🎁 جرّبه براحتك. ولو عجبك، دوس هنا تشترك <b>' + (self.Sub ? Sub.PRICE : 99) + ' ج للترم كله</b> وكل الفصول تتفتح.' },
     { sel: '#askForm', mood: 'think', prop: 'think', t: () => 'اكتبلي هنا أي حاجة <b>بالعامية</b> ✍️ زي «امتحني 10 أسئلة» أو «يعني إيه المضاعف؟» وأنا أفهمك.' },
     { sel: '.mtile[href="#news"]', mood: 'happy', prop: 'mic', t: () => 'وهنا <b>آخر الأخبار</b> 🎤 زي الأسايمنت ومواعيد التسليم. أول ما ينزل خبر جديد هقولك.' },
     { sel: '.mtile[href="#awards"]', mood: 'cheer', prop: 'trophy', t: () => 'وكل ما تذاكر تكسب <b>جوايز</b> 🏆 وتترص على الرف بتاعك.' },

@@ -148,6 +148,11 @@
     lockedSubject: s => !!(s && s.paid && !s.unlocked)
   };
   self.Sub = Sub;
+  /* جاي من البوابة (js/gate.js) بكود اتأكد منه: نفعّله على طول */
+  try {
+    const g = JSON.parse(sessionStorage.getItem('mz:gate') || 'null');
+    if (g && g.code) { sessionStorage.removeItem('mz:gate'); activate(g.code, g.name).then(r => { if (r && r.ok) { sessionStorage.setItem('mz:welcome', r.who || 'sub'); location.hash = '#home'; location.reload(); } }); }
+  } catch (e) { /* مفيش */ }
 
   /* ---------- (3) الصفحات (بتتسجل لما الواجهة تبقى جاهزة) ---------- */
   if (!self.UI) return;

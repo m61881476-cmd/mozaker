@@ -312,7 +312,7 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '3.13.1';
+  App.VERSION = '3.14.0';
   App.after = (fresh) => {
     App.refreshSubjects(); App.migrate();
     document.removeEventListener('keydown', Lock.keyH);
@@ -348,7 +348,9 @@
     Char.startBlinking();
     const list = Store.profiles(), last = U.LS.get('mz:last', null);
     const p = list.find(x => x.id === last) || (list.length === 1 ? list[0] : null);
-    if (!list.length) Lock.onboard();
+    let gname = null; try { gname = sessionStorage.getItem('mz:gname'); } catch (e) {}
+    if (!list.length && gname) { try { sessionStorage.removeItem('mz:gname'); } catch (e) {} const id = Store.create(gname.trim().split(/\s+/)[0], null); Store.open(id); App.after(true); } // جاي من البوابة باسمه
+    else if (!list.length) Lock.onboard();
     else if (p && !p.pin && list.length === 1) { Store.open(p.id); App.after(); }
     else if (p && p.pin) Lock.enter(p.id);
     else Lock.show(true);

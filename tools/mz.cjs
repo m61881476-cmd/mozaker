@@ -51,6 +51,10 @@ async function makeVanities(Kb, vsalt) {
   for (const n of owner) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع' }, vsalt));
   for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
   for (const n of ['كريم', 'karim', 'kareem', 'karem']) vanity.push(await L.makeVanity('Karim 5343', n, { K: Kb, plan: 'vip', who: 'karim', label: 'كريم ⭐' }, vsalt));
+  /* البوابة: الاسم لوحده بيفتح الموقع VIP للأربعة دول بس (العبارة عامة في js/gate.js) */
+  const G = 'mz-gate', GATE = [[owner, { who: 'owner', label: 'المخترع' }], [['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah'], { who: 'fatma', label: 'فاطمة 🤍' }],
+    [['كريم', 'karim', 'kareem', 'karem'], { who: 'karim', label: 'كريم ⭐' }], [['جني', 'jana', 'janna', 'jannah', 'jenny', 'gana', 'genny'], { who: 'bff', label: 'بيستو فريندو 💜' }]];
+  for (const [names, p] of GATE) for (const n of names) vanity.push(await L.makeVanity(G, n, Object.assign({ K: Kb, plan: 'vip' }, p), vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

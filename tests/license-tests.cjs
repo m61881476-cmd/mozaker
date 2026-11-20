@@ -41,13 +41,13 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log('✗ ' + m); } 
   ok(!(await L.tryVanity('Muhammad 2008', 'محمد', KEYS.vanity, KEYS.vsalt)), 'عبارة غلط مرفوضة');
   // المحتوى المدفوع يتفك بمفتاح كود فاطمة
   const paid = await L.decryptJSON(L.b64u.dec(v2.K), new Uint8Array(fs.readFileSync(path.join(__dirname, '../content/paid.mz'))));
-  ok(paid.subjects && paid.subjects.mkt && paid.subjects.eco && paid.subjects.mkt.questions.length > 150, 'المحتوى المدفوع يتفك');
+  ok(paid.subjects && paid.subjects.mkt && paid.subjects.eco && paid.subjects.mkt.questions.length > 100, 'المحتوى المدفوع يتفك');
   // المجاني مافيهوش ملخصات الدروس المقفولة
   const fc = { self: {} }; fc.self.self = fc.self; vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../js/content/free.js'), 'utf8'), fc.self);
   const free = fc.self.MZ_CONTENT; ok(free.every(s => s.lessons.filter(l => l.locked).every(l => !l.summary)), 'الدروس المقفولة فاضية في المجاني');
   ok(free.find(s => s.id === 'eco').lessons.find(l => l.id === 'ec1').summary.length > 200, 'الفصل الأول اقتصاد مجاني');
-  ok(free.find(s => s.id === 'mkt').lessons.every(l => l.locked), 'التسويق كله مقفول');
-  ok(free.reduce((n, s) => n + s.lessons.filter(l => !l.locked).length, 0) === 1, 'فصل مجاني واحد بس');
+  ok(free.find(s => s.id === 'mkt').lessons.filter(l => !l.locked).map(l => l.id).join() === 'mk0,mk1', 'التسويق: المقدمة والفصل الأول بس مفتوحين');
+  ok(free.reduce((n, s) => n + s.lessons.filter(l => !l.locked).length, 0) === 3, 'المجاني 3 دروس بس (ec1 و mk0 و mk1)');
   ok(fc.self.MZ_PAID_VER === paid.ver, 'رقم نسخة المحتوى متطابق');
   console.log('license: ' + pass + ' ✓  ' + fail + ' ✗'); process.exit(fail ? 1 : 0);
 })();

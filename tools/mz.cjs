@@ -43,13 +43,14 @@ async function init() {
   console.log('اتعمل. كلمة سر الأدمن في .mz-secret');
 }
 
-/** الأكواد الخاصة: «Muhammad 2007» لمحمد الشيخ بس، و«I love you» لفاطمة (من غير أي صلاحية أدمن) */
+/** الأكواد الخاصة: «Muhammad 2007» لمحمد الشيخ بس، و«I love you» لفاطمة، و«Karim 5343» لكريم (من غير أي صلاحية أدمن) */
 async function makeVanities(Kb, vsalt) {
   const vanity = [];
   const owner = [];
   for (const f of ['محمد', 'muhammad', 'mohamed', 'mohammed', 'mohammad', 'mohamad']) for (const l of ['الشيخ', 'elsheikh', 'alsheikh', 'elshaikh', 'alshaikh', 'sheikh', 'elshiekh']) owner.push(f + l);
   for (const n of owner) vanity.push(await L.makeVanity('Muhammad 2007', n, { K: Kb, plan: 'vip', who: 'owner', label: 'المخترع' }, vsalt));
   for (const n of ['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah']) vanity.push(await L.makeVanity('I love you', n, { K: Kb, plan: 'vip', who: 'fatma', label: 'فاطمة 🤍' }, vsalt));
+  for (const n of ['كريم', 'karim', 'kareem', 'karem']) vanity.push(await L.makeVanity('Karim 5343', n, { K: Kb, plan: 'vip', who: 'karim', label: 'كريم ⭐' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

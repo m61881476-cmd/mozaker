@@ -1,9 +1,9 @@
-/* مذاكِر — الموقع مقفول للكل ما عدا محمد الشيخ وفاطمة وچني.
+/* مذاكِر — الموقع مقفول للكل ما عدا محمد الشيخ وفاطمة وچني وكريم.
    الصفحة بتقول «تم إزالة الموقع» بس. ولو حد منهم على جهاز جديد: 5 لمسات على الكلام تفتح خانة الاسم والكود،
    والكود بيتأكد هنا الأول (الخاص أو كود چني الموقّع)، وبعدها البرنامج بيفتح ويتفعّل لوحده. */
 (function () {
   'use strict';
-  const ALLOW = ['owner', 'fatma', 'bff'], BFF_SERIAL = 65001;
+  const ALLOW = ['owner', 'fatma', 'bff', 'karim'], BFF_SERIAL = 65001;
   const box = document.getElementById('gone'); if (!box) return;
   let taps = 0, t0 = 0, open = false;
   const load = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });

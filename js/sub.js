@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
-  const PRICE = 99, INSTAPAY = '01284134090', WHATSAPP = '01206580045', WA_INTL = '201206580045';
+  const PRICE = 99, PRICE_VIP = 200, INSTAPAY = '01284134090', WHATSAPP = '01206580045', WA_INTL = '201206580045';
   const TERM_END = '2027-02-28';
   /** سوبابيز: كل كود بيتفعّل مرة واحدة بس على جهاز واحد (المفتاح ده عام ومسموح يبقى في التطبيق) */
   const SUPA = { url: 'https://xavantbtoszkhthqakjw.supabase.co', key: '' };
@@ -180,8 +180,10 @@
     if (on && L0) {
       const vip = L0.plan === 'vip';
       h += '<div class="card subok">' + Char.html('', 70) + '<div><b>' + (L0.who === 'fatma' ? 'كل حاجة مفتوحة ليكي يا فاطمة 🤍' : L0.who === 'owner' ? 'أهلًا يا مخترع 👑' : 'إنت مشترك ✓') + '</b><span>' + (vip ? '⭐ VIP · من غير مدة' : 'صالح لحد ' + esc(fmtDate(L0.exp))) + '</span><span>النسخة دي باسم: <b>' + esc(L0.name) + '</b></span></div></div>';
+      if (vip) h += '<div class="card vipreq mb"><b>✨ اطلب ميزة على مقاسك</b><p class="note">إنت VIP: قولّنا عايز إيه يتضاف في البرنامج (ميزة، أداة، شكل، أي حاجة)، ومحمد هيعملهالك.</p><textarea class="input" id="vrTx" rows="3" placeholder="مثال: عايز عدّاد مذاكرة بيحسب ساعاتي في اليوم"></textarea><button class="btn block mt vipbtn" id="vrGo">✨ ابعت الطلب على واتساب</button></div>';
       h += '<div class="group-h">معاك دلوقتي</div>' + featHTML();
       view.insertAdjacentHTML('beforeend', h + '<p class="note center">رقم جهازك: <b dir="ltr">' + esc(License.prettyDevice(d)) + '</b></p>');
+      const vr = $('#vrGo'); if (vr) vr.onclick = () => { const t = $('#vrTx').value.trim(); if (!t) { toast('اكتب الميزة اللي عايزها الأول'); $('#vrTx').focus(); return; } open(Sub.wa('✨ طلب ميزة VIP في مذاكِر\nالاسم: ' + L0.name + '\nالطلب: ' + t)); };
       return;
     }
     if (L0 && expired(L0)) h += '<div class="warn">' + icon('info') + ' اشتراكك خلص في ' + esc(fmtDate(L0.exp)) + '. جدّده من هنا.</div>';
@@ -192,14 +194,18 @@
     const li = a => '<ul class="plan-l">' + a.map(x => '<li><span class="plan-ck" aria-hidden="true">✓</span><span><b>' + esc(x[0]) + '</b>' + (x[1] ? '<small>' + esc(x[1]) + '</small>' : '') + '</span></li>').join('') + '</ul>';
     const openSteps = !!(pend.name || r.args[0] || r.q.have);
     h += '<div class="plan-h"><h2>ذاكر أكتر مع مذاكِر</h2><p>اختار اللي يناسبك</p></div>';
+    const VIPL = [['ميزة أو إضافة على مقاسك', 'قولّنا عايز إيه يتضاف في البرنامج، ومحمد يعمله لك'], ['من غير مدة', 'الاشتراك مايخلصش مع آخر الترم'], ['أولوية في الرد على واتساب', 'أي سؤال أو مشكلة ليك الأول'], ['شارة ⭐ VIP', 'جوه البرنامج']];
+    h += '<div class="plan vip"><div class="plan-glow" aria-hidden="true"></div><div class="plan-top"><span class="plan-tag">✨ الأقوى</span><b class="plan-n">VIP</b><span class="plan-s">كل حاجة، وميزة على مقاسك</span><div class="plan-p"><b>' + PRICE_VIP + '</b> ج.م</div><span class="plan-b">مرة واحدة · من غير مدة</span>'
+      + '<button class="plan-go vipbtn" id="planVip">اشترك VIP ✨</button></div>'
+      + '<div class="plan-f"><div class="plan-fh">كل اللي في الترم كامل، وكمان:</div>' + li(VIPL) + '</div></div>';
     h += '<div class="plan"><div class="plan-top"><b class="plan-n">الترم كامل</b><span class="plan-s">لكل المواد طول الترم</span><div class="plan-p"><b>' + PRICE + '</b> ج.م</div><span class="plan-b">مرة واحدة للترم · من غير اشتراك شهري</span>'
       + '<button class="plan-go" id="planGo">اشترك في الترم كامل</button><button class="plan-have" id="haveGo">معايا كود</button></div>'
       + '<div class="plan-f"><div class="plan-fh">كل اللي في المجاني، وكمان:</div>' + li(PLUS) + '<p class="plan-note">بتدفع مرة واحدة بإنستا باي، والكود بيتفعّل على جهازك إنت بس.</p></div></div>';
     h += '<div class="plan free"><div class="plan-top"><b class="plan-n">مجاني</b><span class="plan-s">عشان تجرّب</span><div class="plan-p"><b>0</b> ج.م</div><span class="plan-b">على طول</span><div class="plan-cur">باقتك دلوقتي</div></div><div class="plan-f">' + li(FREEL) + '</div></div>';
     h += '<div id="subSteps"' + (openSteps ? '' : ' hidden') + '>';
-    h += '<div class="group-h" id="steps">خطوات الاشتراك</div><div class="card steps">'
+    h += '<div class="group-h" id="steps">خطوات الاشتراك · <span id="stPlan"></span></div><div class="card steps">'
       + '<div class="st"><span class="stepn">1</span><div><b>اكتب اسمك الثلاثي</b><span class="note">الكود بيتفعّل مرة واحدة بس على جهازك، فمحدش غيرك يقدر يستخدمه.</span><input class="input mt" id="sbName" placeholder="مثال: أحمد محمد علي" value="' + esc(pend.name || '') + '" autocomplete="name"></div></div>'
-      + '<div class="st"><span class="stepn">2</span><div><b>حوّل ' + PRICE + ' جنيه إنستا باي</b><span class="note">على الرقم ده، واكتب اسمك في ملاحظة التحويل.</span><div class="paynum"><b dir="ltr">' + INSTAPAY + '</b><button class="btn sm tint" id="cpPay">' + icon('note') + 'انسخ</button></div></div></div>'
+      + '<div class="st"><span class="stepn">2</span><div><b>حوّل <span id="stAmt">' + PRICE + '</span> جنيه إنستا باي</b><span class="note">على الرقم ده، واكتب اسمك في ملاحظة التحويل.</span><div class="paynum"><b dir="ltr">' + INSTAPAY + '</b><button class="btn sm tint" id="cpPay">' + icon('note') + 'انسخ</button></div></div></div>'
       + '<div class="st"><span class="stepn">3</span><div><b>ابعت سكرين التحويل على واتساب</b><span class="note">لمحمد على <b dir="ltr">' + WHATSAPP + '</b>. الرسالة جاهزة فيها اسمك ورقم جهازك.</span><button class="btn block green mt" id="waGo">' + icon('chat') + 'افتح واتساب وابعت</button></div></div>'
       + '<div class="st"><span class="stepn">4</span><div><b>هيوصلك كود التفعيل</b><span class="note">الصقه هنا ودوس فعّل. أو دوس على اللينك اللي هيوصلك.</span></div></div>'
       + '</div>';
@@ -207,13 +213,17 @@
     h += '</div>';
     h += '<p class="note center mt">رقم جهازك: <b dir="ltr">' + esc(License.prettyDevice(d)) + '</b> · أي مشكلة كلّم محمد على <a href="' + Sub.wa('محتاج مساعدة في مذاكِر. رقم جهازي: ' + License.prettyDevice(d)) + '" target="_blank" rel="noopener" dir="ltr">' + WHATSAPP + '</a></p>';
     view.insertAdjacentHTML('beforeend', h);
-    const nameIn = $('#sbName'), save = () => LS.set('mz:subreq', { name: nameIn.value.trim(), req: rq, at: Date.now() });
+    let sel = pend.plan === 'vip' ? 'vip' : 'term';
+    const PL = { term: ['الترم كامل', PRICE], vip: ['VIP ✨', PRICE_VIP] };
+    const setPlan = p => { sel = p; $('#stPlan').textContent = 'باقة ' + PL[p][0] + ' (' + PL[p][1] + ' ج)'; $('#stAmt').textContent = PL[p][1]; };
+    setPlan(sel);
+    const nameIn = $('#sbName'), save = () => LS.set('mz:subreq', { name: nameIn.value.trim(), req: rq, plan: sel, at: Date.now() });
     nameIn.oninput = save;
     $('#cpPay').onclick = () => { copy(INSTAPAY); toast('اتنسخ الرقم', 'check'); };
     $('#waGo').onclick = () => {
       const nm = nameIn.value.trim(); if (nm.split(/\s+/).length < 2) { toast('اكتب اسمك الثلاثي الأول'); nameIn.focus(); return; }
       save();
-      const msg = 'السلام عليكم 👋\nحوّلت ' + PRICE + ' جنيه إنستا باي لاشتراك مذاكِر (الترم كامل).\nالاسم: ' + nm + '\nرقم الجهاز: ' + License.prettyDevice(d) + '\nرقم الطلب: ' + rq + '\n(السكرين مرفق)';
+      const msg = 'السلام عليكم 👋\nحوّلت ' + PL[sel][1] + ' جنيه إنستا باي لاشتراك مذاكِر (باقة ' + PL[sel][0] + ').\nالاسم: ' + nm + '\nرقم الجهاز: ' + License.prettyDevice(d) + '\nرقم الطلب: ' + rq + '\n(السكرين مرفق)';
       open(Sub.wa(msg));
     };
     const codeIn = $('#sbCode'), msgEl = $('#sbMsg');
@@ -232,7 +242,8 @@
     $('#sbGo').onclick = go;
     if (r.args[0] && (pend.name || nameIn.value)) setTimeout(go, 300);
     const showSteps = to => { const st = $('#subSteps'); st.hidden = false; setTimeout(() => $(to).scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); };
-    $('#planGo').onclick = () => { showSteps('#steps'); setTimeout(() => nameIn.focus({ preventScroll: true }), 500); };
+    $('#planGo').onclick = () => { setPlan('term'); save(); showSteps('#steps'); setTimeout(() => nameIn.focus({ preventScroll: true }), 500); };
+    $('#planVip').onclick = () => { setPlan('vip'); save(); showSteps('#steps'); setTimeout(() => nameIn.focus({ preventScroll: true }), 500); };
     $('#haveGo').onclick = () => showSteps('#have');
     if (r.q.have) setTimeout(() => showSteps('#have'), 300);
   });

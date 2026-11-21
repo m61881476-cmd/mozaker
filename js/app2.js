@@ -312,7 +312,7 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '3.15.0';
+  App.VERSION = '3.16.0';
   App.after = (fresh) => {
     App.refreshSubjects(); App.migrate();
     document.removeEventListener('keydown', Lock.keyH);

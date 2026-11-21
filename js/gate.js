@@ -1,12 +1,12 @@
 /* مذاكِر — البوابة: «قولّي اسمك» لأي حد يفتح الموقع، والاسم هو اللي بيقرر:
    - محمد الشيخ وكريم وفاطمة وجنى: البرنامج يفتح VIP (من الكود الخاص اللي بيتفك بالاسم).
-   - نادية: البرنامج يفتح عادي (مجاني، من غير VIP).
+   - نادية وهاجر: البرنامج يفتح عادي (مجاني، من غير VIP).
    - معاذ ومعاذ حجاج ويوسف ويوسف زلابيا (عربي وإنجليزي): «تم إزالة الموقع» على طول، ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده.
    - أي اسم تاني: «تم إزالة الموقع»، ولو عمل ريفرش يرجع يشوف «قولّي اسمك». */
 (function () {
   'use strict';
   const VIP = ['owner', 'fatma', 'bff', 'karim'], PHRASE = 'mz-gate';
-  const NORMAL = ['ناديه', 'nadia', 'nadya', 'nadiya'];
+  const NORMAL = ['ناديه', 'nadia', 'nadya', 'nadiya', 'هاجر', 'hagar', 'hajar', 'hager', 'hagger', 'haggar'];
   const BAN = ['معاذ', 'يوسف', 'moaz', 'moaaz', 'muaz', 'muaaz', 'mouaz', 'maaz', 'mo3az', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef'];
   const box = document.getElementById('gone'); if (!box) return;
   const gone = () => { box.className = 'g-gone'; box.innerHTML = 'تم إزالة الموقع'; };

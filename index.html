@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script>/* البوابة: «اكتب اسمك»، والموقع بيفتح لمحمد الشيخ وكريم وفاطمة وجنى بس، وأي حد تاني «تم إزالة الموقع» (js/gate.js) */
-(function(){var ok=false;try{var l=JSON.parse(localStorage.getItem('mz:lic')||'null');ok=!!(l&&(['owner','fatma','bff','karim','nadia'].indexOf(l.who)>=0||l.serial===65001));}catch(e){}
+(function(){var ok=false;try{var l=JSON.parse(localStorage.getItem('mz:lic')||'null');ok=!!(l&&(['owner','fatma','bff','karim'].indexOf(l.who)>=0||l.serial===65001));}catch(e){}
 try{if(sessionStorage.getItem('mz:let')==='1')ok=true;}catch(e){}
 if(ok)return;self.MZ_GONE=true;
 document.write('<title>مذاكِر</title><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="only light"><style>html,body{margin:0;height:100%;background:#fff}#gone{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;direction:rtl;font:15px system-ui,-apple-system,Tahoma,sans-serif;padding:24px;box-sizing:border-box;text-align:center}#gone.g-gone{color:#9a9a9a;user-select:none;-webkit-user-select:none}#gone.g-ob{color:#111}.g-ch{width:120px;image-rendering:pixelated}#gone h2{font-size:24px;margin:14px 0 6px}#gone p{color:#666;margin:0 0 18px;max-width:380px;line-height:1.7}#gN{width:min(340px,88vw);box-sizing:border-box;padding:13px 14px;border:1px solid #ddd;border-radius:12px;font:inherit;font-size:16px;text-align:center;background:#f6f6f8;color:#111}#gGo{width:min(340px,88vw);margin-top:10px;padding:13px;border:0;border-radius:12px;background:#0a84ff;color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer}</style><div id="gone"></div><script src="js/gate.js"><\/script><plaintext style="display:none">');})();

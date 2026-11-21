@@ -1,9 +1,9 @@
-/* مذاكِر — البوابة: الموقع مقفول للكل ما عدا محمد الشيخ وكريم وفاطمة وجنى ونادية.
+/* مذاكِر — البوابة: الموقع مقفول للكل ما عدا محمد الشيخ وكريم وفاطمة وجنى.
    زي البرنامج الأصلي: «اكتب اسمك». لو الاسم واحد من الأربعة، البرنامج يفتح ويتفعّل VIP لوحده.
    ولو أي اسم تاني: «تم إزالة الموقع»، وبتفضل كده على الجهاز ده. */
 (function () {
   'use strict';
-  const ALLOW = ['owner', 'fatma', 'bff', 'karim', 'nadia'], PHRASE = 'mz-gate';
+  const ALLOW = ['owner', 'fatma', 'bff', 'karim'], PHRASE = 'mz-gate';
   const box = document.getElementById('gone'); if (!box) return;
   const gone = () => { box.className = 'g-gone'; box.innerHTML = 'تم إزالة الموقع'; };
   try { if (localStorage.getItem('mz:gone') === '1') return gone(); } catch (e) {}

@@ -136,7 +136,7 @@ async function unpack() {
 async function issue() {
   const [, , , name, device, plan = 'term', exp] = process.argv;
   const s = await secrets();
-  const code = await L.issue({ privJwk: s.privJwk, K: s.K, name, device, plan, exp: exp ? new Date(exp + 'T00:00:00Z') : (plan === 'vip' ? null : new Date('2027-02-28T00:00:00Z')), serial: process.env.MZ_SERIAL ? +process.env.MZ_SERIAL : Math.floor(Math.random() * 60000) });
+  const code = await L.issue({ privJwk: s.privJwk, K: s.K, name, device, plan, exp: exp ? new Date(exp + 'T00:00:00Z') : (process.env.MZ_FOREVER ? null : new Date('2027-02-28T00:00:00Z')), serial: process.env.MZ_SERIAL ? +process.env.MZ_SERIAL : Math.floor(Math.random() * 60000) });
   console.log(code);
 }
 
@@ -149,7 +149,7 @@ async function supaCmd() {
   const dir = path.join(SRC, 'supabase'); fs.mkdirSync(dir, { recursive: true });
   const rows = [];
   for (let i = 1; i <= 90; i++) rows.push({ serial: i, plan: 'term', exp: '2027-02-28', note: '' });
-  for (let i = 91; i <= 100; i++) rows.push({ serial: i, plan: 'vip', exp: null, note: '' });
+  for (let i = 91; i <= 100; i++) rows.push({ serial: i, plan: 'vip', exp: '2027-02-28', note: 'VIP مدفوع (200 ج) لحد آخر الترم' });
   rows.push({ serial: 65001, plan: 'vip', exp: null, note: 'چني علي أنور (بيستو فريندو)' });
   rows.forEach(r => r.code = newCode());
   const q = s => s == null ? 'null' : "'" + String(s).replace(/'/g, "''") + "'";

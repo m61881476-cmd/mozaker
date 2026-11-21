@@ -179,8 +179,8 @@
     let h = '';
     if (on && L0) {
       const vip = L0.plan === 'vip';
-      h += '<div class="card subok">' + Char.html('', 70) + '<div><b>' + (L0.who === 'fatma' ? 'كل حاجة مفتوحة ليكي يا فاطمة 🤍' : L0.who === 'owner' ? 'أهلًا يا مخترع 👑' : 'إنت مشترك ✓') + '</b><span>' + (vip ? '⭐ VIP · من غير مدة' : 'صالح لحد ' + esc(fmtDate(L0.exp))) + '</span><span>النسخة دي باسم: <b>' + esc(L0.name) + '</b></span></div></div>';
-      if (vip) h += '<div class="card vipreq mb"><b>✨ اطلب ميزة على مقاسك</b><p class="note">إنت VIP: قولّنا عايز إيه يتضاف في البرنامج (ميزة، أداة، شكل، أي حاجة)، ومحمد هيعملهالك.</p><textarea class="input" id="vrTx" rows="3" placeholder="مثال: عايز عدّاد مذاكرة بيحسب ساعاتي في اليوم"></textarea><button class="btn block mt vipbtn" id="vrGo">✨ ابعت الطلب على واتساب</button></div>';
+      h += '<div class="card subok">' + Char.html('', 70) + '<div><b>' + (L0.who === 'fatma' ? 'كل حاجة مفتوحة ليكي يا فاطمة 🤍' : L0.who === 'owner' ? 'أهلًا يا مخترع 👑' : 'إنت مشترك ✓') + '</b><span>' + (vip ? '⭐ VIP · ' + (L0.exp ? 'لحد ' + esc(fmtDate(L0.exp)) : 'من غير مدة') : 'صالح لحد ' + esc(fmtDate(L0.exp))) + '</span><span>النسخة دي باسم: <b>' + esc(L0.name) + '</b></span></div></div>';
+      if (vip) h += '<div class="card vipreq mb"><b>✨ اطلب ميزة على مقاسك</b><p class="note">إنت VIP: قولّنا عايز إيه يتضاف في البرنامج (ميزة، أداة، شكل). لو مفيدة فعلًا وفي حدود قدراتنا، بنضيفها.</p><textarea class="input" id="vrTx" rows="3" placeholder="مثال: عايز عدّاد مذاكرة بيحسب ساعاتي في اليوم"></textarea><button class="btn block mt vipbtn" id="vrGo">✨ ابعت الطلب على واتساب</button></div>';
       h += '<div class="group-h">معاك دلوقتي</div>' + featHTML();
       view.insertAdjacentHTML('beforeend', h + '<p class="note center">رقم جهازك: <b dir="ltr">' + esc(License.prettyDevice(d)) + '</b></p>');
       const vr = $('#vrGo'); if (vr) vr.onclick = () => { const t = $('#vrTx').value.trim(); if (!t) { toast('اكتب الميزة اللي عايزها الأول'); $('#vrTx').focus(); return; } open(Sub.wa('✨ طلب ميزة VIP في مذاكِر\nالاسم: ' + L0.name + '\nالطلب: ' + t)); };
@@ -194,8 +194,8 @@
     const li = a => '<ul class="plan-l">' + a.map(x => '<li><span class="plan-ck" aria-hidden="true">✓</span><span><b>' + esc(x[0]) + '</b>' + (x[1] ? '<small>' + esc(x[1]) + '</small>' : '') + '</span></li>').join('') + '</ul>';
     const openSteps = !!(pend.name || r.args[0] || r.q.have);
     h += '<div class="plan-h"><h2>ذاكر أكتر مع مذاكِر</h2><p>اختار اللي يناسبك</p></div>';
-    const VIPL = [['ميزة أو إضافة على مقاسك', 'قولّنا عايز إيه يتضاف في البرنامج، ومحمد يعمله لك'], ['من غير مدة', 'الاشتراك مايخلصش مع آخر الترم'], ['أولوية في الرد على واتساب', 'أي سؤال أو مشكلة ليك الأول'], ['شارة ⭐ VIP', 'جوه البرنامج']];
-    h += '<div class="plan vip"><div class="plan-glow" aria-hidden="true"></div><div class="plan-top"><span class="plan-tag">✨ الأقوى</span><b class="plan-n">VIP</b><span class="plan-s">كل حاجة، وميزة على مقاسك</span><div class="plan-p"><b>' + PRICE_VIP + '</b> ج.م</div><span class="plan-b">مرة واحدة · من غير مدة</span>'
+    const VIPL = [['ميزة أو إضافة على مقاسك', 'قولّنا عايز إيه يتضاف في البرنامج: لو مفيدة فعلًا وفي حدود قدراتنا، بنضيفها'], ['أولوية في الرد على واتساب', 'أي سؤال أو مشكلة ليك الأول'], ['شارة ⭐ VIP', 'جوه البرنامج']];
+    h += '<div class="plan vip"><div class="plan-glow" aria-hidden="true"></div><div class="plan-top"><span class="plan-tag">✨ الأقوى</span><b class="plan-n">VIP</b><span class="plan-s">كل حاجة، وميزة على مقاسك</span><div class="plan-p"><b>' + PRICE_VIP + '</b> ج.م</div><span class="plan-b">مرة واحدة · لحد آخر الترم</span>'
       + '<button class="plan-go vipbtn" id="planVip">اشترك VIP ✨</button></div>'
       + '<div class="plan-f"><div class="plan-fh">كل اللي في الترم كامل، وكمان:</div>' + li(VIPL) + '</div></div>';
     h += '<div class="plan"><div class="plan-top"><b class="plan-n">الترم كامل</b><span class="plan-s">لكل المواد طول الترم</span><div class="plan-p"><b>' + PRICE + '</b> ج.م</div><span class="plan-b">مرة واحدة للترم · من غير اشتراك شهري</span>'

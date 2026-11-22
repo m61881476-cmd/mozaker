@@ -55,8 +55,8 @@ async function makeVanities(Kb, vsalt) {
   const G = 'mz-gate', GATE = [[owner, { who: 'owner', label: 'المخترع' }], [['فاطمة', 'fatma', 'fatima', 'fatema', 'fatmah'], { who: 'fatma', label: 'فاطمة 🤍' }],
     [['كريم', 'karim', 'kareem', 'karem'], { who: 'karim', label: 'كريم ⭐' }], [['جني', 'jana', 'janna', 'jannah', 'jenny', 'gana', 'genny'], { who: 'bff', label: 'بيستو فريندو 💜' }]];
   for (const [names, p] of GATE) for (const n of names) vanity.push(await L.makeVanity(G, n, Object.assign({ K: Kb, plan: 'vip' }, p), vsalt));
-  /* هاجر عادل (بالعربي بس): باقة الترم (99) لحد آخر الترم */
-  vanity.push(await L.makeVanity(G, 'هاجرعادل', { K: Kb, plan: 'term', who: 'hagar', label: 'هاجر', exp: '2027-02-28' }, vsalt));
+  /* هاجر عادل (بالعربي بس): باقة VIP (200) لحد آخر الترم */
+  vanity.push(await L.makeVanity(G, 'هاجرعادل', { K: Kb, plan: 'vip', who: 'hagar', label: 'هاجر ⭐', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

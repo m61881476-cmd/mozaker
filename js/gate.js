@@ -1,5 +1,6 @@
 /* مذاكِر — البوابة: «قولّي اسمك» لأي حد يفتح الموقع، والاسم هو اللي بيقرر:
    - محمد الشيخ وكريم وفاطمة وجنى: البرنامج يفتح VIP (من الكود الخاص اللي بيتفك بالاسم).
+   - «هاجر عادل» بالعربي بالظبط: مشتركة في باقة الترم (99)، وجوه البرنامج اسمها «هاجر».
    - نادية وهاجر وخلود وميار: البرنامج يفتح عادي (مجاني، من غير VIP).
    - معاذ ومعاذ حجاج ويوسف ويوسف زلابيا (عربي وإنجليزي): «تم إزالة الموقع» على طول، ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده.
    - أي اسم تاني: «تم إزالة الموقع»، ولو عمل ريفرش يرجع يشوف «قولّي اسمك». */
@@ -19,10 +20,10 @@
     + '<input id="gN" placeholder="اسمك" autocomplete="name" enterkeyhint="go"><button id="gGo">يلا بينا</button>';
   const inp = document.getElementById('gN'), btn = document.getElementById('gGo');
   setTimeout(() => inp.focus(), 100);
-  const enter = (name, vip) => {
+  const enter = (name, vip, shown) => {
     try {
       localStorage.setItem('mz:pass', '1');
-      sessionStorage.setItem('mz:gname', name);
+      sessionStorage.setItem('mz:gname', shown || name);
       if (vip) sessionStorage.setItem('mz:gate', JSON.stringify({ name, code: PHRASE }));
     } catch (e) {}
     location.replace(location.pathname + '#home'); location.reload();
@@ -31,8 +32,17 @@
     const name = inp.value.trim(); if (!name) { inp.focus(); return; }
     const f = first(name);
     if (BAN.includes(f)) { try { localStorage.setItem('mz:ban', '1'); localStorage.removeItem('mz:pass'); } catch (e) {} return gone(); }
-    if (NORMAL.includes(f)) return enter(name, false);
     btn.disabled = true; btn.textContent = '…';
+    const ar = !/[a-z]/i.test(name), full = name.trim().replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/\s+/g, ' ');
+    if (ar && full === 'هاجر عادل') { // مشتركة (باقة الترم)
+      try {
+        if (!self.License) await load('js/license.js');
+        if (!self.MZ_KEYS) await load('js/keys.js');
+        const v = await self.License.tryVanity(PHRASE, name, self.MZ_KEYS.vanity, self.MZ_KEYS.vsalt);
+        if (v && v.who === 'hagar') return enter(name, true, 'هاجر');
+      } catch (e) { /* يكمّل عادي */ }
+    }
+    if (NORMAL.includes(f)) return enter(name, false);
     let vip = false;
     try {
       if (!self.License) await load('js/license.js');

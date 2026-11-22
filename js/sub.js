@@ -88,7 +88,7 @@
       }
       const v = await License.tryVanity(text, name, KEYS.vanity, KEYS.vsalt);
       if (!v) return { ok: false, msg: MSG.vanity };
-      await store(License.b64u.dec(v.K), { kind: 'vanity', name, plan: v.plan, exp: null, who: v.who, label: v.label, at: Date.now() });
+      await store(License.b64u.dec(v.K), { kind: 'vanity', name, plan: v.plan, exp: v.exp ? new Date(v.exp + 'T23:59:59Z').getTime() : null, who: v.who, label: v.label, at: Date.now() });
       return { ok: true, plan: v.plan, who: v.who };
     } catch (e) { return { ok: false, msg: MSG[e.message] || MSG.net }; }
   }

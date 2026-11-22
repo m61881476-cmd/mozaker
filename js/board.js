@@ -153,7 +153,16 @@
     }
     if (k === 'gl') { const svg = box._g; if (!svg) return; const list = Array.isArray(v) ? v : [v]; for (const e of list) await graphAdd(svg, e, dur / list.length, skip); return; }
   }
-  function rowAdd(t, r, on) { const tr = t.insertRow(); r.forEach(c => { const td = tr.insertCell(); const hi = typeof c === 'string' && c[0] === '*'; td.textContent = hi ? c.replace(/\*/g, '') : c; if (hi) td.classList.add('mark'); if (on) td.classList.add('on'); }); return tr; }
+  function rowAdd(t, r, on) {
+    const tr = t.insertRow();
+    r.forEach(c => {
+      const td = tr.insertCell(), x = String(c == null ? '' : c);
+      if (/^\*[^*]+\*$/.test(x)) { td.textContent = x.slice(1, -1); td.classList.add('mark'); } // الخانة كلها متعلّمة
+      else segs(x).forEach(p => { if (p.hi) { const sp = document.createElement('span'); sp.className = 'hi'; sp.textContent = p.t; td.appendChild(sp); } else td.appendChild(document.createTextNode(p.t)); }); // كلمة جوه الخانة
+      if (on) td.classList.add('on');
+    });
+    return tr;
+  }
 
   /* ---------- المشغّل ---------- */
   const Board = {

@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'eco', 'eco-b1', 'eco-q', 'law', 'law-b1', 'law-q'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'law', 'law-b1', 'law-q', 'stat', 'prod'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -21,11 +21,11 @@ t('مفتاح كل سؤال فريد', new Set(S.questions.map(q => q.k)).size =
 t('نصوص الأسئلة مش متكررة', new Set(S.questions.map(q => q.q)).size === S.questions.length);
 t('الاختياري: 3–4 اختيارات مختلفة وإجابة في المدى', S.questions.filter(q => q.t === 'mcq').every(q => q.o.length >= 3 && q.o.length <= 4 && new Set(q.o).size === q.o.length && q.a >= 0 && q.a < q.o.length));
 t('صح وغلط: إجابة منطقية، والغلط له تصحيح', S.questions.filter(q => q.t === 'tf').every(q => typeof q.a === 'boolean' && (q.a || q.fix)));
-t('أكمل: فيه فراغ وإجابة نصية', S.questions.filter(q => q.t === 'fill').every(q => /_{3,}/.test(q.q) && typeof q.a === 'string' && q.a.length));
-t('أكمل: الإجابة نفسها بتتصحح صح', S.questions.filter(q => q.t === 'fill').every(q => E.grade({ type: 'fill', answer: q.a, accept: q.accept }, q.a).ok));
+t('كل الأسئلة اختيار من متعدد أو صح وغلط بس (مفيش «أكمل»)', S.questions.every(q => q.t === 'mcq' || q.t === 'tf'));
+t('مكان الإجابة الصح متوزع على الأربعة', [0, 1, 2, 3].every(i => S.questions.filter(q => q.t === 'mcq' && q.a === i).length >= S.questions.filter(q => q.t === 'mcq').length / 6));
 t('التفرعات على اختيارات غلط موجودة', S.questions.filter(q => q.on).every(q => q.t === 'mcq' && Object.keys(q.on).every(i => +i !== q.a && +i < q.o.length)));
 t('95+ سؤال فيه تفرعات مكتوبة', S.questions.filter(q => q.on).length >= 95);
-t('أنواع الأسئلة متنوعة', [['mcq', 100], ['tf', 25], ['fill', 12]].every(([k, n]) => S.questions.filter(q => q.t === k).length >= n));
+t('أنواع الأسئلة متنوعة', [['mcq', 100], ['tf', 25]].every(([k, n]) => S.questions.filter(q => q.t === k).length >= n));
 t('الكلمات المفتاحية اتنقلت', S.questions.some(q => Array.isArray(q.kw) && q.kw.length));
 // بطاقات
 t('50+ بطاقة وكل بطاقة على درس', S.cards.length >= 50 && S.cards.every(c => c[0] && c[1] && chapters.includes(c[2])));
@@ -71,8 +71,8 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   ch.forEach(c => { const n = Ec.questions.filter(q => q.l === c).length; t('اقتصاد: 20+ سؤال على ' + c, n >= 20, String(n)); });
   t('اقتصاد: كل سؤال له شرح ودرس', Ec.questions.every(q => ch.includes(q.l) && q.e && q.e.length > 8));
   t('اقتصاد: المتوقع له سبب', Ec.questions.filter(q => q.x).length >= 50 && Ec.questions.filter(q => q.x).every(q => q.w));
-  t('اقتصاد: مسائل رقمية 30+', Ec.questions.filter(q => q.t === 'num').length >= 30);
-  t('اقتصاد: المسائل الرقمية إجاباتها أرقام وبتتصحح', Ec.questions.filter(q => q.t === 'num').every(q => typeof q.a === 'number' && E.grade({ type: 'num', answer: q.a, tol: q.tol }, String(q.a)).ok && !E.grade({ type: 'num', answer: q.a, tol: q.tol }, String(q.a + 1)).ok));
+  t('اقتصاد: كل الأسئلة اختيار أو صح وغلط', Ec.questions.every(q => q.t === 'mcq' || q.t === 'tf'));
+  t('اقتصاد: مسائل حسابية 30+ (اختياراتها أرقام)', Ec.questions.filter(q => q.t === 'mcq' && q.o.every(o => /^[\u200e−\-]?[\d.]+$/.test(o))).length >= 30);
   t('اقتصاد: الاختياري سليم', Ec.questions.filter(q => q.t === 'mcq').every(q => q.o.length === 4 && new Set(q.o).size === 4 && q.a >= 0 && q.a < 4 && Object.keys(q.on || {}).every(i => +i !== q.a)));
   t('اقتصاد: نصوص الأسئلة فريدة', new Set(Ec.questions.map(q => q.q)).size === Ec.questions.length);
   t('اقتصاد: 20+ بطاقة على الفصول', Ec.cards.length >= 20 && Ec.cards.every(c => ch.includes(c[2])));
@@ -128,6 +128,12 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   const tu = x => E.tutor(Lw.concepts, x, {});
   t('قانون: سَنَد يفهم «يعني ايه النفاذ المعجل»', (tu('يعني ايه النفاذ المعجل') || { c: {} }).c.k === 'النفاذ المعجل');
   t('قانون: سَنَد يفهم الغلط الإملائي «نظريه التدوال»', (tu('اشرحلي نظريه التدوال') || { c: {} }).c.k === 'نظرية التداول');
+}
+// كل المواد: بورد لكل درس (ماعدا المراجعات النهائية) + الأسئلة اختيار أو صح وغلط بس
+for (const X of self.MZ_CONTENT) {
+  X.lessons.filter(l => !/9$/.test(l.id)).forEach(l => t(X.id + ': بورد لـ ' + l.id, X.boards && Array.isArray(X.boards[l.id]) && X.boards[l.id].length >= 3 && X.boards[l.id].every(sc => sc.t && sc.s.length >= 3)));
+  t(X.id + ': كل الأسئلة اختيار أو صح وغلط', X.questions.every(q => q.t === 'mcq' || q.t === 'tf'));
+  t(X.id + ': الاختياري 4 اختيارات مختلفة', X.questions.filter(q => q.t === 'mcq').every(q => q.o.length === 4 && new Set(q.o).size === 4 && q.a >= 0 && q.a < 4));
 }
 console.log((fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
 if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }

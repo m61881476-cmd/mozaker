@@ -224,7 +224,7 @@
     get: id => REG[id] || null,
     list: sid => Object.values(REG).filter(f => !sid || f.sid === sid),
     parts: id => REG[id] ? parts(REG[id]).map(p => typeof p === 'string' ? { t: p } : p) : [],
-    canPractice: id => !!REG[id] && !REG[id].rows && parts(REG[id]).length >= 3,
+    canPractice: id => !!REG[id] && !REG[id].rows && !REG[id].nop && parts(REG[id]).length >= 3,
     draw(f, o = {}) { const fn = DRAW[f.type]; return fn ? fn(f, o) : ''; },
     /** الرسمة كاملة: عنوان + رسم + مفتاح الأجزاء + المصدر */
     html(id, o = {}) {

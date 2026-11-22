@@ -58,6 +58,8 @@ async function makeVanities(Kb, vsalt) {
   /* هاجر عادل (عربي أو إنجليزي): باقة VIP (200) لحد آخر الترم */
   const HA = ['هاجرعادل']; for (const f of ['hagar', 'hajar', 'hager', 'hagger', 'haggar']) for (const l of ['adel', 'adl', 'adil', 'aadel', 'adeel']) HA.push(f + l);
   for (const n of HA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'hagar', label: 'هاجر ⭐', exp: '2027-02-28' }, vsalt));
+  /* كود هاجر الخاص «Hagar 7319»: بيفتح VIP (200) لحد آخر الترم، بالاسم «هاجر» أو «هاجر عادل» (عربي أو إنجليزي) */
+  for (const n of HA.concat(['هاجر', 'hagar', 'hajar', 'hager'])) vanity.push(await L.makeVanity('Hagar 7319', n, { K: Kb, plan: 'vip', who: 'hagar', label: 'هاجر ⭐', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

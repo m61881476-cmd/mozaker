@@ -2,13 +2,13 @@
    - محمد الشيخ وكريم وفاطمة وجنى: البرنامج يفتح VIP (من الكود الخاص اللي بيتفك بالاسم).
    - «هاجر عادل» (بالعربي أو Hagar Adel بالإنجليزي) بالظبط: مشتركة في باقة VIP (200) لحد آخر الترم، وجوه البرنامج اسمها «هاجر».
    - نادية وهاجر وخلود وميار: البرنامج يفتح عادي (مجاني، من غير VIP).
-   - معاذ ومعاذ حجاج ويوسف ويوسف زلابيا (عربي وإنجليزي): «تم إزالة الموقع» على طول، ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده.
+   - معاذ ومعاذ حجاج ويوسف ويوسف زلابيا وبسنت (عربي وإنجليزي): «تم إزالة الموقع» على طول، ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده.
    - أي اسم تاني: «تم إزالة الموقع»، ولو عمل ريفرش يرجع يشوف «قولّي اسمك». */
 (function () {
   'use strict';
   const VIP = ['owner', 'fatma', 'bff', 'karim'], PHRASE = 'mz-gate';
   const NORMAL = ['ناديه', 'nadia', 'nadya', 'nadiya', 'هاجر', 'hagar', 'hajar', 'hager', 'hagger', 'haggar', 'خلود', 'kholoud', 'kholod', 'kholood', 'kholud', 'khlood', 'khloud', 'khulood', 'ميار', 'mayar', 'mayyar', 'myar', 'mayaar'];
-  const BAN = ['معاذ', 'يوسف', 'moaz', 'moaaz', 'muaz', 'muaaz', 'mouaz', 'maaz', 'mo3az', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef'];
+  const BAN = ['معاذ', 'يوسف', 'moaz', 'moaaz', 'muaz', 'muaaz', 'mouaz', 'maaz', 'mo3az', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef', 'بسنت', 'بسنط', 'باسنت', 'basant', 'bassant', 'basent', 'bassent', 'basnt', 'bsant', 'basnet', 'basanet'];
   const box = document.getElementById('gone'); if (!box) return;
   const gone = () => { box.className = 'g-gone'; box.innerHTML = 'تم إزالة الموقع'; };
   try { localStorage.removeItem('mz:gone'); if (localStorage.getItem('mz:ban') === '1') return gone(); } catch (e) {}

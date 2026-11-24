@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'law', 'law-b1', 'law-q', 'stat', 'prod'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'stat', 'prod'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -65,8 +65,8 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
 /* ---------- الاقتصاد الكلي (الفصول 1 إلى 3) ---------- */
 {
   const Ec = self.MZ_CONTENT.find(x => x.id === 'eco'); E.mergePlus(Ec);
-  const ch = ['ec1', 'ec2', 'ec3'], lids = Ec.lessons.map(l => l.id);
-  t('اقتصاد: الدروس 3 فصول + مراجعة', lids.join() === 'ec1,ec2,ec3,ec9' && Ec.final === 'ec9');
+  const ch = ['ec1', 'ec2', 'ec3', 'ecr', 'ec4', 'ec5'], lids = Ec.lessons.map(l => l.id);
+  t('اقتصاد: الدروس 4 فصول (الرابع درسين) + مراجعتين', lids.join() === 'ec1,ec2,ec3,ecr,ec4,ec5,ec9' && Ec.final === 'ec9');
   t('اقتصاد: كل درس ملخصه بأقسام', Ec.lessons.every(l => l.summary.length > 2000 && (l.summary.match(/^## /gm) || []).length >= 5));
   ch.forEach(c => { const n = Ec.questions.filter(q => q.l === c).length; t('اقتصاد: 20+ سؤال على ' + c, n >= 20, String(n)); });
   t('اقتصاد: كل سؤال له شرح ودرس', Ec.questions.every(q => ch.includes(q.l) && q.e && q.e.length > 8));

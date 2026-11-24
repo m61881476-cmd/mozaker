@@ -154,6 +154,16 @@
     if (g && g.code) { sessionStorage.removeItem('mz:gate'); activate(g.code, g.name).then(r => { if (r && r.ok) { sessionStorage.setItem('mz:welcome', r.who || 'sub'); location.hash = '#home'; location.reload(); } }); }
   } catch (e) { /* مفيش */ }
 
+  /* سجل الدخول: اللي كان داخل قبل كده يتسجل مرة واحدة في شيت محمد */
+  setTimeout(() => {
+    try {
+      if (!self.MZTrack || !self.MZTrack.on()) return;
+      const L = LS.get('mz:lic', null), P = (LS.get('mz:profiles', []) || [])[0];
+      const nm = (L && L.name) || (P && P.name) || '؟';
+      self.MZTrack.once(nm, Sub.on() ? (L && L.plan === 'vip' ? 'كان داخل · VIP ⭐' : 'كان داخل · مشترك 99') : 'كان داخل · مجاني');
+    } catch (e) { /* مفيش */ }
+  }, 4000);
+
   /* ---------- (3) الصفحات (بتتسجل لما الواجهة تبقى جاهزة) ---------- */
   if (!self.UI) return;
   const { $, $$, esc, icon, Router, header, toast, Char, haptic, beep, sheet } = UI;

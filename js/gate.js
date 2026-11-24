@@ -1,19 +1,30 @@
-/* مذاكِر — البوابة: «قولّي اسمك» لأي حد يفتح الموقع، والاسم هو اللي بيقرر:
-   - محمد الشيخ وكريم وفاطمة وجنى: البرنامج يفتح VIP (من الكود الخاص اللي بيتفك بالاسم).
-   - «هاجر عادل» (بالعربي أو Hagar Adel بالإنجليزي) بالظبط: مشتركة في باقة VIP (200) لحد آخر الترم، وجوه البرنامج اسمها «هاجر».
-   - «أسماء عيد» بالاسم ده بالظبط (عربي أو إنجليزي): عادي (مجاني).
-   - نادية وهاجر وخلود وميار: البرنامج يفتح عادي (مجاني، من غير VIP).
-   - معاذ ومعاذ حجاج ويوسف ويوسف زلابيا وبسنت (عربي وإنجليزي): «تم إزالة الموقع» على طول، ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده.
-   - أي اسم تاني: «تم إزالة الموقع»، ولو عمل ريفرش يرجع يشوف «قولّي اسمك». */
+/* مذاكِر — البوابة: «قولّي اسمك» لأي حد يفتح الموقع:
+   - أي اسم يدخل البرنامج عادي (مجاني).
+   - محمد الشيخ وكريم وفاطمة وجنى: VIP (من الكود الخاص اللي بيتفك بالاسم).
+   - «هاجر عادل» (أو Hagar Adel): VIP (200) لحد آخر الترم، وجوه البرنامج اسمها «هاجر».
+   - المحظورين (عربي وإنجليزي) — «تم إزالة الموقع» ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده:
+       • لو أول اسم: يوسف، بسنت، أمينة، أحمد، يحيى.
+       • لو في أي حتة في الاسم: معاذ، حجاج.
+   - كل دخول أو حظر بيتسجل في شيت محمد (js/track.js). */
 (function () {
   'use strict';
   const VIP = ['owner', 'fatma', 'bff', 'karim'], PHRASE = 'mz-gate';
-  const NORMAL = ['ناديه', 'nadia', 'nadya', 'nadiya', 'هاجر', 'hagar', 'hajar', 'hager', 'hagger', 'haggar', 'خلود', 'kholoud', 'kholod', 'kholood', 'kholud', 'khlood', 'khloud', 'khulood', 'ميار', 'mayar', 'mayyar', 'myar', 'mayaar'];
-  const BAN = ['معاذ', 'يوسف', 'moaz', 'moaaz', 'muaz', 'muaaz', 'mouaz', 'maaz', 'mo3az', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef', 'بسنت', 'بسنط', 'باسنت', 'basant', 'bassant', 'basent', 'bassent', 'basnt', 'bsant', 'basnet', 'basanet'];
+  /* المحظورين: أول اسم */
+  const BAN_FIRST = ['يوسف', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef', 'youssuf', 'yousuf',
+    'بسنت', 'بسنط', 'باسنت', 'basant', 'bassant', 'basent', 'bassent', 'basnt', 'bsant', 'basnet', 'basanet',
+    'امينه', 'امينا', 'amina', 'ameena', 'aminah', 'amena', 'ameenah', 'amenah', 'aminaa',
+    'احمد', 'ahmed', 'ahmad', 'ahmd', 'a7med', 'ahmet', 'ahmmed', 'ahmeed',
+    'يحيي', 'يحيا', 'yehia', 'yahia', 'yahya', 'yehya', 'yahiya', 'yehiya', 'yahea', 'yehea', 'ya7ia', 'yhia'];
+  /* المحظورين: في أي حتة في الاسم */
+  const BAN_ANY = ['معاذ', 'حجاج', 'moaz', 'moaaz', 'muaz', 'muaaz', 'mouaz', 'maaz', 'mo3az', 'moaz', 'muadh', 'moaath', 'moath',
+    'haggag', 'hagag', 'hajjaj', 'hajaj', 'haggaj', 'hagaag', 'hagaj', 'hajag', 'ha2gag'];
   const box = document.getElementById('gone'); if (!box) return;
   const gone = () => { box.className = 'g-gone'; box.innerHTML = 'تم إزالة الموقع'; };
   try { localStorage.removeItem('mz:gone'); if (localStorage.getItem('mz:ban') === '1') return gone(); } catch (e) {}
   /** أول كلمة في الاسم بعد التوحيد (من غير تشكيل، أ/إ/آ = ا، ى = ي، ة = ه، والإنجليزي حروف صغيرة) */
+  const words = s => String(s || '').trim().toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[^a-z0-9ء-ي\s]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const banned = n => { const w = words(n); return !!w.length && (BAN_FIRST.includes(w[0]) || w.some(x => BAN_ANY.includes(x))); };
+  const log = (n, st) => { try { if (self.MZTrack) { self.MZTrack.send(n, st); localStorage.setItem('mz:logged', '1'); } } catch (e) { /* مفيش */ } };
   const first = s => String(s || '').trim().toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[^a-z0-9ء-ي\s]/g, ' ').trim().split(/\s+/)[0] || '';
   const load = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   box.className = 'g-ob';
@@ -22,6 +33,7 @@
   const inp = document.getElementById('gN'), btn = document.getElementById('gGo');
   setTimeout(() => inp.focus(), 100);
   const enter = (name, vip, shown) => {
+    log(name, vip ? 'دخل VIP ⭐' : 'دخل مجاني');
     try {
       localStorage.setItem('mz:pass', '1');
       sessionStorage.setItem('mz:gname', shown || name);
@@ -32,7 +44,7 @@
   const go = async () => {
     const name = inp.value.trim(); if (!name) { inp.focus(); return; }
     const f = first(name);
-    if (BAN.includes(f)) { try { localStorage.setItem('mz:ban', '1'); localStorage.removeItem('mz:pass'); } catch (e) {} return gone(); }
+    if (banned(name)) { log(name, 'محظور ⛔'); try { localStorage.setItem('mz:ban', '1'); localStorage.removeItem('mz:pass'); } catch (e) {} return gone(); }
     btn.disabled = true; btn.textContent = '…';
     const full = name.trim().toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/[^a-z\u0621-\u064a\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (/^(هاجر عادل|(hagar|hajar|hager|hagger|haggar) (adel|adl|adil|aadel|adeel))$/.test(full)) { // مشتركة (VIP 200)
@@ -44,7 +56,6 @@
       } catch (e) { /* يكمّل عادي */ }
     }
     if (/^((اسماء|اسما) عيد|(asmaa|asma|asmae|asmaaa) (eid|eed|aid|ead|eiad))$/.test(full)) return enter(name, false); // أسماء عيد: عادي (مجاني)
-    if (NORMAL.includes(f)) return enter(name, false);
     let vip = false;
     try {
       if (!self.License) await load('js/license.js');
@@ -52,8 +63,7 @@
       const v = await self.License.tryVanity(PHRASE, name, self.MZ_KEYS.vanity, self.MZ_KEYS.vsalt);
       vip = !!(v && VIP.includes(v.who));
     } catch (e) { vip = false; }
-    if (vip) return enter(name, true);
-    gone(); // مش من الأسامي: يرجع يشوف «قولّي اسمك» بعد الريفرش
+    return enter(name, vip); // أي اسم تاني: يدخل عادي (مجاني)
   };
   btn.onclick = go; inp.onkeydown = e => { if (e.key === 'Enter') go(); };
 })();

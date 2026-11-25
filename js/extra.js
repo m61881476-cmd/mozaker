@@ -129,7 +129,7 @@
     },
     seen() { const d = D(); return (d && d.newsSeen) || {}; },
     /** الأخبار اللي تخص الطالب ده: انتظام (reg) ولا انتساب (ext). لو لسه ماختارش بيشوف الكل */
-    mine() { const t = track(); return this.list.filter(n => !n.for || !t || n.for === t); },
+    mine() { const t = track(); return this.list.filter(n => String(n.year || 2) === App.YEAR && (!n.for || !t || n.for === t)); },
     unseen() { const s = this.seen(); return this.mine().filter(n => !s[n.id]); },
     mark(id) { const d = D(); d.newsSeen = d.newsSeen || {}; if (!d.newsSeen[id]) { d.newsSeen[id] = now(); Store.save(); } },
     get(id) { return this.list.find(n => n.id === id); }
@@ -462,7 +462,7 @@
   }
 
   /* ================= المواد: الجاية قريب ================= */
-  const SOON = [['🏭', 'إدارة الإنتاج'], ['⚖️', 'القانون التجاري'], ['🧾', 'محاسبة الشركات'], ['📊', 'الإحصاء']];
+  const SOON = App.YEAR === '1' ? [['🧾', 'مبادئ المحاسبة'], ['🔤', 'دراسات تجارية بلغة أجنبية']] : [['🏭', 'إدارة الإنتاج'], ['⚖️', 'القانون التجاري'], ['🧾', 'محاسبة الشركات'], ['📊', 'الإحصاء']];
   function subjectsExtra(view) {
     const sub = $('.subjects', view); if (!sub) return;
     const on = self.Sub && Sub.on(), have = new Set(App.SUBJ.map(x => x.name)), soon = SOON.filter(x => !have.has(x[1]));

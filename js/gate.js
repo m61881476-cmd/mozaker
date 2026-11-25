@@ -29,13 +29,19 @@
   const load = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   box.className = 'g-ob';
   box.innerHTML = '<img src="icons/char.png" alt="" class="g-ch"><h2>أهلًا بيك في مذاكِر 👋</h2><p>أنا <b>سَنَد</b>، هكون معاك طول الترم. قولّي اسمك عشان نبدأ.</p>'
-    + '<input id="gN" placeholder="اسمك" autocomplete="name" enterkeyhint="go"><button id="gGo">يلا بينا</button>';
+    + '<input id="gN" placeholder="اسمك" autocomplete="name" enterkeyhint="go">'
+    + '<div class="g-yr" role="radiogroup" aria-label="إنت في سنة كام؟"><span>إنت في سنة كام؟</span><div><button type="button" data-y="1">سنة أولى</button><button type="button" data-y="2">سنة تانية</button></div></div>'
+    + '<button id="gGo">يلا بينا</button>';
   const inp = document.getElementById('gN'), btn = document.getElementById('gGo');
+  let year = ''; try { year = localStorage.getItem('mz:year') || ''; } catch (e) {}
+  const yb = [...box.querySelectorAll('[data-y]')], yset = y => { year = y; yb.forEach(b => b.classList.toggle('on', b.dataset.y === y)); };
+  yb.forEach(b => b.onclick = () => yset(b.dataset.y)); if (year) yset(year);
   setTimeout(() => inp.focus(), 100);
   const enter = (name, vip, shown) => {
-    log(name, vip ? 'دخل VIP ⭐' : 'دخل مجاني');
+    log(name, (vip ? 'دخل VIP ⭐' : 'دخل مجاني') + ' · سنة ' + (year === '1' ? 'أولى' : 'تانية'));
     try {
       localStorage.setItem('mz:pass', '1');
+      localStorage.setItem('mz:year', year || '2');
       sessionStorage.setItem('mz:gname', shown || name);
       if (vip) sessionStorage.setItem('mz:gate', JSON.stringify({ name, code: PHRASE }));
     } catch (e) {}
@@ -43,6 +49,7 @@
   };
   const go = async () => {
     const name = inp.value.trim(); if (!name) { inp.focus(); return; }
+    if (!year) { const g = box.querySelector('.g-yr'); g.classList.remove('need'); void g.offsetWidth; g.classList.add('need'); return; }
     const f = first(name);
     if (banned(name)) { log(name, 'محظور ⛔'); try { localStorage.setItem('mz:ban', '1'); localStorage.removeItem('mz:pass'); } catch (e) {} return gone(); }
     btn.disabled = true; btn.textContent = '…';

@@ -20,7 +20,10 @@
     const mine = ((Store.data && Store.data.subjects) || []).map(x => Object.assign(x, { lessons: x.lessons || [], kind: x.kind || 'نظري', short: x.short || x.name, color: x.color || 'blue', icon: x.kind === 'عملي' || x.kind === 'عملي + نظري' ? 'calc' : 'book' }));
     SUBJ.push(...BUILT, ...mine.map(x => Object.assign({}, x, { tools: [], cards: [], questions: [], concepts: [], custom: true })));
     SUBJ.forEach(x => x.lessons.forEach((l, i) => { l.s = x.id; l.i = i; LESSONS[l.id] = l; }));
-    CONCEPTS = [].concat(...SUBJ.map(x => x.concepts || []));
+    const hand = [].concat(...SUBJ.map(x => x.concepts || [])), hk = new Set(hand.map(c => E.bare(c.k).trim()));
+    /* سَنَد بيتعلّم لوحده من كل ملخص مفتوح؛ المفاهيم المكتوبة بإيدي ليها الأولوية */
+    const auto = [].concat(...SUBJ.filter(x => !x.custom).map(x => E.autoConcepts(x))).filter(c => !hk.has(E.bare(c.k).trim()));
+    CONCEPTS = hand.concat(auto); App.CONCEPTS_N = { hand: hand.length, auto: auto.length };
     E.setSubjects(SUBJ);
   }
   App.refreshSubjects = refreshSubjects;
@@ -896,9 +899,15 @@
       const si = E.studyIntent(text);
       if (si) { const r0 = Brain.study(si, p, text); if (r0) return r0; }
       let tt = E.norm(text); SUBJ.forEach(x => (x.rewrite || []).forEach(([from, to]) => from.forEach(ph => { tt = tt.split(E.norm(ph)).join(E.norm(to)); })));
+      /* «صور الجزاء» / «اذكر خصائص…» / «خطوات…»: الرد بالقسم كله من الملخص مش بتعريف واحد */
+      const lm = nt.match(/^(?:اذكر|عدد|عددلي|قولي|ايه|ما هي|اي|هي ايه)?\s*(?:هي\s+)?(انواع|صور|خصائص|خصايص|مراحل|عناصر|خطوات|وظائف|وظايف|اهداف|مكونات|شروط|مصادر|طرق|اشكال|مستويات|فروع|مميزات|عيوب)\s+\S/);
+      if (lm) { let best = null; SUBJ.forEach(x => x.lessons.forEach(l => { if (!l.summary) return; const r = E.bestSection(l.summary, text); if (r && E.norm(r.head).includes(E.norm(lm[1]).replace(/خصايص/, "خصايص")) && (!best || r.sc > best.r.sc)) best = { r, l }; })); if (best) return { text: '<b>' + esc(best.r.head) + '</b> (من «' + esc(best.l.title) + '»):<br>' + esc(best.r.text).replace(/\n/g, '<br>') + (best.r.more ? '<br><small>…والباقي في الدرس 👇</small>' : ''), acts: [{ label: 'افتح الدرس', href: '#lesson/' + best.l.id + '?hl=' + encodeURIComponent(text) }, { label: 'امتحني فيه', href: '#quiz?l=' + best.l.id }], mood: 'happy' }; }
       const tu = E.tutor(CONCEPTS, tt, Brain.ctx);
+      /* سؤال شرح عن حاجة في درس مقفول ← قوله فين ومتعملش «جدول مذاكرة» بالغلط */
+      if (!tu && /^(يعني|اشرح|اشرحلي|فهمني|ايه هو|ايه هي|ايه هوا|ما هو|ما هي|عرف|تعريف|الفرق|ايه الفرق|ايه معني|معني)/.test(nt)) { const LC = [].concat(...SUBJ.map(x => (x.lockedConcepts || []).map(c => Object.assign({ s: x.id }, c)))), lc = E.fuzzyConcepts(LC, text)[0] || E.findConcepts(LC, text)[0]; if (lc && LESSONS[lc.l] && !LESSONS[lc.l].summary) { const ll = LESSONS[lc.l]; return { text: '«<b>' + esc(lc.k) + '</b>» موجودة في درس «' + esc(ll.title) + '»، والدرس ده للمشتركين 🔒<br>اشترك مرة واحدة للترم كله وأنا أشرحهالك بالتفصيل، وعلى البورد كمان.', acts: [{ label: '⭐ اشترك', href: '#subscribe' }, { label: 'شوف الدرس', href: '#lesson/' + lc.l }], mood: 'think' }; } }
       const soft = ['summary', 'unknown', 'open_subject', 'open'], hard = soft.concat(['tired', 'practice', 'calc', 'help']);
-      if (tu && (soft.includes(p.intent) || (tu.strong && hard.includes(p.intent) && !(p.intent === 'calc' && (p.numbers || []).length >= 2)))) return Brain.teach(tu);
+      const askDef = /^(يعني|اشرح|اشرحلي|فهمني|ايه هو|ايه هي|ما هو|ما هي|عرف|تعريف|ايه الفرق|الفرق بين|ايه معني|معني)\s/.test(nt);
+      if (tu && (askDef || soft.includes(p.intent) || (tu.strong && hard.includes(p.intent) && !(p.intent === 'calc' && (p.numbers || []).length >= 2)))) return Brain.teach(tu);
       const sname = s ? s.name : '';
       switch (p.intent) {
         case 'greet': return { text: greeting() + ' يا ' + esc(d.name || 'صاحبي') + '! ' + homeBubble(), mood: 'happy' };
@@ -975,6 +984,8 @@
           if (!res.length) return { text: pick(['دي مش عارفها لسه 😅', 'مش متأكد منها، ومش عايز أقولك حاجة غلط 🙏', 'السؤال ده لسه ماتدربتش عليه 😅']) + '<br>لو سؤال في المادة ابعته لـ <b>محمد</b> على واتساب وهيرد عليك. ولو عايز حاجة من المنهج جرّب: «يعني إيه المضاعف؟»، «ذاكرلي الفصل الأول»، «امتحني 10 أسئلة».', acts: [{ label: 'ابعت السؤال لمحمد', href: self.Sub ? Sub.wa('أهلًا يا محمد، سَنَد ماعرفش يرد على السؤال ده:\n' + text) : '#', wa: 1 }, { say: 'مساعدة' }], mood: 'think' };
           const top = res[0].doc;
           if (top.kind === 'card') return { text: '<b>' + esc(top.c.front) + '</b><br>' + esc(top.c.back) + (res[1] && res[1].doc.kind === 'lesson' ? '' : ''), acts: [{ label: 'افتح الدرس', href: '#lesson/' + top.c.l + '?hl=' + encodeURIComponent(q) }] };
+          const bs = E.bestSection(top.l.summary, q);
+          if (bs) return { text: 'ده اللي في <b>' + esc(top.l.title) + '</b>' + (bs.head ? ' — «' + esc(bs.head) + '»' : '') + ':<br>' + esc(bs.text).replace(/\n/g, '<br>') + (bs.more ? '<br><small>…والباقي في الدرس 👇</small>' : ''), acts: [{ label: 'افتح الدرس', href: '#lesson/' + top.l.id + '?hl=' + encodeURIComponent(q) }, { label: 'اشرحهولي على البورد', href: '#board/' + top.l.id }] };
           return { text: 'لقيت ده في <b>' + esc(top.l.title) + '</b>:<br>' + esc(E.snippet(top.text.replace(/[#*|>`]/g, ''), q, 220)), acts: [{ label: 'افتح الدرس', href: '#lesson/' + top.l.id + '?hl=' + encodeURIComponent(q) }].concat(res[1] ? [{ label: res[1].doc.kind === 'lesson' ? res[1].doc.title : 'نتائج أكتر', href: '#search?q=' + encodeURIComponent(q) }] : []) };
         }
       }

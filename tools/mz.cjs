@@ -7,6 +7,7 @@
    كلمة السر من MZ_PASS أو من ملف .mz-secret (مش بيترفع على GitHub) */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const L = require('../js/license.js');
+const ENG = require('../js/engine.js');
 const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
 const FREE = { eco: ['ec1'], mkt: ['mk0', 'mk1'], law: ['lw1'], /* سنة أولى: الأسبوع الأول ببلاش (للتجربة) */ y1bus: ['yb1'], y1pol: ['yp1'], y1law: ['yl1', 'yl2'], y1eco: ['ye1'], y1math: ['ym1'] };
 const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'mkt-bd.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'eco-islm.js', 'law.js', 'law-b1.js', 'law-q.js', 'stat.js', 'prod.js', 'y1.js'];
@@ -90,7 +91,7 @@ async function build() {
       lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, exam: l.exam, summary: '', locked: true }),
       questions: S.questions.filter(q => isFree(q.l)), cards: S.cards.filter(c => isFree(c[2])), concepts: (S.concepts || []).filter(c => isFree(c.l)),
       figs: pick(S.figs, k => freeFigs.has(k)), boards: pick(S.boards, k => isFree(k)),
-      lockedConcepts: (S.concepts || []).filter(c => !isFree(c.l)).map(c => ({ k: c.k, alt: c.alt, l: c.l })),
+      lockedConcepts: (S.concepts || []).filter(c => !isFree(c.l)).concat(ENG.autoConcepts({ id: S.id, lessons: S.lessons.filter(l => !isFree(l.id)) })).map(c => ({ k: c.k, alt: c.alt, l: c.l })),
       paid: true
     };
     free.push(F);

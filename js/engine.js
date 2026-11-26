@@ -400,6 +400,88 @@
     }
     return null;
   }
+  /* ================= سَنَد بيتعلّم من الملخصات نفسها =================
+     بيقرا كل ملخص ويطلّع منه مفاهيم {k, l, def, ex, err} لوحده:
+     - «> 🔑 **X** …» تعريف · «- **X:** …» بند · جدول أول خانة فيه **X** · جدول مقارنة عناوينه **X** و**Y**
+     - 💡 في نفس القسم ← مثال، و⚠️ ← الغلطة المشهورة. فأي درس جديد بينزل، سَنَد بيفهمه على طول. */
+  const clean = t => String(t || '').replace(/\*\*/g, '').replace(/\[\[fig:[^\]]*\]\]/g, '').replace(/^[>\s]*(🔑|💡|⚠️|📝|📘|🧠|✅|⏭️)\s*/u, '').replace(/[⁦-⁩]/g, '').replace(/\s+/g, ' ').trim();
+  const termOf = raw => {
+    let t = clean(raw).replace(/[:：]$/, '').replace(/^\d+\.\s*/, '').replace(/^(مفهوم|تعريف|معنى)\s+(?=\S+\s)/, '').replace(/^(أولًا|ثانيًا|ثالثًا|رابعًا|خامسًا|سادسًا|سابعًا|ثامنًا|تاسعًا|عاشرًا)[:\s]+/, '').trim();
+    const en = (t.match(/\b[A-Za-z][A-Za-z ]{2,30}\b/) || [''])[0].trim();
+    const ar = t.replace(/\(?\b[A-Za-z][A-Za-z ]{2,30}\b\)?/g, '').replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+    return { k: ar || t, en };
+  };
+  const okTerm = k => { const n = norm(k); if (/[.؟?!،,]$|؟/.test(k) || /^(التعريف|تعريف|امثله|أمثلة|فروعه|انواعه|خصائصه|صوره|مين الاطراف|خطوات)$/.test(n)) return false; return n.length >= 3 && n.length <= 40 && !/^[\d\s.×÷=+−-]+$/.test(n) && n.split(' ').length <= 5 && !/^(الحاله|المثال|مثال|الخلاصه|ملخص|ملاحظه|المطلوب|القيمه|الرمز|العنصر|وجه الخلاف|وجه المقارنه|الفكره|السبب|النوع|المستوي|الفرع|الصوره|القاعده|المتغير|الطريقه|الشكل|بيعمل ايه|يعني|هو ايه|بتركز علي|اسمها|مين|ليه|امتي)$/.test(n); };
+  const GROUP = { 'الدوال': 'الدالة', 'الجزاء': 'الجزاء', 'الجزاء القانوني': 'الجزاء', 'البيانات': 'البيانات', 'المنظمات': 'المنظمة', 'المهارات': 'مهارات', 'الإنتاج': 'الإنتاج', 'الانتاج': 'الإنتاج' };
+  function autoConcepts(subject) {
+    const out = [], seen = new Set(); let group = '';
+    const add = (raw, l, def, sec) => {
+      const { k, en } = termOf(raw); def = clean(def);
+      if (!okTerm(k) || def.length < 12) return;
+      const key = bare(k).trim(); if (!key || seen.has(key)) return; seen.add(key);
+      const alt = []; if (en) alt.push(en); const nk = k.replace(/^ال/, ''); if (nk !== k) alt.push(nk);
+      const ws = k.split(' '); if (ws.length >= 3) alt.push(ws.slice(0, 2).join(' '));
+      const cj = k.split(/\s+و(?=ال|[^\s]{3,})/); if (cj.length > 1 && cj[0].split(' ').length >= 2) alt.push(cj[0]);
+      let kk = k; if (group && ws.length <= 2 && !norm(k).includes(norm(group))) { alt.push(k); kk = group + ' ' + (/^ال/.test(k) ? k : 'ال' + k); }
+      out.push({ k: kk, alt, l, def, ex: sec.ex, err: sec.err, auto: 1, s: subject.id });
+    };
+    for (const L of subject.lessons || []) {
+      const lines = String(L.summary || '').split('\n'); let sec = { ex: '', err: '' }, secStart = out.length, head = null, skip = false; group = '';
+      const flush = () => { for (let i = secStart; i < out.length; i++) { out[i].ex = out[i].ex || sec.ex; out[i].err = out[i].err || sec.err; } };
+      for (let i = 0; i < lines.length; i++) {
+        const ln = lines[i];
+        if (/^#{2,3}\s/.test(ln)) {
+          flush(); sec = { ex: '', err: '' }; secStart = out.length; head = null;
+          const ht = clean(ln.replace(/^#+\s*/, '')).replace(/\s*\(\d+\)\s*$/, '');
+          skip = /^(المحاضر[ةه] دي|الدرس ده|الفصل ده|ملخص الملخص|الخلاصة)/.test(ht); if (skip) continue;
+          const hm = ht.match(/^(?:أنواع|صور|خصائص|أشكال|مراحل|عناصر|وظائف|فروع)\s+(.+)$/); group = hm ? (GROUP[norm(hm[1])] || hm[1].split(' ')[0]) : '';
+          /* القسم نفسه مفهوم: «## تعريف X» / «## X» ← أول 🔑 أو أول سطر شرح تحته */
+          const hk = ht.replace(/^(تعريف|مفهوم|معنى|يعني ايه)\s+/, ''); if (/^تعريف/.test(hk)) continue;
+          if (!/المحاضره دي|الدرس ده|المحاضرة دي|ملخص|خطوة بخطوة|أمثلة|امثله|الفرق بين|مقارنة|التمثيل|^ليه|؟|فخ|مراجعة|الشكل|خلاصة/.test(ht) && !hm) {
+            let d = ''; for (let j = i + 1; j < lines.length && j < i + 8 && !/^#{2,3}\s/.test(lines[j]); j++) { const x = lines[j]; if (/^\s*$|^\[\[fig|^\|/.test(x)) continue; if (/^>\s*🔑/u.test(x)) { d = clean(x); break; } if (!d && !/^>/.test(x)) d = clean(x.replace(/^\s*(?:[-•]|\d+\.)\s*/, '')); }
+            if (d) add(hk, L.id, d, sec);
+          }
+          continue;
+        }
+        if (skip) continue;
+        if (/^>\s*💡/u.test(ln) && !sec.ex) sec.ex = clean(ln);
+        if (/^>\s*⚠️/u.test(ln) && !sec.err) sec.err = clean(ln);
+        let m = ln.match(/^>\s*🔑\s*\*\*([^*]{2,60})\*\*\s*[:=]?\s*(.+)$/u);
+        if (m) { add(m[1], L.id, m[1] + ' ' + m[2], sec); continue; }
+        m = ln.match(/^\s*(?:[-•]|\d+\.)?\s*\*\*([^*]{2,60}?)\s*[:：]?\*\*\s*[:：]?\s*(.{8,})$/u);
+        if (m && (/[:：]/.test(ln.slice(0, ln.indexOf(m[2]))))) {
+          let d = m[2]; const nx = lines[i + 1] || ''; if (/^\s*[-•]\s*مثال/.test(nx)) d += ' — ' + clean(nx.replace(/^\s*[-•]\s*/, ''));
+          const t0 = termOf(m[1]).k; add(m[1], L.id, d, sec);
+          if (group && out.length && out[out.length - 1].k === t0) out[out.length - 1].alt.push(group + ' ' + t0.replace(/^ال/, 'ال'));
+          continue;
+        }
+        if (/^\|/.test(ln)) {
+          const cells = ln.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+          if (!head) { head = cells; const bh = cells.filter(c => /^\*\*[^*]+\*\*$/.test(c)); head.cols = bh.length >= 2 && !/^\*\*/.test(cells[0]); if (head.cols) { head.rows = []; head.at = i; } continue; }
+          if (head.cols) { head.rows.push(cells); const nx = lines[i + 1] || ''; if (!/^\|/.test(nx)) { head.forEach((h, j) => { if (j && /^\*\*/.test(h)) add(h, L.id, head.rows.map(r => clean(r[0]) + ': ' + clean(r[j])).filter(x => x.length > 3).join(' · '), sec); }); } continue; }
+          if (/^\*\*[^*]+\*\*/.test(cells[0]) && cells.length >= 2) add(cells[0].match(/^\*\*([^*]+)\*\*/)[1], L.id, cells.slice(1).map((c, j) => (cells.length > 2 && head[j + 1] && clean(head[j + 1]) ? clean(head[j + 1]) + ': ' : '') + clean(c)).join(' · '), sec);
+          continue;
+        }
+        head = null;
+      }
+      flush();
+    }
+    return out;
+  }
+  /** أحسن قسم في ملخص الدرس بيرد على السؤال (للرد لما مفيش مفهوم بالظبط) */
+  function bestSection(summary, query) {
+    const q = tokenize(query).map(stem).filter(w => w && w.length >= 2); if (!q.length) return null;
+    const parts = String(summary || '').split(/\n(?=#{2,3}\s)/); let best = null;
+    for (const p of parts) {
+      const head = (p.match(/^#{2,3}\s*(.+)/) || [, ''])[1], body = norm(p), h = norm(head);
+      let sc = 0; for (const w of q) { if (h.includes(w)) sc += 5; const c = body.split(w).length - 1; if (c) sc += Math.min(c, 4); }
+      if (sc > 0 && (!best || sc > best.sc)) best = { sc, head: clean(head), text: p.replace(/^#{2,3}\s*.+\n?/, '') };
+    }
+    if (!best) return null;
+    const lines = best.text.split('\n').filter(x => x.trim() && !/^\[\[fig/.test(x)).map(x => /^\|/.test(x) ? x.replace(/^\||\|$/g, '').split('|').map(c => clean(c)).filter(Boolean).join(' · ') : clean(x.replace(/^\s*[-•]\s*/, '• '))).filter(Boolean);
+    let txt = '', n = 0; for (const x of lines) { if (txt.length + x.length > 650) break; txt += (txt ? '\n' : '') + x; n++; }
+    return { head: best.head, text: txt, more: n < lines.length, sc: best.sc };
+  }
   const firstSentence = s => { const m = String(s || '').split(/(?<=[.:؛])\s|\n/)[0]; return m || s; };
   /** يبني الشرح نفسه أجزاء {h, t} — الواجهة بترسمه */
   function tutorParts(r, conceptsAll) {
@@ -1137,7 +1219,7 @@
     srsNext, srsLabel, isDue, mastery,
     detectSubject, extractCount, parseIntent, setSubjects,
     tokenize, search, snippet,
-    mergePlus, findConcepts, fuzzyConcepts, askKind, studyIntent, tutor, tutorParts,
+    mergePlus, findConcepts, fuzzyConcepts, autoConcepts, bestSection, bare, askKind, studyIntent, tutor, tutorParts,
     inScope, scopeLessons, examScope, packData, unpackData, makeShareExam, shareQuestions, gradeShared, makeShareResult, answerText, correctText,
     grade, gradeFill, gradeNumber, gradeJournal, netByAccount, accKey, entryBalanced,
     distributeProfit, capitalFormation, genCapital, genDistribution, describeDistribution,

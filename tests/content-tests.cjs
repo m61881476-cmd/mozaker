@@ -135,5 +135,15 @@ for (const X of self.MZ_CONTENT) {
   t(X.id + ': كل الأسئلة اختيار أو صح وغلط', X.questions.every(q => q.t === 'mcq' || q.t === 'tf'));
   t(X.id + ': الاختياري 4 اختيارات مختلفة', X.questions.filter(q => q.t === 'mcq').every(q => q.o.length === 4 && new Set(q.o).size === 4 && q.a >= 0 && q.a < 4));
 }
+/* سَنَد بيتعلّم من الملخصات: كل مادة ليها مفاهيم، وبيفهم أسئلة من المواد اللي مالهاش قاعدة مكتوبة */
+{
+  const AC = [].concat(...self.MZ_CONTENT.map(x => (x.concepts || []).concat(E.autoConcepts(x))));
+  for (const X of self.MZ_CONTENT) t(X.id + ': سَنَد اتعلّم مفاهيم من الملخص (≥5)', E.autoConcepts(X).length >= 5, E.autoConcepts(X).length);
+  t('كل مفهوم متعلَّم: اسم قصير وشرح حقيقي', AC.filter(c => c.auto).every(c => c.k.length <= 60 && c.def.length >= 12 && !/\*\*/.test(c.def)));
+  const Q = [['يعني ايه الفاعلية', 'def', 'الفاعلية'], ['الفرق بين الكفاءة والفاعلية', 'diff', 'الكفاءة'], ['يعني ايه القاعدة القانونية', 'def', 'القاعدة القانونية'], ['الدالة الخطية', 'def', 'الدالة الخطية'], ['يعني ايه الجزاء الإداري', 'def', 'الجزاء الإداري'], ['يعني ايه الجدول المتجمع الصاعد', 'def', 'الجدول المتجمع الصاعد'], ['يعني ايه الجزاء', 'def', 'الجزاء']];
+  for (const [q, kind, k] of Q) { const r = E.tutor(AC, q, {}); t('سَنَد فاهم: «' + q + '»', r && r.c && r.c.k === k && (kind !== 'diff' || r.kind === 'diff'), r && r.c && r.c.k); }
+  const L = self.MZ_CONTENT.find(x => x.id === 'y1law').lessons[0], bs = E.bestSection(L.summary, 'صور الجزاء');
+  t('أحسن قسم بيرد على السؤال', bs && /صور الجزاء/.test(bs.head) && bs.text.length > 80 && !/\*\*/.test(bs.text), bs && bs.head);
+}
 console.log((fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
 if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }

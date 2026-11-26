@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'stat', 'prod', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -110,9 +110,13 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
 /* ---------- القانون التجاري ---------- */
 {
   const Lw = self.MZ_CONTENT.find(s => s.id === 'law');
-  t('قانون: المادة موجودة بالفصل الأول', !!Lw && Lw.lessons.length === 1 && Lw.lessons[0].id === 'lw1');
+  t('قانون: الدروس lw1 و lw2 و lw3 بالترتيب', !!Lw && Lw.lessons.map(l => l.id).join() === 'lw1,lw2,lw3');
   const q = Lw.questions;
-  t('قانون: 29 سؤال (زي الامتحان الأصلي، والـ 30 لسه ماوصلش)', q.length === 29, q.length);
+  t('قانون: 29 سؤال في الفصل الأول (زي الامتحان الأصلي)', q.filter(x => x.l === 'lw1').length === 29);
+  t('قانون: 35+ سؤال للمقاولات و35+ للشركات', q.filter(x => x.l === 'lw2').length >= 35 && q.filter(x => x.l === 'lw3').length >= 35, q.filter(x => x.l === 'lw2').length + '/' + q.filter(x => x.l === 'lw3').length);
+  t('قانون: فيه حالات عملية (الدكتور قال)', q.filter(x => /^حالة:/.test(x.q)).length >= 15);
+  t('قانون: المادة 505 في الملخص والأسئلة', Lw.lessons[2].summary.includes('505') && q.some(x => x.q.includes('505')));
+  t('قانون: كل غلط ليه تصحيح', q.filter(x => x.t === 'tf' && x.a === false && x.l !== 'lw1').every(x => x.fix));
   t('قانون: اختيار من متعدد وصح وغلط بس', q.every(x => x.t === 'mcq' || x.t === 'tf'));
   t('قانون: كل MCQ أربع اختيارات وإجابة صح', q.filter(x => x.t === 'mcq').every(x => x.o.length === 4 && x.a >= 0 && x.a < 4 && x.e));
   t('قانون: الإجابات الصح متوزعة على الأماكن', [0, 1, 2, 3].every(i => q.filter(x => x.t === 'mcq' && x.a === i).length >= 2));
@@ -120,8 +124,8 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   t('قانون: أول سؤال عن القانون العام', q[0].q.includes('صاحبة سلطة وسيادة') && q[0].a === 2);
   t('قانون: البورد 9 مشاهد', Lw.boards.lw1 && Lw.boards.lw1.length === 9);
   F.reg('law', Lw.figs);
-  const refs = (Lw.lessons[0].summary.match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
-  t('قانون: كل الرسومات المذكورة موجودة وبترسم', refs.length === 4 && refs.every(id => F.get(id) && F.html(id).includes('<figure')));
+  const refs = (Lw.lessons.map(l => l.summary).join('\n').match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
+  t('قانون: كل الرسومات المذكورة موجودة وبترسم', refs.length === 7 && refs.every(id => F.get(id) && F.html(id).includes('<figure')));
   const sum = Lw.lessons[0].summary;
   t('قانون: الملخص فيه كل المعلومات المهمة', ['صاحبة سلطة وسيادة', 'الشريعة العامة', 'العرف التجاري', '1000 جنيه', 'اليمين الحاسمة', 'التاريخ الثابت', 'افتراض التضامن', 'أمين التفليسة', 'النفاذ المعجل', '2008', '4%', '5%', 'متجمّد الفوائد', 'الرهن الحيازي', 'المضاربة', 'التداول', 'الحرفة', 'دور منطقي', 'المنفردة', 'الاحتراف'].every(w => sum.includes(w)));
   E.mergePlus(Lw);

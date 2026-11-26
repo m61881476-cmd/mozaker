@@ -1,5 +1,5 @@
 /* مذاكِر — service worker: نسخة كاملة من البرنامج للشغل من غير نت + كاش للخطوط */
-const VERSION = 'mozaker-3.22.0';
+const VERSION = 'mozaker-3.23.0';
 const RUNTIME = 'mozaker-runtime-v1';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './favicon.ico', './css/app.css',

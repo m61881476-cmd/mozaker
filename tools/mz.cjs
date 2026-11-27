@@ -10,7 +10,7 @@ const L = require('../js/license.js');
 const ENG = require('../js/engine.js');
 const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
 const FREE = { eco: ['ec1'], mkt: ['mk0', 'mk1'], law: ['lw1'], /* سنة أولى: الأسبوع الأول ببلاش (للتجربة) */ y1bus: ['yb1'], y1pol: ['yp1'], y1law: ['yl1', 'yl2'], y1eco: ['ye1'], y1math: ['ym1'] };
-const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'mkt-bd.js', 'mkt-pr.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'eco-islm.js', 'law.js', 'law-b1.js', 'law-q.js', 'law-b2.js', 'stat.js', 'prod.js', 'prod-b.js', 'prod-c.js', 'extra30.js', 'y1.js'];
+const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'mkt-bd.js', 'mkt-pr.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'eco-islm.js', 'law.js', 'law-b1.js', 'law-q.js', 'law-b2.js', 'stat.js', 'prod.js', 'prod-b.js', 'prod-c.js', 'extra30.js', 'models.js', 'y1.js'];
 
 const pass = () => process.env.MZ_PASS || (fs.existsSync(path.join(ROOT, '.mz-secret')) ? fs.readFileSync(path.join(ROOT, '.mz-secret'), 'utf8').match(/ADMIN_PASSWORD=(\S+)/)[1] : null);
 function readKeysJs() {
@@ -93,6 +93,7 @@ function loadSources() {
   for (const f of SRC_ORDER) vm.runInNewContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx.self, { filename: f });
   return ctx.self.MZ_CONTENT;
 }
+const MODEL_FREE = 5;
 const figRefs = txt => (String(txt).match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
 
 async function build() {
@@ -106,6 +107,8 @@ async function build() {
     const pick = (o, keep) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keep(k)));
     const F = {
       id: S.id, year: S.year, name: S.name, short: S.short, icon: S.icon, color: S.color, kind: S.kind, tools: S.tools || [], keys: S.keys, final: S.final, partial: S.partial, rewrite: S.rewrite,
+      /* النماذج: أول 5 أسئلة مجانًا كتجربة، والباقي في المدفوع */
+      models: (S.models || []).map(m => ({ id: m.id, title: m.title, intro: m.intro, n: m.qs.length, qs: m.qs.slice(0, MODEL_FREE) })),
       lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, exam: l.exam, summary: '', locked: true }),
       questions: S.questions.filter(q => isFree(q.l)), cards: S.cards.filter(c => isFree(c[2])), concepts: (S.concepts || []).filter(c => isFree(c.l)),
       figs: pick(S.figs, k => freeFigs.has(k)), boards: pick(S.boards, k => isFree(k)),
@@ -116,7 +119,8 @@ async function build() {
     paid[S.id] = {
       lessons: Object.fromEntries(S.lessons.filter(l => !isFree(l.id)).map(l => [l.id, l.summary])),
       questions: S.questions.filter(q => !isFree(q.l)), cards: S.cards.filter(c => !isFree(c[2])), concepts: (S.concepts || []).filter(c => !isFree(c.l)),
-      figs: pick(S.figs, k => !freeFigs.has(k)), boards: pick(S.boards, k => !isFree(k)), must: S.must, howto: S.howto
+      figs: pick(S.figs, k => !freeFigs.has(k)), boards: pick(S.boards, k => !isFree(k)), must: S.must, howto: S.howto,
+      models: Object.fromEntries((S.models || []).map(m => [m.id, m.qs]))
     };
   }
   const plain = JSON.stringify(paid), ver = L.b64u.enc((await L.sha256(new TextEncoder().encode(plain))).slice(0, 6));

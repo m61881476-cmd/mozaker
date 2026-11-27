@@ -27,6 +27,7 @@
       S.questions.push(...(P.questions || [])); S.cards.push(...(P.cards || [])); S.concepts.push(...(P.concepts || []));
       S.figs = Object.assign(S.figs || {}, P.figs); S.boards = Object.assign(S.boards || {}, P.boards);
       S.must = P.must; S.howto = P.howto; S.lockedConcepts = []; S.unlocked = true;
+      if (P.models) (S.models || []).forEach(m => { if (P.models[m.id]) { m.qs = P.models[m.id]; m.full = true; } });
     }
   }
   if (lic && !expired(lic)) {

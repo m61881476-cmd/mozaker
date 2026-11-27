@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'prod-b', 'prod-c', 'extra30', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'prod-b', 'prod-c', 'extra30', 'models', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -165,6 +165,17 @@ for (const X of self.MZ_CONTENT.filter(s => String(s.year || 2) === '2')) for (c
   const sm = P.lessons.map(l => l.summary).join('\n');
   t('إنتاج: الملخصات فيها الأرقام المهمة', ['7,500', '8,333', '10,000', '44 جنيه', '9.25', '25 أسبوع', '38 أسبوع', '2.4', 'الفائض مش مطلوب'].every(w => sm.includes(w)));
   t('إنتاج: كل الرسومات المذكورة موجودة', (sm.match(/\[\[fig:([\w-]+)\]\]/g) || []).every(m => P.figs[m.slice(6, -2)]));
+}
+/* نماذج «100 سؤال مهمين» */
+for (const id of ['eco', 'mkt', 'prod', 'law', 'stat']) {
+  const X = self.MZ_CONTENT.find(s => s.id === id), m = (X.models || [])[0];
+  t(id + ': فيه نموذج', !!m);
+  if (!m) continue;
+  t(id + ': عدد أسئلة النموذج ' + (id === 'stat' ? 60 : 100), m.qs.length === (id === 'stat' ? 60 : 100), m.qs.length);
+  t(id + ': كل سؤال 4 اختيارات مختلفة وإجابة صح وشرح', m.qs.every(q => q[0].length > 8 && q[1].length === 4 && new Set(q[1]).size === 4 && q[1].every(o => String(o).trim()) && q[2] >= 0 && q[2] < 4 && q[3].length > 3));
+  t(id + ': مفيش سؤال متكرر', new Set(m.qs.map(q => q[0])).size === m.qs.length);
+  const c = [0, 0, 0, 0]; m.qs.forEach(q => c[q[2]]++);
+  t(id + ': الإجابة الصح متوزعة على أ ب ج د', Math.max(...c) - Math.min(...c) <= 1, c.join());
 }
 console.log((fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
 if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }

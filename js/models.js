@@ -19,7 +19,7 @@
   }).join('');
 
   Router.on('model', (view, r) => {
-    const f = find(r.args[0], r.args[1]); if (!f || !MODELS_OPEN) return Router.go('finals', { replace: true });
+    const f = find(r.args[0], r.args[1]); if (!f || !(MODELS_OPEN || f.s.only)) return Router.go('finals', { replace: true });
     const { s, m } = f, all = m.n || m.qs.length, total = m.qs.length, locked = !m.full && total < all;
     const R = st(m.id), d = D();
     header(view, 'نموذج ' + s.short, { back: { to: 'subject/' + s.id, label: s.short } });
@@ -79,7 +79,7 @@
       if (s.final) h += '<a class="row tap" href="#final/' + s.id + '"><span class="ic bg-' + s.color + '">🏁</span><span class="tx"><b>المراجعة النهائية</b><small>ملخص شامل، الرسومات، وحاجات حتمًا هتيجي</small></span>' + icon('chev', 'chev') + '</a>';
       (s.models || []).forEach(m => {
         const n = m.n || m.qs.length;
-        h += MODELS_OPEN ? '<a class="row tap" href="#model/' + s.id + '/' + m.id + '"><span class="ic bg-' + s.color + '">📝</span><span class="tx"><b>النموذج النهائي (' + n + ' سؤال)</b><small>(أ) (ب) (ج) (د) والتصحيح في الآخر</small></span>' + icon('chev', 'chev') + '</a>'
+        h += MODELS_OPEN || s.only ? '<a class="row tap" href="#model/' + s.id + '/' + m.id + '"><span class="ic bg-' + s.color + '">📝</span><span class="tx"><b>النموذج النهائي (' + n + ' سؤال)</b><small>(أ) (ب) (ج) (د) والتصحيح في الآخر</small></span>' + icon('chev', 'chev') + '</a>'
           : '<button class="row tap locked" data-soon="1"><span class="ic bg-gray">' + icon('lock') + '</span><span class="tx"><b>النموذج النهائي (' + n + ' سؤال)</b><small>ميعاده مش دلوقتي · لسه بيتجهز · للمشتركين</small></span><span class="pill">قريبًا</span></button>';
       });
       h += '</div>';

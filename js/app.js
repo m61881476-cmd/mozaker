@@ -10,7 +10,9 @@
   const YEAR = Y1_ON ? (() => { try { return localStorage.getItem('mz:year') === '1' ? '1' : '2'; } catch (e) { return '2'; } })() : '2';
   if (!Y1_ON) try { localStorage.setItem('mz:year', '2'); } catch (e) {}
   App.YEAR = YEAR;
-  const BUILT = (self.MZ_CONTENT || []).filter(s => String(s.year || 2) === YEAR);
+  /* مواد خاصة بحسابات معينة (زي سياسة هاجر): بتظهر لأصحابها بس */
+  const forMe = s => !s.only || (() => { try { const w = self.Sub && Sub.who && Sub.who(); return !!w && [].concat(s.only).includes(w); } catch (e) { return false; } })();
+  const BUILT = (self.MZ_CONTENT || []).filter(s => String(s.year || 2) === YEAR && forMe(s));
   BUILT.forEach(s => { E.mergePlus(s, (self.MZ_PLUS || {})[s.id]); (s.concepts || []).forEach(c => { c.s = s.id; }); if (self.Figs) Figs.reg(s.id, s.figs); });
   const SUBJ = [], LESSONS = {};
   let CONCEPTS = [];
@@ -206,6 +208,7 @@
       body.innerHTML = '<div class="card mb scopecard"><div style="display:flex;gap:10px;align-items:center"><div style="flex:1"><b>منهج الميدترم والفاينال</b><div class="note">' + (nMid ? 'الميدترم: ' + nMid + ' درس · الفاينال: ' + nFin + ' درس' : 'لسه ماحددتش الميدترم. كل الدروس محسوبة على الفاينال.') + '</div></div><button class="btn sm tint" id="scopeBtn">حدد</button></div>'
         + '</div>'
         + '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id), v = D().scope[l.id]; return '<a class="row tap' + (l.locked ? ' locked' : '') + '" href="#lesson/' + l.id + '">' + (l.locked ? '<span class="ic bg-gray">' + icon('lock') + '</span>' : ring(lp, 34, 'var(--' + s.color + ')')) + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + (s.paid && !s.unlocked && !l.locked ? ' <span class="pill green">🎁 مجاني</span>' : '') + (v === 'mid' || v === 'both' ? ' <span class="pill sc-mid">ميدترم</span>' : '') + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>'
+        + (s.only && App.modelCards ? '<div class="group-h">بعد الملخص: النموذج</div>' + App.modelCards(s) : '')
         + (s.custom ? (s.lessons.length ? '' : '<div class="empty" style="padding:18px 0">' + Char.html('', 70) + '<p>لسه مفيش محاضرات في المادة دي.</p></div>') + '<button class="btn block tint" id="addL">' + icon('plus') + 'ضيف محاضرة</button>' : '');
       $('#scopeBtn').onclick = () => scopeSheet(s);
       const al = $('#addL'); if (al) al.onclick = () => App.lessonSheet({ s: s.id });
@@ -290,6 +293,7 @@
     else if (canTeach) html += '<a class="card tap teachcard mb" href="#teach/' + l.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🎓 ذاكر معايا الدرس ده</b><span class="note" style="display:block">' + esc(d.charName) + ' يشرحهولك حتة حتة ويسألك بعد كل جزء.</span></span>' + icon('chev', 'chev') + '</a>';
     html += l.summary && l.summary.trim() ? '<article class="card prose">' + md(l.summary, r.q.hl) + '</article>' : '<div class="empty" style="padding:16px 0">' + Char.html('', 70) + '<p>المحاضرة دي لسه فاضية. اضغط ✏️ فوق واكتب الشرح أو الملخص.</p></div>';
     if (App.Board && App.Board.has(l.id)) html += '<a class="boardbar tap" href="#board/' + l.id + '" id="boardBar"><span><b>🎬 عايز شرح على البورد؟</b><span class="s">' + esc(d.charName) + ' يكتب ويرسم ويشرح بصوته، خطوة خطوة (' + App.Board.count(l.id) + ' مشاهد)</span></span><span class="go">' + icon('play') + '</span></a>';
+    if (s.only && App.modelCards) html += '<div class="group-h">بعد ما تخلص الفصول</div>' + App.modelCards(s);
     if (nq && !isFinal) html += '<a class="card tap quizcard mb" href="#exam/' + l.id + '" id="quizBar">' + Char.html('', 46) + '<span style="flex:1"><b>📝 اختبر نفسك في الفصل ده</b><span class="note" style="display:block">' + nq + ' سؤال اختيار من متعدد وصح وغلط، وكل إجابة بشرحها.</span></span><span class="go">' + icon('play') + '</span></a>';
     if (s.custom) html += '<div class="btns mt"><button class="btn sm tint" id="addLC">' + icon('plus') + 'بطاقة</button><button class="btn sm tint" id="addLQ">' + icon('plus') + 'سؤال</button></div>';
     const myNotes = d.notes.filter(n => n.l === l.id);

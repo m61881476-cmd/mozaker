@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'prod-b', 'prod-c', 'extra30', 'models', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'prod-b', 'prod-c', 'extra30', 'pol', 'models', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -135,6 +135,7 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
 }
 // كل المواد: بورد لكل درس (ماعدا المراجعات النهائية) + الأسئلة اختيار أو صح وغلط بس
 for (const X of self.MZ_CONTENT) {
+  if (!X.only) /* المواد الخاصة (سياسة هاجر) ملخص + نموذج بس من غير بورد */
   X.lessons.filter(l => !/9$/.test(l.id)).forEach(l => t(X.id + ': بورد لـ ' + l.id, X.boards && Array.isArray(X.boards[l.id]) && X.boards[l.id].length >= 3 && X.boards[l.id].every(sc => sc.t && sc.s.length >= 3)));
   t(X.id + ': كل الأسئلة اختيار أو صح وغلط', X.questions.every(q => q.t === 'mcq' || q.t === 'tf'));
   t(X.id + ': الاختياري 4 اختيارات مختلفة', X.questions.filter(q => q.t === 'mcq').every(q => q.o.length === 4 && new Set(q.o).size === 4 && q.a >= 0 && q.a < 4));
@@ -150,7 +151,7 @@ for (const X of self.MZ_CONTENT) {
   t('أحسن قسم بيرد على السؤال', bs && /صور الجزاء/.test(bs.head) && bs.text.length > 80 && !/\*\*/.test(bs.text), bs && bs.head);
 }
 /* كل فصل في سنة تانية: 30 سؤال على الأقل (طلب صاحب المنصة) */
-for (const X of self.MZ_CONTENT.filter(s => String(s.year || 2) === '2')) for (const l of X.lessons) {
+for (const X of self.MZ_CONTENT.filter(s => String(s.year || 2) === '2' && !s.only)) for (const l of X.lessons) {
   if (l.id === X.final || /9$/.test(l.id)) continue;
   const n = X.questions.filter(q => q.l === l.id).length; t(X.id + '/' + l.id + ': 30 سؤال أو أكتر', n >= 30, n);
 }
@@ -166,8 +167,12 @@ for (const X of self.MZ_CONTENT.filter(s => String(s.year || 2) === '2')) for (c
   t('إنتاج: الملخصات فيها الأرقام المهمة', ['7,500', '8,333', '10,000', '44 جنيه', '9.25', '25 أسبوع', '38 أسبوع', '2.4', 'الفائض مش مطلوب'].every(w => sm.includes(w)));
   t('إنتاج: كل الرسومات المذكورة موجودة', (sm.match(/\[\[fig:([\w-]+)\]\]/g) || []).every(m => P.figs[m.slice(6, -2)]));
 }
+/* علم السياسة لهاجر: 7 فصول ومادة خاصة */
+{ const P = self.MZ_CONTENT.find(s => s.id === 'pol');
+  t('سياسة: 7 فصول بملخصات', P && P.lessons.length === 7 && P.lessons.every(l => l.summary.length > 2500), P && P.lessons.map(l => l.summary.length).join());
+  t('سياسة: خاصة بهاجر', P && Array.isArray(P.only) && P.only.includes('hagar')); }
 /* نماذج «100 سؤال مهمين» */
-for (const id of ['eco', 'mkt', 'prod', 'law', 'stat']) {
+for (const id of ['eco', 'mkt', 'prod', 'law', 'stat', 'pol']) {
   const X = self.MZ_CONTENT.find(s => s.id === id), m = (X.models || [])[0];
   t(id + ': فيه نموذج', !!m);
   if (!m) continue;

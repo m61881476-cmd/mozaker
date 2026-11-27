@@ -2,6 +2,7 @@
    - أي اسم يدخل البرنامج عادي (مجاني).
    - محمد الشيخ وكريم وفاطمة وجنى: VIP (من الكود الخاص اللي بيتفك بالاسم).
    - «هاجر عادل» (أو Hagar Adel): VIP (200) لحد آخر الترم، وجوه البرنامج اسمها «هاجر».
+   - «منه محمد» (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم.
    - «آيه مسعد» و«منه توفيق» (عربي أو إنجليزي): VIP لحد آخر الترم. وآيه بيناديها «آيه» أو «يويو» أو «فتكات».
    - المحظورين (عربي وإنجليزي) — «تم إزالة الموقع» ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده:
        • لو أول اسم: يوسف، بسنت، أمينة، أحمد، يحيى.
@@ -9,7 +10,7 @@
    - كل دخول أو حظر بيتسجل في شيت محمد (js/track.js). */
 (function () {
   'use strict';
-  const VIP = ['owner', 'fatma', 'bff', 'karim', 'aya', 'menna'], PHRASE = 'mz-gate';
+  const VIP = ['owner', 'fatma', 'bff', 'karim', 'aya', 'menna', 'mennam'], TERM = ['mennam'], PHRASE = 'mz-gate';
   /* المحظورين: أول اسم */
   const BAN_FIRST = ['يوسف', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef', 'youssuf', 'yousuf',
     'بسنت', 'بسنط', 'باسنت', 'basant', 'bassant', 'basent', 'bassent', 'basnt', 'bsant', 'basnet', 'basanet',
@@ -39,8 +40,9 @@
   const yb = [...box.querySelectorAll('[data-y]')], yset = y => { year = y; yb.forEach(b => b.classList.toggle('on', b.dataset.y === y)); };
   yb.forEach(b => b.onclick = () => yset(b.dataset.y)); if (year) yset(year);
   setTimeout(() => inp.focus(), 100);
+  let plan99 = false;
   const enter = (name, vip, shown) => {
-    log(name, (vip ? 'دخل VIP ⭐' : 'دخل مجاني') + ' · سنة ' + (year === '1' ? 'أولى' : 'تانية'));
+    log(name, (vip ? (plan99 ? 'دخل مشترك 99' : 'دخل VIP ⭐') : 'دخل مجاني') + ' · سنة ' + (year === '1' ? 'أولى' : 'تانية'));
     try {
       localStorage.setItem('mz:pass', '1');
       localStorage.setItem('mz:year', year || '2');
@@ -70,7 +72,7 @@
       if (!self.License) await load('js/license.js');
       if (!self.MZ_KEYS) await load('js/keys.js');
       const v = await self.License.tryVanity(PHRASE, name, self.MZ_KEYS.vanity, self.MZ_KEYS.vsalt);
-      vip = !!(v && VIP.includes(v.who));
+      vip = !!(v && VIP.includes(v.who)); plan99 = !!(vip && TERM.includes(v.who));
     } catch (e) { vip = false; }
     return enter(name, vip); // أي اسم تاني: يدخل عادي (مجاني)
   };

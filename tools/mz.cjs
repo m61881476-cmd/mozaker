@@ -67,6 +67,9 @@ async function makeVanities(Kb, vsalt) {
   for (const n of AYA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'aya', label: 'آيه ⭐', exp: '2027-02-28' }, vsalt));
   const MENNA = ['منهتوفيق', 'منةتوفيق', 'مناتوفيق'].concat(combos(['menna', 'mena', 'mennah', 'menah', 'minna', 'menaa', 'mennaa'], ['tawfik', 'tawfeek', 'tawfiq', 'taufik', 'tofik', 'twfik', 'tawfek', 'tawfique', 'tawfeeq']));
   for (const n of MENNA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'menna', label: 'منه ⭐', exp: '2027-02-28' }, vsalt));
+  /* منه محمد (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم */
+  const MM = ['منهمحمد', 'مناmحمد'.replace('m', 'م')].concat(combos(['menna', 'mena', 'mennah', 'menah', 'minna', 'menaa', 'mennaa'], ['mohamed', 'mohammed', 'muhammad', 'mohamad', 'mohammad', 'muhamed', 'mohmed', 'mo7amed', 'mhmd', 'muhammed']));
+  for (const n of MM) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'term', who: 'mennam', label: 'منه', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

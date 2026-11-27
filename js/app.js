@@ -114,27 +114,26 @@
       + (due || !newCards().length ? '<a class="stat" href="#review">' + icon('cards', 'c-blue') + '<span class="n">' + due + '</span><span class="l">بطاقة مستحقة</span></a>' : '<a class="stat" href="#review?mode=new">' + icon('cards', 'c-blue') + '<span class="n">' + newCards().length + '</span><span class="l">بطاقة جديدة</span></a>')
       + '<a class="stat" href="#stats">' + icon('flame', 'c-orange') + '<span class="n">' + st + '</span><span class="l">يوم ورا بعض</span></a>'
       + '<a class="stat" href="#plan?tab=timer"><span class="ring" style="--p:' + Math.min(100, Math.round(mins / goal * 100)) + ';--s:44px;--c:var(--green)"><span>' + mins + '</span></span><span class="l">من ' + goal + ' دقيقة</span></a></div>';
-    SUBJ.filter(x => x.final).forEach(x => { html += '<a class="card tap finalcard mb" href="#final/' + x.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🏁 المراجعة النهائية: ' + esc(x.name) + '</b><span class="note" style="display:block">ملخص شامل، الرسومات، ماراثون المتوقع ⭐، وامتحان تجريبي.</span></span>' + icon('chev', 'chev') + '</a>'; });
+    if (SUBJ.some(x => x.final)) html += '<a class="card tap finalcard mb" href="#finals">' + Char.html('', 46) + '<span style="flex:1"><b>🏁 المراجعات النهائية</b><span class="note" style="display:block">مراجعة كل مادة في مكان واحد، والنماذج النهائية قريب.</span></span>' + icon('chev', 'chev') + '</a>';
     if (!SUBJ.length) html += '<div class="card mb startcard"><div style="display:flex;gap:12px;align-items:center">' + Char.html('', 60) + '<div style="flex:1"><b>يلا نبدأ! ضيف أول مادة</b><div class="note">اكتب اسم المادة، وبعدين ضيف محاضراتها: العنوان والشرح أو الملخص بتاعك. بعدها تقدر تعمل بطاقات وأسئلة وتمتحن نفسك وتبعت امتحانات لصحابك.</div></div></div><button class="btn block mt" data-addsubj>' + icon('plus') + 'ضيف مادة</button></div>';
     if (exs.length) {
       html += '<div class="group-h">الامتحانات الجاية <a href="#plan?tab=exams">الكل</a></div><div class="group">';
       exs.slice(0, 3).forEach(e => { const s = S(e.subject), left = E.daysBetween(new Date(), new Date(e.date)); html += '<a class="row tap" href="#subject/' + e.subject + '"><span class="countdown"><span class="d"><b>' + left + '</b><small>' + (left === 1 ? 'يوم' : 'أيام') + '</small></span></span><span class="tx"><b>' + esc((e.kind || 'امتحان') + ' ' + (s ? s.name : '')) + '</b><small>' + esc(E.prettyDate(e.date)) + (e.time ? ' — الساعة ' + esc(e.time) : '') + (e.note ? ' — ' + esc(e.note) : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; });
       html += '</div>';
       const e0 = exs[0], s0 = S(e0.subject), sc0 = E.examScope(e0.kind), sc1 = sc0 === 'mid' && s0 && !hasMid(s0.id) ? 'all' : sc0, ns = s0 ? questionsOf(s0.id).filter(q => q.star && (sc1 === 'all' || inSc(q.l, sc1))).length : 0;
-      if (ns) html += '<a class="card tap starcard mb" style="display:flex;gap:12px;align-items:center;margin-top:-6px" href="#quiz?s=' + s0.id + '&star=1&sc=' + sc1 + '&n=' + Math.min(10, ns) + '&go=1">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ الأسئلة المتوقعة في ' + esc(s0.short) + (sc1 !== 'all' ? ' (' + SCN[sc1] + ')' : '') + '</b><span class="note" style="display:block">' + ns + ' سؤال هام بشرحهم، ابدأ بيهم قبل الامتحان.</span></span>' + icon('chev', 'chev') + '</a>';
     }
     html += '<div class="group-h">خطة النهارده <a href="#plan">الجدول</a></div><div class="group">';
     if (due) html += '<a class="row tap" href="#review"><span class="ic bg-blue">' + icon('cards') + '</span><span class="tx"><b>راجع البطاقات المستحقة</b><small>' + due + ' بطاقة — حوالي ' + Math.max(1, Math.round(due * 0.25)) + ' دقيقة</small></span>' + icon('chev', 'chev') + '</a>';
     todayItems.slice(0, 6).forEach(it => {
       const s = S(it.subject);
       if (it.type === 'lesson') { const l = LESSONS[it.lesson]; html += '<a class="row tap" href="#lesson/' + l.id + '">' + subjIcon(s) + '<span class="tx"><b>' + esc(l.title) + '</b><small>' + esc(s.name) + ' — ' + Math.round(lessonProgress(l.id) * 100) + '%</small></span>' + icon('chev', 'chev') + '</a>'; }
-      else html += '<a class="row tap" href="#quiz?s=' + it.subject + '&n=20&mode=exam">' + '<span class="ic bg-red">' + icon('target') + '</span><span class="tx"><b>مراجعة شاملة وامتحان تجريبي</b><small>' + esc(s.name) + ' — الامتحان قرب</small></span>' + icon('chev', 'chev') + '</a>';
+      else html += '<a class="row tap" href="' + (s.final ? '#final/' + s.id : '#subject/' + s.id) + '">' + '<span class="ic bg-red">' + icon('target') + '</span><span class="tx"><b>مراجعة شاملة وامتحان تجريبي</b><small>' + esc(s.name) + ' — الامتحان قرب</small></span>' + icon('chev', 'chev') + '</a>';
     });
     if (!due && !todayItems.length) html += '<div class="row noicon"><span class="tx"><b>مفيش حاجة متجدولة</b><small>ضيف مواعيد امتحاناتك وأنا أوزعلك الدروس على الأيام. أو اختار درس من المواد.</small></span><a class="btn sm tint" href="#plan?tab=exams">ضيف امتحان</a></div>';
     html += '</div>';
     if (weak.length) {
       html += '<div class="group-h">محتاج تركز على</div><div class="group">';
-      weak.forEach(w => { const l = LESSONS[w.lesson]; if (!l) return; html += '<a class="row tap" href="#quiz?l=' + l.id + '&n=10"><span class="ic bg-orange">' + icon('target') + '</span><span class="tx"><b>' + esc(l.title) + '</b><small>' + esc(S(l.s).short) + ' — صح ' + w.ok + ' من ' + w.n + '</small></span><span class="pill orange">' + Math.round(w.acc * 100) + '%</span></a>'; });
+      weak.forEach(w => { const l = LESSONS[w.lesson]; if (!l) return; html += '<a class="row tap" href="#exam/' + l.id + '"><span class="ic bg-orange">' + icon('target') + '</span><span class="tx"><b>' + esc(l.title) + '</b><small>' + esc(S(l.s).short) + ' — صح ' + w.ok + ' من ' + w.n + '</small></span><span class="pill orange">' + Math.round(w.acc * 100) + '%</span></a>'; });
       html += '</div>';
     }
     if (SUBJ.length) html += '<div class="group-h">المواد <a href="#subjects">الكل</a></div><div class="subjects">' + SUBJ.map(subjCard).join('') + '</div>';
@@ -194,10 +193,8 @@
     html += '<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' + ring(p, 64, 'var(--' + s.color + ')') + '<div style="flex:1"><b>' + esc(s.kind) + '</b><div class="note">' + (s.lessons.length === 1 ? 'درس واحد' : s.lessons.length === 2 ? 'درسين' : s.lessons.length + (s.lessons.length <= 10 ? ' دروس' : ' درس')) + ' · ' + cardsOf(s.id).length + ' بطاقة · ' + qs + ' سؤال' + (nextEx ? '<br>الامتحان ' + esc(E.inDaysText(E.daysBetween(new Date(), new Date(nextEx.date)))) : '') + '</div></div></div>';
     if (s.partial) html += '<div class="warn">' + icon('info') + ' ' + esc(s.partial) + '</div>';
     if (s.paid && !s.unlocked) html += '<a class="card tap subbar mb" href="#subscribe">' + Char.html('', 44) + '<span style="flex:1"><b>⭐ افتح كل فصول ' + esc(s.short) + '</b><span class="note" style="display:block">الدروس اللي عليها 🎁 مجانية. اشتراك الترم كامل ' + self.Sub.PRICE + ' ج ويفتح كل المواد.</span></span>' + icon('chev', 'chev') + '</a>';
-    if (App.modelCards) html += App.modelCards(s);
-    html += '<div class="btns mb"><a class="btn" href="#review/' + s.id + '">' + icon('cards') + (due ? 'راجع ' + due : nw ? 'ابدأ البطاقات' : 'راجع') + '</a><a class="btn tint" href="#quiz?s=' + s.id + '">' + icon('quiz') + 'امتحني</a></div>';
-    if (s.final) html += '<a class="card tap finalcard mb" href="#final/' + s.id + '">' + Char.html('', 46) + '<span style="flex:1"><b>🏁 المراجعة النهائية</b><span class="note" style="display:block">ملخص شامل، الرسومات، ماراثون الأسئلة المتوقعة، وامتحان تجريبي.</span></span>' + icon('chev', 'chev') + '</a>';
-    const tabs = [['lessons', 'الدروس'], ...(s.tools.length ? [['tools', 'تمارين وحاسبات']] : []), ...(self.Figs && Figs.list(s.id).length ? [['figs', 'الرسومات']] : []), ['cards', 'البطاقات'], ['qs', 'الأسئلة']];
+    html += '<div class="btns mb"><a class="btn" href="#review/' + s.id + '">' + icon('cards') + (due ? 'راجع ' + due : nw ? 'ابدأ البطاقات' : 'راجع') + '</a></div>';
+    const tabs = [['lessons', 'الدروس'], ...(s.tools.length ? [['tools', 'تمارين وحاسبات']] : []), ...(self.Figs && Figs.list(s.id).length ? [['figs', 'الرسومات']] : []), ['cards', 'البطاقات']];
     html += '<div class="seg" role="tablist">' + tabs.map(([k, t]) => '<button role="tab" aria-selected="' + (k === tab) + '" class="' + (k === tab ? 'on' : '') + '" data-tab2="' + k + '">' + t + '</button>').join('') + '</div><div id="tabBody"></div>';
     view.insertAdjacentHTML('beforeend', html);
     bindVideo(view);
@@ -207,7 +204,7 @@
     if (tab === 'lessons') {
       const nMid = s.lessons.filter(l => inSc(l.id, 'mid')).length, nFin = s.lessons.filter(l => inSc(l.id, 'final')).length;
       body.innerHTML = '<div class="card mb scopecard"><div style="display:flex;gap:10px;align-items:center"><div style="flex:1"><b>منهج الميدترم والفاينال</b><div class="note">' + (nMid ? 'الميدترم: ' + nMid + ' درس · الفاينال: ' + nFin + ' درس' : 'لسه ماحددتش الميدترم. كل الدروس محسوبة على الفاينال.') + '</div></div><button class="btn sm tint" id="scopeBtn">حدد</button></div>'
-        + (nMid ? '<div class="btns mt"><a class="btn sm" href="#quiz?s=' + s.id + '&sc=mid">امتحني ميدترم</a><a class="btn sm gray" href="#quiz?s=' + s.id + '&sc=final">امتحني فاينال</a></div>' : '') + '</div>'
+        + '</div>'
         + '<div class="group">' + s.lessons.map((l, i) => { const lp = lessonProgress(l.id), v = D().scope[l.id]; return '<a class="row tap' + (l.locked ? ' locked' : '') + '" href="#lesson/' + l.id + '">' + (l.locked ? '<span class="ic bg-gray">' + icon('lock') + '</span>' : ring(lp, 34, 'var(--' + s.color + ')')) + '<span class="tx"><b>' + (i + 1) + '. ' + esc(l.title) + (s.paid && !s.unlocked && !l.locked ? ' <span class="pill green">🎁 مجاني</span>' : '') + (v === 'mid' || v === 'both' ? ' <span class="pill sc-mid">ميدترم</span>' : '') + '</b><small>' + esc(l.source) + (D().lessonsDone[l.id] ? ' · ✓ خلصته' : D().lessonsRead[l.id] ? ' · قريته' : '') + '</small></span>' + icon('chev', 'chev') + '</a>'; }).join('') + '</div>'
         + (s.custom ? (s.lessons.length ? '' : '<div class="empty" style="padding:18px 0">' + Char.html('', 70) + '<p>لسه مفيش محاضرات في المادة دي.</p></div>') + '<button class="btn block tint" id="addL">' + icon('plus') + 'ضيف محاضرة</button>' : '');
       $('#scopeBtn').onclick = () => scopeSheet(s);
@@ -297,7 +294,6 @@
     if (s.custom) html += '<div class="btns mt"><button class="btn sm tint" id="addLC">' + icon('plus') + 'بطاقة</button><button class="btn sm tint" id="addLQ">' + icon('plus') + 'سؤال</button></div>';
     const myNotes = d.notes.filter(n => n.l === l.id);
     if (myNotes.length) html += '<div class="group-h">ملاحظاتي على الدرس</div><div class="group">' + myNotes.map(n => '<div class="row noicon"><span class="tx"><small style="color:var(--fg);font-size:15px">' + esc(n.text) + '</small></span></div>').join('') + '</div>';
-    html += '<div class="btns mt"><a class="btn" href="#review/' + s.id + '/' + l.id + '">' + icon('cards') + nc + ' بطاقة</a><a class="btn tint" href="#quiz?l=' + l.id + '&n=' + Math.min(10, nq) + '">' + icon('quiz') + nq + ' سؤال</a></div>';
     html += '<button class="btn block ' + (d.lessonsDone[l.id] ? 'gray' : 'green') + ' mt" id="doneBtn">' + icon('check') + (d.lessonsDone[l.id] ? 'خلصت الدرس ده (اضغط للإلغاء)' : 'خلصت الدرس ده') + '</button>';
     html += '<div class="btns mt">' + (idx > 0 ? '<a class="btn gray" href="#lesson/' + s.lessons[idx - 1].id + '">→ اللي قبله</a>' : '') + (idx < s.lessons.length - 1 ? '<a class="btn gray" href="#lesson/' + s.lessons[idx + 1].id + '">اللي بعده ←</a>' : '') + '</div>';
     view.insertAdjacentHTML('beforeend', html);

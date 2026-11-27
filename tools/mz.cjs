@@ -93,7 +93,7 @@ function loadSources() {
   for (const f of SRC_ORDER) vm.runInNewContext(fs.readFileSync(path.join(SRC, f), 'utf8'), ctx.self, { filename: f });
   return ctx.self.MZ_CONTENT;
 }
-const MODEL_FREE = 5;
+const MODEL_FREE = 0;
 const figRefs = txt => (String(txt).match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2));
 
 async function build() {
@@ -107,7 +107,7 @@ async function build() {
     const pick = (o, keep) => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keep(k)));
     const F = {
       id: S.id, year: S.year, name: S.name, short: S.short, icon: S.icon, color: S.color, kind: S.kind, tools: S.tools || [], keys: S.keys, final: S.final, partial: S.partial, rewrite: S.rewrite,
-      /* النماذج: أول 5 أسئلة مجانًا كتجربة، والباقي في المدفوع */
+      /* النماذج النهائية: كلها للمشتركين بس (مفيش ولا سؤال في المجاني) */
       models: (S.models || []).map(m => ({ id: m.id, title: m.title, intro: m.intro, n: m.qs.length, qs: m.qs.slice(0, MODEL_FREE) })),
       lessons: S.lessons.map(l => isFree(l.id) ? Object.assign({}, l) : { id: l.id, title: l.title, source: l.source, exam: l.exam, summary: '', locked: true }),
       questions: S.questions.filter(q => isFree(q.l)), cards: S.cards.filter(c => isFree(c[2])), concepts: (S.concepts || []).filter(c => isFree(c.l)),

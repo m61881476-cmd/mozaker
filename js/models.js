@@ -7,6 +7,8 @@
   const L = 'أبجد';
   const st = mid => { const d = D(); d.models = d.models || {}; return d.models[mid] || (d.models[mid] = { a: {}, done: false, best: 0, last: 0, n: 0 }); };
   const find = (sid, mid) => { const s = App.S(sid); return s && (s.models || []).find(m => m.id === mid) ? { s, m: s.models.find(m => m.id === mid) } : null; };
+  /* النماذج النهائية مقفولة لحد ما صاحب المنصة يفتحها (لسه بتجهز)، ولما تتفتح محتاجة اشتراك */
+  const MODELS_OPEN = false;
   App.modelsOf = sid => { const s = App.S(sid); return (s && s.models) || []; };
 
   /* كارت النموذج في صفحة المادة */
@@ -17,7 +19,7 @@
   }).join('');
 
   Router.on('model', (view, r) => {
-    const f = find(r.args[0], r.args[1]); if (!f) return Router.go('subjects', { replace: true });
+    const f = find(r.args[0], r.args[1]); if (!f || !MODELS_OPEN) return Router.go('finals', { replace: true });
     const { s, m } = f, all = m.n || m.qs.length, total = m.qs.length, locked = !m.full && total < all;
     const R = st(m.id), d = D();
     header(view, 'نموذج ' + s.short, { back: { to: 'subject/' + s.id, label: s.short } });
@@ -66,5 +68,24 @@
     };
     const again = $('#mdlAgain');
     if (again) again.onclick = () => { R.a = {}; R.done = false; Store.save(); Router.go('model/' + s.id + '/' + m.id, { replace: true }); window.scrollTo({ top: 0 }); };
+  });
+  /* قسم «المراجعات النهائية»: مراجعة كل مادة + النماذج النهائية (مقفولة: لسه بتجهز) */
+  Router.on('finals', view => {
+    header(view, 'المراجعات النهائية');
+    const subs = App.SUBJ.filter(s => s.final || (s.models || []).length);
+    let h = '<div class="hero">' + Char.html('', 72) + '<div class="bubble">هنا <b>المراجعات النهائية</b> لكل المواد في مكان واحد. والنماذج النهائية لسه بتجهز، وهتفتح قرب الامتحانات للمشتركين 🔒</div></div>';
+    subs.forEach(s => {
+      h += '<div class="group-h">' + esc(s.name) + '</div><div class="group">';
+      if (s.final) h += '<a class="row tap" href="#final/' + s.id + '"><span class="ic bg-' + s.color + '">🏁</span><span class="tx"><b>المراجعة النهائية</b><small>ملخص شامل، الرسومات، وحاجات حتمًا هتيجي</small></span>' + icon('chev', 'chev') + '</a>';
+      (s.models || []).forEach(m => {
+        const n = m.n || m.qs.length;
+        h += MODELS_OPEN ? '<a class="row tap" href="#model/' + s.id + '/' + m.id + '"><span class="ic bg-' + s.color + '">📝</span><span class="tx"><b>النموذج النهائي (' + n + ' سؤال)</b><small>(أ) (ب) (ج) (د) والتصحيح في الآخر</small></span>' + icon('chev', 'chev') + '</a>'
+          : '<button class="row tap locked" data-soon="1"><span class="ic bg-gray">' + icon('lock') + '</span><span class="tx"><b>النموذج النهائي (' + n + ' سؤال)</b><small>ميعاده مش دلوقتي · لسه بيتجهز · للمشتركين</small></span><span class="pill">قريبًا</span></button>';
+      });
+      h += '</div>';
+    });
+    if (!subs.length) h += '<div class="empty">' + Char.html('', 80) + '<p>لسه مفيش مراجعات نهائية.</p></div>';
+    view.insertAdjacentHTML('beforeend', h);
+    $$('[data-soon]', view).forEach(b => b.onclick = () => { haptic(); toast('النموذج ده لسه بيتجهز، وهيفتح قرب الامتحانات للمشتركين 🔒', 'lock'); });
   });
 })();

@@ -76,6 +76,9 @@ async function makeVanities(Kb, vsalt) {
   /* آيه باشا (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم */
   const AB = ['ايهباشا', 'ايا باشا'.replace(' ', '')].concat(combos(['aya', 'aia', 'ayah', 'aiah', 'ayaa', 'aaya'], ['basha', 'pasha', 'bacha', 'bashaa', 'pacha', 'basa']));
   for (const n of AB) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'term', who: 'ayab', label: 'آيه', exp: '2027-02-28' }, vsalt));
+  /* هبه محمود (عربي أو إنجليزي): باقة 200 VIP لحد آخر الترم + فرقعة وجولة خاصة («وقعتي على كنز») */
+  const HB = ['هبهمحمود'].concat(combos(['heba', 'hiba', 'hebaa', 'hebba', 'heeba', 'hebah', 'hibah', 'hba'], ['mahmoud', 'mahmood', 'mahmud', 'ma7moud', 'mahmod', 'mahmoued', 'mahmoud2', 'mhmoud']));
+  for (const n of HB) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'heba', label: 'هبه ⭐', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

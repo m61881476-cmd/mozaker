@@ -18,7 +18,7 @@
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const D = () => Store.data;
   /* أسامي الدلع: آيه مسعد بيناديها آيه أو يويو أو فتكات 😂 */
-  const NICK = { aya: ['آيه', 'يويو', 'فتكات 😂'] };
+  const NICK = { aya: ['آيه', 'يويو', 'فتكات 😂'], heba: ['هبه'] };
   const nick = d => { const w = self.Sub && Sub.who && Sub.who(), L = NICK[w]; return L ? L[Math.floor(Math.random() * L.length)] : d.name; };
   App.nick = nick;
   const COLORS = ['blue', 'green', 'orange', 'purple', 'pink', 'teal', 'indigo', 'red', 'yellow'];

@@ -673,6 +673,7 @@
       fatma: ['🤍', 'أهلًا يا فاطمة', 'النسخة دي هدية من محمد 🤍 كل المواد والفصول مفتوحة ليكي، وأنا معاكي في كل خطوة.'],
       hagar: ['🎉', 'اشتراكك اتفعّل!', 'وابسطي يا ستي، باقة الـ 200 ⭐ VIP عشان صورة بروفايلك حلوة 😂 كل المواد والفصول مفتوحة ليكي لحد آخر الترم.'],
       aya: ['👑', 'أهلًا يا فتكات 😂', 'إنتي VIP يا يويو ⭐ كل المواد والفصول والبورد والامتحانات مفتوحة ليكي لحد آخر الترم. يلا نذاكر!'],
+      heba: ['💎', 'هبه! إنتي لسه واقعة على كنز 🎉', 'باقة الـ 200 ⭐ VIP اتفتحتلك كاملة: كل المواد والفصول والبورد والامتحانات لحد آخر الترم. تعالي أفرّجك على كنزك 👇'],
       ayab: ['🎉', 'أهلًا يا آيه! اشتراكك اتفعّل', 'كل المواد والفصول والبورد والامتحانات مفتوحة ليكي لحد آخر الترم. يلا بينا!'],
       basmala: ['🎉', 'أهلًا يا بسملة! اشتراكك اتفعّل', 'كل المواد والفصول والبورد والامتحانات مفتوحة ليكي لحد آخر الترم. يلا بينا!'],
       mennam: ['🎉', 'أهلًا يا منه! اشتراكك اتفعّل', 'كل المواد والفصول والبورد والامتحانات مفتوحة ليكي لحد آخر الترم. يلا بينا!'],
@@ -682,10 +683,29 @@
     const el = document.createElement('div'); el.className = 'award-pop welcome';
     el.innerHTML = '<div class="ap-in">' + Char.html('', 96) + '<div class="ap-ic">' + T[0] + '</div><b>' + esc(T[1]) + '</b><small>' + esc(T[2]) + '</small><div class="btns"><button class="btn" data-x>يلا بينا</button></div></div>';
     document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
-    const c = $('.char', el); Props.put(c, w === 'owner' ? 'crown' : w === 'fatma' ? 'heart' : w === 'bff' ? 'wave' : 'trophy'); setTimeout(() => Char.act(c, 'cheer'), 300);
+    const c = $('.char', el); Props.put(c, w === 'owner' || w === 'heba' ? 'crown' : w === 'fatma' ? 'heart' : w === 'bff' ? 'wave' : 'trophy'); setTimeout(() => Char.act(c, 'cheer'), 300);
     beep('ok'); haptic('success');
-    el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) { el.classList.remove('on'); setTimeout(() => el.remove(), 300); Awards.check(); } };
+    if (w === 'heba') { $('[data-x]', el).textContent = 'وريني كنزي 💎'; setTimeout(() => confetti(), 250); setTimeout(() => confetti(70), 1300); }
+    el.onclick = e => { if (e.target === el || e.target.closest('[data-x]')) { el.classList.remove('on'); setTimeout(() => el.remove(), 300); if (w === 'heba') setTimeout(() => Tour.start(), 500); else Awards.check(); } };
   }
+  /* فرقعة لطيفة: ورق ملون ونجوم بتنزل (من غير مكتبات، وبتحترم «تقليل الحركة») */
+  function confetti(n = 110) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!document.getElementById('cfx-css')) {
+      const s = document.createElement('style'); s.id = 'cfx-css';
+      s.textContent = '.cfx{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}.cfx i{position:absolute;top:-24px;display:block;border-radius:2px;will-change:transform,opacity;animation:cfx-fall var(--d) cubic-bezier(.2,.6,.4,1) var(--dl) forwards}.cfx i.s{border-radius:0;background:none!important;font-style:normal;font-size:var(--fs)}@keyframes cfx-fall{0%{transform:translate3d(0,0,0) rotate(0);opacity:1}80%{opacity:1}100%{transform:translate3d(var(--x),105vh,0) rotate(var(--r));opacity:0}}';
+      document.head.appendChild(s);
+    }
+    const box = document.createElement('div'); box.className = 'cfx'; box.setAttribute('aria-hidden', 'true');
+    const C = ['#ff4d6d', '#ffd166', '#06d6a0', '#118ab2', '#9b5de5', '#f15bb5', '#fee440', '#00bbf9'], S = ['✨', '⭐', '💎', '🎉', '💖'];
+    let h = '';
+    for (let i = 0; i < n; i++) {
+      const star = i % 7 === 0, w = 6 + Math.random() * 7, x = (Math.random() * 2 - 1) * 160;
+      h += '<i class="' + (star ? 's' : '') + '" style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + w.toFixed(0) + 'px;height:' + (w * (0.5 + Math.random())).toFixed(0) + 'px;background:' + C[i % C.length] + ';--x:' + x.toFixed(0) + 'px;--r:' + (Math.random() * 900 - 450).toFixed(0) + 'deg;--d:' + (2.2 + Math.random() * 1.6).toFixed(2) + 's;--dl:' + (Math.random() * 0.5).toFixed(2) + 's;--fs:' + (14 + Math.random() * 10).toFixed(0) + 'px">' + (star ? S[i % S.length] : '') + '</i>';
+    }
+    box.innerHTML = h; document.body.appendChild(box); setTimeout(() => box.remove(), 4600);
+  }
+  App.confetti = confetti;
 
   /* ================= سَنَد بيقدّم البرنامج: جولة بيتمشى فيها ويشاور بالعصاية ================= */
   Object.assign(PROP_SVG, {
@@ -703,8 +723,21 @@
     { sel: () => { const tb = $('.tabbar'); return tb && getComputedStyle(tb).display !== 'none' ? tb : $('.side'); }, mood: 'nod', prop: 'stick', t: () => 'ومن هنا تتنقّل بين <b>المواد والمراجعة والامتحانات والجدول</b>.' },
     { mood: 'cheer', prop: 'thumbs', t: () => 'وأنا هفضل معاك على الشاشة 😄 دوس عليّا في أي وقت يطلعلك قايمة. يلا نبدأ بالفصل الأول في الاقتصاد؟', last: 1 }
   ];
+  /* جولة هبه الخاصة: «إنتي وقعتي على كنز» 💎 */
+  const isH = () => !!(self.Sub && Sub.who() === 'heba');
+  const HEBA_TOUR = [
+    { mood: 'cheer', prop: 'crown', t: () => 'هبه! 💎 أنا <b>سَنَد</b>، وإنتي لسه واقعة على <b>كنز</b> بجد. كل اللي هوريهولك دلوقتي بقى <b>بتاعك إنتي</b>، مفتوح كله VIP ⭐ تعالي أفرّجك في دقيقة.' },
+    { sel: '.mtile[href="#subjects"]', mood: 'happy', prop: 'stick', t: () => 'هنا <b>المواد الخمسة</b> 📚 تسويق، اقتصاد، قانون تجاري، إحصاء، وإدارة إنتاج. كل فصل <b>متلخّص من محاضرات الدكتور نفسه</b> بطريقته وأمثلته، يعني مش هتقلّبي في ورق تاني يا هبه.' },
+    { mood: 'happy', prop: 'stick', t: () => 'وجوه كل فصل <b>«شرح على البورد» 🎬</b> بشرحلك بالصوت، وبكتب وبرسم قدامك خطوة بخطوة. زي <b>حصة خصوصي</b> بالظبط، بس وقت ما إنتي عايزة.' },
+    { mood: 'nod', prop: 'trophy', t: () => 'وكل فصل ليه <b>امتحان 30 سؤال</b> بنفس طريقة الدكتور 🎯 ولو غلطتي، بقولك <b>الفخ كان فين</b> عشان ماتقعيش فيه في الامتحان الحقيقي. ده لوحده كنز.' },
+    { sel: '#askForm', mood: 'think', prop: 'think', t: () => 'وأي حاجة وقفت معاكي، اكتبيهالي هنا <b>بالعامية</b> ✍️ زي «يعني إيه المسار الحرج؟» أو «امتحني 10 أسئلة»، وأنا أرد عليكي على طول، حتى الساعة 3 الفجر 😄' },
+    { sel: '.mtile[href="#news"]', mood: 'happy', prop: 'mic', t: () => 'وهنا <b>الأخبار</b> 🎤 كلام الدكتور عن شكل الامتحان ومواعيد الأسايمنت، أول بأول، فمش هيفوتك حاجة.' },
+    { sel: '.mtile[href="#awards"]', mood: 'cheer', prop: 'trophy', t: () => 'وكل ما تذاكري تكسبي <b>جوايز</b> 🏆 وتترص على الرف بتاعك.' },
+    { mood: 'cheer', prop: 'crown', t: () => 'ده كله <b>بقى بتاعك يا هبه</b> 💎 ناس كتير بتدفع عشان كده، وإنتي معاكي <b>النسخة الكاملة</b> لحد آخر الترم. وأنا هفضل جنبك في كل فصل. يلا نبدأ؟', last: 1, go: 'subjects', btn: 'يلا نبدأ 💎' }
+  ];
   const Tour = {
     on: false, i: 0,
+    get steps() { return isH() ? HEBA_TOUR : TOUR; },
     start() {
       if (this.on || !Store.data) return;
       if (!Router.cur || Router.cur.name !== 'home') { Router.go('home'); setTimeout(() => this.start(), 700); return; }
@@ -723,7 +756,7 @@
     },
     target(st) { if (!st.sel) return null; const el = typeof st.sel === 'function' ? st.sel() : $(st.sel); return el && el.getClientRects().length ? el : null; },
     async show(quick) {
-      const st = TOUR[this.i], w = this.w; if (!w) return;
+      const st = this.steps[this.i], w = this.w; if (!w) return;
       const el = this.target(st), c = $('.tour-c', w), ch = $('.char', c), hole = $('.tour-hole', w), b = $('.tour-b', w);
       if (el && !quick) { const r0 = el.getBoundingClientRect(); if (r0.top < 70 || r0.bottom > innerHeight - 160) { el.scrollIntoView({ block: 'center', behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' }); await new Promise(r => setTimeout(r, 120)); } }
       const W = 84, H = W * 360 / 268, vw = innerWidth, vh = innerHeight;
@@ -749,11 +782,11 @@
       if (quick) return;
       Props.clear(ch); setTimeout(() => { Props.put(ch, st.prop); Char.act(ch, st.mood); }, moved ? 650 : 120);
       $('.tour-t', w).innerHTML = st.t(D());
-      $('.tour-dots', w).innerHTML = TOUR.map((_, k) => '<i' + (k === this.i ? ' class="on"' : '') + '></i>').join('');
-      const nx = $('[data-tnext]', w); nx.textContent = st.last ? 'افتح الفصل الأول 🚀' : 'التالي'; $('[data-tskip]', w).hidden = !!st.last;
+      $('.tour-dots', w).innerHTML = this.steps.map((_, k) => '<i' + (k === this.i ? ' class="on"' : '') + '></i>').join('');
+      const nx = $('[data-tnext]', w); nx.textContent = st.last ? (st.btn || 'افتح الفصل الأول 🚀') : 'التالي'; $('[data-tskip]', w).hidden = !!st.last;
       haptic();
     },
-    next() { if (TOUR[this.i].last) { this.end(); Router.go(App.LESSONS.ec1 ? 'lesson/ec1' : 'subjects'); return; } this.i++; this.show(); },
+    next() { const st = this.steps[this.i]; if (st.last) { this.end(); if (isH()) setTimeout(() => confetti(80), 300); Router.go(st.go || (App.LESSONS.ec1 ? 'lesson/ec1' : 'subjects')); return; } this.i++; this.show(); },
     end() {
       if (!this.on) return; this.on = false; const d = D(); if (d) { d.tourDone = now(); Store.save(); }
       document.removeEventListener('keydown', this.kh); removeEventListener('resize', this.rh);

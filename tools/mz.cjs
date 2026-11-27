@@ -73,6 +73,9 @@ async function makeVanities(Kb, vsalt) {
   /* بسملة نصر (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم */
   const BN = ['بسملهنصر'].concat(combos(['basmala', 'basmalah', 'basmla', 'basmlah', 'besmala', 'basmallah', 'bassmala', 'basmalla', 'bsmala'], ['nasr', 'nassr', 'nasrr', 'nsr', 'naser']));
   for (const n of BN) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'term', who: 'basmala', label: 'بسملة', exp: '2027-02-28' }, vsalt));
+  /* آيه باشا (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم */
+  const AB = ['ايهباشا', 'ايا باشا'.replace(' ', '')].concat(combos(['aya', 'aia', 'ayah', 'aiah', 'ayaa', 'aaya'], ['basha', 'pasha', 'bacha', 'bashaa', 'pacha', 'basa']));
+  for (const n of AB) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'term', who: 'ayab', label: 'آيه', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

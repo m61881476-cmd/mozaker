@@ -806,15 +806,19 @@
   /* ================= تشغيل ================= */
   /* جدول الفاينل الرسمي (الفرقة التانية انتظام + انتساب): بيتحط في جدول كل طالب مرة واحدة.
      المحاسبة (السبت 19/12) مش مادة في البرنامج فمش بتتحط. لو الطالب كان كاتب ميعاد تاني لنفس المادة في فترة الفاينل بيتشال ويتحط الرسمي. */
-  const FINALS = { v: 1, list: [['prod', '2026-12-22'], ['law', '2026-12-26'], ['mkt', '2026-12-29'], ['stat', '2027-01-02'], ['eco', '2027-01-05']] };
+  const FINALS = { v: 2, list: [['prod', '2026-12-22'], ['law', '2026-12-26'], ['mkt', '2026-12-29'], ['stat', '2027-01-02'], ['eco', '2027-01-05'], ['pol', '2027-01-06', '', 'تخلفات العلوم السياسية · الساعة لسه هتتأكد']] };
+  /* (pol بتظهر لهاجر بس، فمابتتحطش غير في جدولها) */
   function officialFinals() {
-    const d = D(); if (!d || App.YEAR !== '2' || (d.finalsV || 0) >= FINALS.v) return;
+    const d = D(); if (!d || App.YEAR !== '2') return;
+    /* كل مادة بتتحط مرة واحدة لما تبقى موجودة (مادة هاجر بتظهر بعد التفعيل، فبتتحط ساعتها) */
+    const done = d.finalsDone = d.finalsDone || {}; if ((d.finalsV || 0) >= 1 && !Object.keys(done).length) FINALS.list.forEach(([sid]) => { if (sid !== 'pol') done[sid] = 1; });
     const has = id => (App.SUBJ || []).some(s => s.id === id) || (App.LESSONS && Object.values(App.LESSONS).some(l => l.s === id));
     d.exams = d.exams || [];
-    for (const [sid, date] of FINALS.list) {
-      if (!has(sid)) continue;
+    for (const [sid, date, time = '10:00', note = 'الجدول الرسمي · الفترة الأولى من 10 الصبح لـ 12 الضهر'] of FINALS.list) {
+      if (!has(sid) || done[sid]) continue;
+      done[sid] = 1;
       d.exams = d.exams.filter(e => !(e.subject === sid && (String(e.id).startsWith('off-') || (e.date >= '2026-12-15' && e.date <= '2027-01-20'))));
-      d.exams.push({ id: 'off-' + sid, subject: sid, kind: 'فاينال', date, time: '10:00', note: 'الجدول الرسمي · الفترة الأولى من 10 الصبح لـ 12 الضهر' });
+      d.exams.push({ id: 'off-' + sid, subject: sid, kind: 'فاينال', date, time, note });
     }
     d.finalsV = FINALS.v; Store.save();
   }

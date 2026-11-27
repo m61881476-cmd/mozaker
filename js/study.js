@@ -47,6 +47,8 @@
   };
 
   /* ---------- التدريب على رسمة: الأسماء مستخبية وإنت تسمّي ---------- */
+  /* الدرس اللي فيه الرسمة: آخر درس فتحته وفيه الرسمة، وإلا أول درس (مش المراجعة النهائية) */
+  const figLesson = f => { const S0 = S(f.sid); if (!S0) return null; const has = l => l.summary && l.summary.includes('[[fig:' + f.id + ']]'); const last = App.LESSONS[D().lastLesson]; if (last && last.s === f.sid && has(last)) return last; return S0.lessons.find(l => l.id !== S0.final && has(l)) || S0.lessons.find(has) || App.LESSONS[f.l] || null; };
   Router.on('fig', (view, r) => {
     const f = F.get(r.args[0]); if (!f || !F.canPractice(f.id)) return Router.go('subjects', { replace: true });
     header(view, 'اتدرب على الرسمة', { back: { to: 'subject/' + f.sid + '?tab=figs', label: 'الرسومات' } });
@@ -77,7 +79,7 @@
       const list = F.list(f.sid).filter(x => F.canPractice(x.id)), nx = list[(list.findIndex(x => x.id === f.id) + 1) % list.length], full = ok === parts.length;
       box.innerHTML = '<div class="hero">' + Char.html('', 70) + '<div class="bubble">' + (full ? 'قفلتها! سمّيت <b>' + ok + ' من ' + parts.length + '</b> صح 🎉 لو جت في الامتحان هترسمها وإنت مغمض.' : 'سمّيت <b>' + ok + ' من ' + parts.length + '</b>. ' + (wrong.length ? 'ركّز على: ' + wrong.map(i => '«' + esc(name(parts[i])) + '»').join('، ') + '. بص على الرسمة كاملة تحت وجرّب تاني.' : '')) + '</div></div>'
         + F.html(f.id, { noact: true })
-        + '<div class="btns mt"><button class="btn" id="figAgain">' + icon('reset') + 'تاني</button>' + (nx && nx.id !== f.id ? '<a class="btn tint" href="#fig/' + nx.id + '">الرسمة اللي بعدها ←</a>' : '') + '<a class="btn gray" href="#subject/' + f.sid + '?tab=figs">كل الرسومات</a></div>';
+        + '<div class="figend mt"><button class="btn" id="figAgain">' + icon('reset') + 'تاني</button>' + (nx && nx.id !== f.id ? '<a class="btn tint" href="#fig/' + nx.id + '">الرسمة الجاية ←</a>' : '') + (figLesson(f) ? '<a class="btn tint" href="#lesson/' + figLesson(f).id + '">📖 ارجع للدرس</a>' : '') + '<a class="btn gray" href="#subject/' + f.sid + '?tab=figs">كل الرسومات</a></div>';
       $('#figAgain').onclick = () => Router.render();
       setTimeout(() => Char.act(box.querySelector('.char'), full ? 'cheer' : 'nod'), 250); if (full) beep('done');
     };

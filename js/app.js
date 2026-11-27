@@ -283,6 +283,7 @@
       view.insertAdjacentHTML('beforeend', '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 12px"><span class="pill acc">' + esc(s.name) + '</span>' + (l.source ? '<span class="pill">' + esc(l.source) + '</span>' : '') + '</div>' + self.Sub.wallHTML('الدرس ده للمشتركين', 'الملخص الكامل، شرح البورد بالصوت، والأسئلة المتوقعة بالتفرعات. اشترك مرة واحدة للترم كله، والدروس اللي عليها 🎁 مجانية تجربها الأول.'));
       return;
     }
+    d.lastLesson = l.id;
     if (!d.lessonsRead[l.id]) { d.lessonsRead[l.id] = now(); Store.save(); }
     header(view, l.title, { back: { to: 'subject/' + s.id, label: s.short }, right: (s.custom ? '<button class="btn-nav" id="editL" aria-label="تعديل المحاضرة">' + icon('edit') + '</button>' : '') + '<button class="btn-nav" id="noteBtn" aria-label="ملاحظة">' + icon('note') + '</button>' });
     const nc = cardsOf(null, l.id).length, nq = questionsOf(null, l.id).length, idx = s.lessons.indexOf(l);

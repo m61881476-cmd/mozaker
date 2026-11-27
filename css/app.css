@@ -911,3 +911,8 @@ select.input.sel{width:auto;min-width:96px;padding:8px 12px;font-size:15px}
 .mdl-bar{position:sticky;bottom:calc(var(--tab-h) + var(--safe-b) + 10px);z-index:25;margin-top:14px;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:18px;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 4px 24px rgba(0,0,0,.14),inset 0 0 0 .5px var(--sep)}
 .mdl-bar span{flex:1;font-size:15px}
 @media (min-width:900px){.mdl-bar{bottom:18px}}
+
+/* آخر التدريب على الرسمة: 4 زراير مرتبين 2×2 والكلام في سطر واحد */
+.figend{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.figend>.btn{white-space:nowrap;min-width:0;padding-inline:10px;font-size:15.5px}
+.figend>.btn:only-child,.figend>.btn:last-child:nth-child(odd){grid-column:1/-1}

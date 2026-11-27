@@ -4,7 +4,7 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'prod-b', 'prod-c', 'extra30', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
@@ -112,7 +112,7 @@ t('الكلام العادي مش أمر مذاكرة', [si('امتحني 10 ا�
   const Lw = self.MZ_CONTENT.find(s => s.id === 'law');
   t('قانون: الدروس lw1 و lw2 و lw3 بالترتيب', !!Lw && Lw.lessons.map(l => l.id).join() === 'lw1,lw2,lw3');
   const q = Lw.questions;
-  t('قانون: 29 سؤال في الفصل الأول (زي الامتحان الأصلي)', q.filter(x => x.l === 'lw1').length === 29);
+  t('قانون: الفصل الأول فيه أسئلة الامتحان الأصلي الـ 29 + تكملة لـ 30', q.filter(x => x.l === 'lw1').length >= 30);
   t('قانون: 35+ سؤال للمقاولات و35+ للشركات', q.filter(x => x.l === 'lw2').length >= 35 && q.filter(x => x.l === 'lw3').length >= 35, q.filter(x => x.l === 'lw2').length + '/' + q.filter(x => x.l === 'lw3').length);
   t('قانون: فيه حالات عملية (الدكتور قال)', q.filter(x => /^حالة:/.test(x.q)).length >= 15);
   t('قانون: المادة 505 في الملخص والأسئلة', Lw.lessons[2].summary.includes('505') && q.some(x => x.q.includes('505')));
@@ -148,6 +148,23 @@ for (const X of self.MZ_CONTENT) {
   for (const [q, kind, k] of Q) { const r = E.tutor(AC, q, {}); t('سَنَد فاهم: «' + q + '»', r && r.c && r.c.k === k && (kind !== 'diff' || r.kind === 'diff'), r && r.c && r.c.k); }
   const L = self.MZ_CONTENT.find(x => x.id === 'y1law').lessons[0], bs = E.bestSection(L.summary, 'صور الجزاء');
   t('أحسن قسم بيرد على السؤال', bs && /صور الجزاء/.test(bs.head) && bs.text.length > 80 && !/\*\*/.test(bs.text), bs && bs.head);
+}
+/* كل فصل في سنة تانية: 30 سؤال على الأقل (طلب صاحب المنصة) */
+for (const X of self.MZ_CONTENT.filter(s => String(s.year || 2) === '2')) for (const l of X.lessons) {
+  if (l.id === X.final || /9$/.test(l.id)) continue;
+  const n = X.questions.filter(q => q.l === l.id).length; t(X.id + '/' + l.id + ': 30 سؤال أو أكتر', n >= 30, n);
+}
+/* الإنتاج: الفصول والمسائل محسوبة صح */
+{
+  const P = self.MZ_CONTENT.find(s => s.id === 'prod'), c = P._calc;
+  t('إنتاج: الدروس بالترتيب', P.lessons.map(l => l.id).join() === 'pr1,pr2,pr3,pr4,pr5,pr6,pr7');
+  t('إنتاج: المسار الحرج للمثالين 25 و38', c.paths([['أ', 1, 2, 8], ['ب', 1, 3, 5], ['ج', 1, 4, 5], ['د', 2, 5, 8], ['هـ', 3, 5, 6], ['و', 4, 6, 8], ['ز', 3, 6, 3], ['ح', 3, 7, 3], ['ط', 5, 7, 9], ['ي', 6, 7, 5]])[0].t === 25 && c.paths([['أ', 1, 2, 8], ['ب', 2, 3, 5], ['ج', 2, 4, 5], ['د', 3, 4, 8], ['هـ', 2, 5, 6], ['و', 3, 6, 8], ['ز', 4, 6, 3], ['ح', 5, 7, 3], ['ط', 6, 7, 9], ['ي', 7, 8, 5]])[0].t === 38);
+  t('إنتاج: التخصيص 44 (أ-4، ب-2، ج-3، د-1)', (r => r.total === 44 && r.best.join() === '3,1,2,0')(c.assign([[5, 11, 20, 5], [28, 6, 30, 16], [17, 20, 21, 40], [12, 26, 28, 21]])));
+  const cr = c.crit(c.payoff([100, 110, 120, 130, 140], [120, 130, 140, 150, 160], 4, 5), 0.6);
+  t('إنتاج: معايير مثال 6 زي حل الدكتور', cr.best.mx.join() === '4' && cr.best.mn.join() === '2' && cr.best.av.join() === '2,3' && cr.best.hu.join() === '2' && cr.best.rm.join() === '2');
+  const sm = P.lessons.map(l => l.summary).join('\n');
+  t('إنتاج: الملخصات فيها الأرقام المهمة', ['7,500', '8,333', '10,000', '44 جنيه', '9.25', '25 أسبوع', '38 أسبوع', '2.4', 'الفائض مش مطلوب'].every(w => sm.includes(w)));
+  t('إنتاج: كل الرسومات المذكورة موجودة', (sm.match(/\[\[fig:([\w-]+)\]\]/g) || []).every(m => P.figs[m.slice(6, -2)]));
 }
 console.log((fail ? '✗' : '✓') + ' ' + pass + ' نجح، ' + fail + ' فشل');
 if (fail) { console.log(fails.map(f => '  • ' + f).join('\n')); process.exit(1); }

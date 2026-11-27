@@ -420,7 +420,16 @@
   const PASS = 0.7;
   Router.on('exam', (view, r) => {
     const l = LESSONS[r.args[0]]; if (!l) return Router.go('subjects', { replace: true });
-    const s = S(l.s), qs = questionsOf(null, l.id), d = D();
+    const s = S(l.s), all = questionsOf(null, l.id), d = D();
+    /* امتحان الفصل = 30 سؤال بزرار واحد. لو الفصل فيه أكتر، كل مرة بيجيب اللي ماشفتهوش لسه (والمتوقع ⭐ الأول) لحد ما تخلّص الفصل كله */
+    const EXAM_N = 30, qid = q => q.id || q.q;
+    const pick30 = () => {
+      if (all.length <= EXAM_N) return all.slice();
+      const seen = ((d.examSeen || {})[l.id]) || [], rank = new Map(seen.map((id, i) => [id, i + 1]));
+      const order = all.map((q, i) => ({ q, i, r: rank.get(qid(q)) || 0 })).sort((x, y) => x.r - y.r || (y.q.star ? 1 : 0) - (x.q.star ? 1 : 0) || x.i - y.i);
+      return order.slice(0, EXAM_N).sort((x, y) => x.i - y.i).map(x => x.q);
+    };
+    const qs = pick30();
     header(view, 'امتحان الفصل', { back: { to: 'lesson/' + l.id, label: 'الملخص' } });
     if (l.locked && self.Sub) { view.insertAdjacentHTML('beforeend', Sub.wallHTML('امتحان الفصل للمشتركين', 'اشترك مرة واحدة للترم كله وكل الفصول وامتحاناتها تتفتح.')); return; }
     const nM = qs.filter(q => q.type === 'mcq').length, nT = qs.filter(q => q.type === 'tf').length, nO = qs.length - nM - nT, nS = qs.filter(q => q.star).length;
@@ -436,16 +445,14 @@
       + '<div class="xi-kinds">' + (nM ? '<div>☑️ <b>' + nM + '</b> اختيار من متعدد</div>' : '') + (nT ? '<div>✔️ <b>' + nT + '</b> صح وغلط</div>' : '') + (nO ? '<div>✍️ <b>' + nO + '</b> أكمل ومسائل</div>' : '') + (nS ? '<div>⭐ <b>' + nS + '</b> سؤال متوقع</div>' : '') + '</div>'
       + (runs ? '<div class="xi-last ' + (runs.best >= PASS ? 'ok' : '') + '">آخر مرة: <b>' + runs.lastOk + '/' + runs.n + '</b> (' + Math.round(runs.last * 100) + '%) · أحسن نتيجة <b>' + Math.round(runs.best * 100) + '%</b>' + (runs.best >= PASS ? ' ✓ ناجح' : '') + '</div>' : '')
       + '</div>';
-    h += '<div class="group-h">النظام</div><div class="seg" id="xMode"><button data-m="practice" class="on">🎯 تدريب</button><button data-m="exam">⏱️ امتحان بالوقت</button></div><p class="group-f" id="xModeT" style="margin-top:-8px"></p>';
-    h += '<div class="group-h">ترتيب الأسئلة</div><div class="seg" id="xOrd"><button data-o="ch" class="on">بترتيب الفصل</button><button data-o="rnd">عشوائي</button></div>';
-    h += '<button class="btn block xi-go" id="xGo">' + icon('play') + 'يلا نبدأ 🚀</button>';
+    h += '<button class="btn block xi-go" id="xGo">' + icon('play') + 'ابدأ امتحان الفصل (' + qs.length + ' سؤال) 🚀</button>';
+    if (all.length > EXAM_N) h += '<p class="note center mt">الفصل فيه <b>' + all.length + '</b> سؤال. كل مرة بتدخل الامتحان بيجيلك <b>' + EXAM_N + '</b> منهم، وبيبدأ باللي ماشفتهوش لسه لحد ما تخلّصهم كلهم.</p>';
     h += '<p class="note center mt">💡 لو غلطت، هتلاقي تحت الشرح «الاختيار ده كان يبقى صح لو…». ودي أحسن طريقة تفهم بيها الفخ.</p>';
     view.insertAdjacentHTML('beforeend', h);
-    const modeT = () => { $('#xModeT').textContent = mode === 'exam' ? 'دقيقة ونص لكل سؤال، والتصحيح والشرح في الآخر زي الامتحان الحقيقي.' : 'بعد كل سؤال هتعرف الإجابة الصح وشرحها على طول.'; };
-    modeT();
-    $$('#xMode [data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; $$('#xMode button').forEach(x => x.classList.toggle('on', x === b)); modeT(); haptic(); });
-    $$('#xOrd [data-o]').forEach(b => b.onclick = () => { ord = b.dataset.o; $$('#xOrd button').forEach(x => x.classList.toggle('on', x === b)); haptic(); });
-    $('#xGo').onclick = () => { const list = ord === 'ch' ? qs.slice() : E.shuffle(qs); startQuiz(list, mode, { lid: l.id, sel: [s.id], chapter: l.id, pass: PASS }); };
+    $('#xGo').onclick = () => {
+      if (all.length > EXAM_N) { d.examSeen = d.examSeen || {}; const ids = new Set(qs.map(qid)); let seen = (d.examSeen[l.id] || []).filter(id => !ids.has(id)).concat([...ids]); if (seen.length >= all.length) seen = [...ids]; d.examSeen[l.id] = seen; Store.save(); }
+      startQuiz(qs.slice(), mode, { lid: l.id, sel: [s.id], chapter: l.id, pass: PASS });
+    };
     setTimeout(() => { const c = $('.xi-top .char', view); if (c && App.Props) { App.Props.put(c, 'stick'); Char.act(c, 'happy'); } }, 300);
   });
   Router.on('quiz', (view, r) => {

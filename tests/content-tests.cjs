@@ -4,14 +4,14 @@ const E = require('../js/engine.js');
 const F = require('../js/figs.js');
 // المصادر الكاملة في content-src/ (مش على GitHub). لو مش موجودة: node tools/mz.cjs unpack
 if (!require('fs').existsSync(__dirname + '/../content-src/mkt.js')) { console.log('⚠️ content-src مش موجودة — اتخطّيت اختبارات المحتوى'); process.exit(0); }
-['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
+['mkt', 'mkt-b', 'mkt-q1', 'mkt-q2', 'mkt-kb', 'mkt-bd', 'mkt-pr', 'eco', 'eco-b1', 'eco-q', 'eco-rev', 'eco-islm', 'law', 'law-b1', 'law-q', 'law-b2', 'stat', 'prod', 'y1'].forEach(f => require('../content-src/' + f + '.js'));
 let pass = 0, fail = 0; const fails = [];
 const t = (n, c, x) => { if (c) pass++; else { fail++; fails.push(n + (x ? ' — ' + x : '')); } };
 const S = self.MZ_CONTENT.find(s => s.id === 'mkt');
 E.mergePlus(S); E.setSubjects([S]); F.reg(S.id, S.figs);
 const ids = S.lessons.map(l => l.id), chapters = ids.filter(i => i !== S.final);
 
-t('الدروس بالترتيب والمراجعة النهائية في الآخر', ids.join() === 'mk0,mk1,mk2,mk3,mk4,mk5,mk6,mk7,mk9' && S.final === 'mk9');
+t('الدروس بالترتيب والمراجعة النهائية في الآخر', ids.join() === 'mk0,mk1,mk2,mk3,mk4,mk5,mk8,mk6,mk7,mk9' && S.final === 'mk9');
 t('كل درس له عنوان ومصدر وملخص بأقسام', S.lessons.every(l => l.title && l.source && l.summary.length > 1500 && (l.summary.match(/^## /gm) || []).length >= 4));
 chapters.forEach(c => { const n = S.questions.filter(q => q.l === c).length; t('20 سؤال أو أكتر على ' + c, n >= 20, String(n)); });
 const stars = S.questions.filter(q => q.x);
@@ -32,7 +32,7 @@ t('50+ بطاقة وكل بطاقة على درس', S.cards.length >= 50 && S.ca
 chapters.forEach(c => t('بطاقات على ' + c, S.cards.filter(x => x[2] === c).length >= 4));
 // رسومات
 const figIds = Object.keys(S.figs);
-t('17 رسمة في التسويق', figIds.length === 17);
+t('20 رسمة في التسويق (17 + 3 التسعير)', figIds.length === 20);
 const refs = [].concat(...S.lessons.map(l => (l.summary.match(/\[\[fig:([\w-]+)\]\]/g) || []).map(m => m.slice(6, -2))));
 t('كل رسمة مذكورة في الدروس موجودة', refs.every(r => S.figs[r]), refs.filter(r => !S.figs[r]).join());
 t('كل رسمة مستخدمة في درس', figIds.every(f => refs.includes(f)), figIds.filter(f => !refs.includes(f)).join());

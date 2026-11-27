@@ -10,7 +10,7 @@ const L = require('../js/license.js');
 const ENG = require('../js/engine.js');
 const ROOT = path.join(__dirname, '..'), SRC = path.join(ROOT, 'content-src');
 const FREE = { eco: ['ec1'], mkt: ['mk0', 'mk1'], law: ['lw1'], /* سنة أولى: الأسبوع الأول ببلاش (للتجربة) */ y1bus: ['yb1'], y1pol: ['yp1'], y1law: ['yl1', 'yl2'], y1eco: ['ye1'], y1math: ['ym1'] };
-const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'mkt-bd.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'eco-islm.js', 'law.js', 'law-b1.js', 'law-q.js', 'law-b2.js', 'stat.js', 'prod.js', 'y1.js'];
+const SRC_ORDER = ['mkt.js', 'mkt-b.js', 'mkt-q1.js', 'mkt-q2.js', 'mkt-kb.js', 'mkt-bd.js', 'mkt-pr.js', 'eco.js', 'eco-b1.js', 'eco-q.js', 'eco-rev.js', 'eco-islm.js', 'law.js', 'law-b1.js', 'law-q.js', 'law-b2.js', 'stat.js', 'prod.js', 'y1.js'];
 
 const pass = () => process.env.MZ_PASS || (fs.existsSync(path.join(ROOT, '.mz-secret')) ? fs.readFileSync(path.join(ROOT, '.mz-secret'), 'utf8').match(/ADMIN_PASSWORD=(\S+)/)[1] : null);
 function readKeysJs() {

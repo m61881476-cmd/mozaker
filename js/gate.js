@@ -2,7 +2,7 @@
    - أي اسم يدخل البرنامج عادي (مجاني).
    - محمد الشيخ وكريم وفاطمة وجنى: VIP (من الكود الخاص اللي بيتفك بالاسم).
    - «هاجر عادل» (أو Hagar Adel): VIP (200) لحد آخر الترم، وجوه البرنامج اسمها «هاجر».
-   - «منه محمد» (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم.
+   - «منه محمد» و«بسملة نصر» (عربي أو إنجليزي): الاشتراك العادي (99) لحد آخر الترم.
    - «آيه مسعد» و«منه توفيق» (عربي أو إنجليزي): VIP لحد آخر الترم. وآيه بيناديها «آيه» أو «يويو» أو «فتكات».
    - المحظورين (عربي وإنجليزي) — «تم إزالة الموقع» ومابيشوفوش خانة الاسم تاني أبدًا على الجهاز ده:
        • لو أول اسم: يوسف، بسنت، أمينة، أحمد، يحيى.
@@ -10,7 +10,7 @@
    - كل دخول أو حظر بيتسجل في شيت محمد (js/track.js). */
 (function () {
   'use strict';
-  const VIP = ['owner', 'fatma', 'bff', 'karim', 'aya', 'menna', 'mennam'], TERM = ['mennam'], PHRASE = 'mz-gate';
+  const VIP = ['owner', 'fatma', 'bff', 'karim', 'aya', 'menna', 'mennam', 'basmala'], TERM = ['mennam', 'basmala'], PHRASE = 'mz-gate';
   /* المحظورين: أول اسم */
   const BAN_FIRST = ['يوسف', 'yousef', 'youssef', 'yosef', 'yousif', 'youssif', 'yusuf', 'yussuf', 'yusif', 'yossef', 'youssuf', 'yousuf',
     'بسنت', 'بسنط', 'باسنت', 'basant', 'bassant', 'basent', 'bassent', 'basnt', 'bsant', 'basnet', 'basanet',

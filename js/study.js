@@ -117,7 +117,7 @@
     if (!d.lessonsRead[l.id]) d.lessonsRead[l.id] = now();
     header(view, 'ذاكر معايا', { back: { to: 'lesson/' + l.id, label: 'الدرس' } });
     const box = document.createElement('div'); view.appendChild(box);
-    const used = new Set(), name = esc(d.name || 'يا بطل'), t0 = now();
+    const used = new Set(), name = esc((App.nick ? App.nick(d) : d.name) || 'يا بطل'), t0 = now();
     const draw = () => {
       Store.save();
       if (st.i >= secs.length) return finish();

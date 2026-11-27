@@ -14,6 +14,10 @@
   const S = id => SUBJ.find(s => s.id === id);
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const D = () => Store.data;
+  /* أسامي الدلع: آيه مسعد بيناديها آيه أو يويو أو فتكات 😂 */
+  const NICK = { aya: ['آيه', 'يويو', 'فتكات 😂'] };
+  const nick = d => { const w = self.Sub && Sub.who && Sub.who(), L = NICK[w]; return L ? L[Math.floor(Math.random() * L.length)] : d.name; };
+  App.nick = nick;
   const COLORS = ['blue', 'green', 'orange', 'purple', 'pink', 'teal', 'indigo', 'red', 'yellow'];
   function refreshSubjects() {
     SUBJ.length = 0; Object.keys(LESSONS).forEach(k => delete LESSONS[k]);
@@ -79,7 +83,7 @@
   /* ---------- الرئيسية ---------- */
   function homeBubble() {
     const d = D(), due = dueCards().length, ex = upcomingExams()[0], st = streakNow(), mins = (d.days[today()] || {}).min || 0;
-    const n = esc(d.name || 'يا بطل');
+    const n = esc(nick(d) || 'يا بطل');
     if (ex) {
       const left = E.daysBetween(new Date(), new Date(ex.date));
       const s = S(ex.subject);
@@ -774,7 +778,7 @@
 
   /* ---------- «المخ»: ردود المحادثة ---------- */
   const Brain = {
-    hello() { const d = D(); return 'أهلًا يا ' + esc(d.name || 'صاحبي') + '! أنا <b>' + esc(d.charName) + '</b> 👋<br>كلمني بالعامية زي ما بتكلم صاحبك: «امتحني 10 أسئلة»، «عايز أراجع»، «امتحان <اسم المادة> يوم 20»، «إيه أضعف حاجة عندي؟»، «سجل ملاحظة: …»، «احسب الوسط ل 3 5 7».' + (SUBJ.length ? '' : '<br>لسه مفيش مواد عندك، ضيف أول مادة ومحاضراتها من صفحة <b>المواد</b> 📚') + ''; },
+    hello() { const d = D(); return 'أهلًا يا ' + esc(nick(d) || 'صاحبي') + '! أنا <b>' + esc(d.charName) + '</b> 👋<br>كلمني بالعامية زي ما بتكلم صاحبك: «امتحني 10 أسئلة»، «عايز أراجع»، «امتحان <اسم المادة> يوم 20»، «إيه أضعف حاجة عندي؟»، «سجل ملاحظة: …»، «احسب الوسط ل 3 5 7».' + (SUBJ.length ? '' : '<br>لسه مفيش مواد عندك، ضيف أول مادة ومحاضراتها من صفحة <b>المواد</b> 📚') + ''; },
     teach(tu) {
       const d = D(), c = tu.c, l = LESSONS[c.l], parts = E.tutorParts(tu);
       Brain.ctx = { last: (tu.kind === 'diff' ? tu.c2 : c).k, level: tu.kind === 'simpler' ? tu.level : 0, l: c.l };
@@ -917,7 +921,7 @@
       if (tu && (askDef || soft.includes(p.intent) || (tu.strong && hard.includes(p.intent) && !(p.intent === 'calc' && (p.numbers || []).length >= 2)))) return Brain.teach(tu);
       const sname = s ? s.name : '';
       switch (p.intent) {
-        case 'greet': return { text: greeting() + ' يا ' + esc(d.name || 'صاحبي') + '! ' + homeBubble(), mood: 'happy' };
+        case 'greet': return { text: greeting() + ' يا ' + esc(nick(d) || 'صاحبي') + '! ' + homeBubble(), mood: 'happy' };
         case 'thanks': return { text: ['العفو يا معلم 😄', 'تحت أمرك دايمًا', 'ولا يهمك، كمّل وأنا معاك'][Math.floor(Math.random() * 3)], mood: 'happy' };
         case 'help': return { text: 'أقدر:<br>• أمتحنك: «امتحني 10 أسئلة» أو «امتحني <اسم المادة>»<br>• أراجع معاك بطاقات: «عايز أراجع»<br>• أسجل امتحان: «امتحان <اسم المادة> يوم السبت الساعة 1:15»<br>• أقولك تذاكر إيه: «أذاكر إيه النهارده؟»<br>• أذاكرلك درس حتة حتة: «ذاكرلي الفصل الأول»<br>• أوريك أي رسمة: «ارسملي هرم ماسلو»<br>• أقولك المتوقع: «إيه أهم الأسئلة؟»<br>• أعملك مراجعة ليلة الامتحان: «مراجعة نهائية»<br>• أقسملك خطة: «قسملي خطة»<br>• أفهمك أي حاجة: «يعني إيه …»، «ليه؟»، «الفرق بين … و…»<br>• أطلعلك نقط ضعفك: «أنا ضعيف في إيه؟»<br>• أدوّر في محاضراتك وبطاقاتك: «يعني إيه …»<br>• أحسب: «احسب الوسط ل 5 7 9»، «الانحراف ل 2 4 6»<br>• أشغل مؤقت: «بومودورو 25 دقيقة»<br>• أسجل ملاحظة: «سجل ملاحظة: …»<br>• أضيف بطاقة: «ضيف بطاقة: السؤال = الإجابة»' };
         case 'tired': return { text: 'حاسس بيك 🤍 المذاكرة تقيلة ساعات. خد بريك 5 دقايق، اشرب مية، وارجع نعمل حاجة صغيرة: 10 بطاقات بس. الخطوات الصغيرة بتكسب.', acts: [{ label: 'بريك 5 دقايق', href: '#plan?tab=timer&brk=5' }, { label: '10 بطاقات', href: '#review?n=10' }], mood: 'nod' };

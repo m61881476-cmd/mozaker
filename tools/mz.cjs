@@ -61,6 +61,12 @@ async function makeVanities(Kb, vsalt) {
   for (const n of HA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'hagar', label: 'هاجر ⭐', exp: '2027-02-28' }, vsalt));
   /* كود هاجر الخاص «Hagar 7319»: بيفتح VIP (200) لحد آخر الترم، بالاسم «هاجر» أو «هاجر عادل» (عربي أو إنجليزي) */
   for (const n of HA.concat(['هاجر', 'hagar', 'hajar', 'hager'])) vanity.push(await L.makeVanity('Hagar 7319', n, { K: Kb, plan: 'vip', who: 'hagar', label: 'هاجر ⭐', exp: '2027-02-28' }, vsalt));
+  /* آيه مسعد ومنه توفيق (عربي أو إنجليزي): VIP لحد آخر الترم، بالاسم بس من البوابة */
+  const combos = (a, b) => { const o = []; for (const x of a) for (const y of b) o.push(x + y); return o; };
+  const AYA = ['ايهمسعد', 'ايامسعد'].concat(combos(['aya', 'aia', 'ayah', 'aiah', 'ayaa', 'aaya', 'aya2'], ['mosaad', 'mossad', 'mosad', 'mesaad', 'masaad', 'mosaed', 'mossaad', 'mosaaad', 'mos3ad', 'mosa3d']));
+  for (const n of AYA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'aya', label: 'آيه ⭐', exp: '2027-02-28' }, vsalt));
+  const MENNA = ['منهتوفيق', 'منةتوفيق', 'مناتوفيق'].concat(combos(['menna', 'mena', 'mennah', 'menah', 'minna', 'menaa', 'mennaa'], ['tawfik', 'tawfeek', 'tawfiq', 'taufik', 'tofik', 'twfik', 'tawfek', 'tawfique', 'tawfeeq']));
+  for (const n of MENNA) vanity.push(await L.makeVanity(G, n, { K: Kb, plan: 'vip', who: 'menna', label: 'منه ⭐', exp: '2027-02-28' }, vsalt));
   return vanity.sort(() => Math.random() - 0.5); // ترتيب عشوائي
 }
 async function vanityCmd() {

@@ -162,6 +162,7 @@
     const sw = (id, on) => '<span class="switch"><input type="checkbox" id="' + id + '" ' + (on ? 'checked' : '') + '><span></span></span>';
     let html = '<div class="group"><button class="row" id="sName"><span class="ic" style="background:linear-gradient(135deg,var(--accent),var(--accent-2));border-radius:50%;font-weight:700">' + esc((d.name || '؟').slice(0, 1)) + '</span><span class="tx"><b>' + esc(d.name || 'من غير اسم') + '</b><small>اضغط عشان تغير اسمك</small></span>' + icon('chev', 'chev') + '</button>'
       + '<button class="row" id="sChar"><span class="ic bg-gray" style="padding:2px;background:var(--fill)!important"><img src="icons/char.png" alt="" style="height:26px"></span><span class="tx"><b>اسم الشخصية</b></span><span class="v">' + esc(d.charName) + '</span>' + icon('chev', 'chev') + '</button></div>';
+    if (false) /* اختيار السنة مقفول حاليًا (سنة أولى مقفولة) */
     html += '<div class="group-h">السنة الدراسية</div><div class="group"><label class="row"><span class="ic bg-indigo">' + icon('book') + '</span><span class="tx"><b>إنت في سنة كام؟</b><small>المواد والأخبار بتتغير على حسب سنتك</small></span><select id="sYear"><option value="1"' + (App.YEAR === '1' ? ' selected' : '') + '>سنة أولى</option><option value="2"' + (App.YEAR === '2' ? ' selected' : '') + '>سنة تانية</option></select></label></div>';
     html += '<div class="group-h">المذاكرة</div><div class="group">'
       + '<label class="row"><span class="ic bg-green">' + icon('target') + '</span><span class="tx"><b>الهدف اليومي (دقيقة)</b></span><select id="sGoal">' + [15, 20, 30, 45, 60, 90, 120].map(v => '<option' + (v === d.settings.goal ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></label>'
@@ -196,7 +197,7 @@
     $$('[data-th]').forEach(b => b.onclick = () => { Pre.set({ theme: b.dataset.th === 'system' ? null : b.dataset.th }); Router.render(); });
     $$('[data-ac]').forEach(b => b.onclick = () => { Pre.set({ accent: b.dataset.ac || null }); Router.render(); });
     $('#sFs').onchange = e => Pre.set({ fs: +e.target.value }); $('#sMotion').onchange = e => Pre.set({ motion: e.target.checked ? 'reduce' : null });
-    $('#sYear').onchange = e => { try { localStorage.setItem('mz:year', e.target.value); } catch (er) {} location.hash = '#home'; location.reload(); };
+    if ($('#sYear')) $('#sYear').onchange = e => { try { localStorage.setItem('mz:year', e.target.value); } catch (er) {} location.hash = '#home'; location.reload(); };
     $('#sName').onclick = () => textSheet('اسمك', d.name, v => { d.name = v; Store.updateProfile({ name: v }); Store.save(); });
     $('#sChar').onclick = () => textSheet('اسم الشخصية', d.charName, v => { d.charName = v; Store.save(); });
     $('#sPin').onclick = () => Lock.setPin();
@@ -314,7 +315,7 @@
   App.Lock = Lock;
 
   /* ---------- التشغيل ---------- */
-  App.VERSION = '3.25.1';
+  App.VERSION = '3.26.0';
   App.after = (fresh) => {
     App.refreshSubjects(); App.migrate();
     document.removeEventListener('keydown', Lock.keyH);

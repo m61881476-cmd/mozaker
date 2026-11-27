@@ -27,14 +27,15 @@
   const banned = n => { const w = words(n); return !!w.length && (BAN_FIRST.includes(w[0]) || w.some(x => BAN_ANY.includes(x))); };
   const log = (n, st) => { try { if (self.MZTrack) { self.MZTrack.send(n, st); localStorage.setItem('mz:logged', '1'); } } catch (e) { /* مفيش */ } };
   const first = s => String(s || '').trim().toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[^a-z0-9ء-ي\s]/g, ' ').trim().split(/\s+/)[0] || '';
+  const Y1_ON = false; /* سنة أولى مقفولة حاليًا */
   const load = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
   box.className = 'g-ob';
   box.innerHTML = '<img src="icons/char.png" alt="" class="g-ch"><h2>أهلًا بيك في مذاكِر 👋</h2><p>أنا <b>سَنَد</b>، هكون معاك طول الترم. قولّي اسمك عشان نبدأ.</p>'
     + '<input id="gN" placeholder="اسمك" autocomplete="name" enterkeyhint="go">'
-    + '<div class="g-yr" role="radiogroup" aria-label="إنت في سنة كام؟"><span>إنت في سنة كام؟</span><div><button type="button" data-y="1">سنة أولى</button><button type="button" data-y="2">سنة تانية</button></div></div>'
+    + (!Y1_ON ? '' : '<div class="g-yr" role="radiogroup" aria-label="إنت في سنة كام؟"><span>إنت في سنة كام؟</span><div><button type="button" data-y="1">سنة أولى</button><button type="button" data-y="2">سنة تانية</button></div></div>')
     + '<button id="gGo">يلا بينا</button>';
   const inp = document.getElementById('gN'), btn = document.getElementById('gGo');
-  let year = ''; try { year = localStorage.getItem('mz:year') || ''; } catch (e) {}
+  let year = Y1_ON ? '' : '2'; if (Y1_ON) try { year = localStorage.getItem('mz:year') || ''; } catch (e) {}
   const yb = [...box.querySelectorAll('[data-y]')], yset = y => { year = y; yb.forEach(b => b.classList.toggle('on', b.dataset.y === y)); };
   yb.forEach(b => b.onclick = () => yset(b.dataset.y)); if (year) yset(year);
   setTimeout(() => inp.focus(), 100);

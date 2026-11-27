@@ -5,7 +5,10 @@
   const { $, $$, esc, icon, Store, Router, header, sheet, toast, Char, buddy, md, haptic, beep, confirmBox } = U;
   /* المنهج المدمج (لو اتضاف تاني في js/content) + المواد اللي كل مستخدم بيضيفها لنفسه */
   /* السنة الدراسية: كل طالب بيشوف مواد سنته بس (المواد من غير year = سنة تانية) */
-  const YEAR = (() => { try { return localStorage.getItem('mz:year') === '1' ? '1' : '2'; } catch (e) { return '2'; } })();
+  /* سنة أولى مقفولة حاليًا (طلب صاحب المنصة): الكل سنة تانية. لرجوعها خلّي Y1_ON = true هنا وفي gate.js و sub.js و app2.js */
+  const Y1_ON = false;
+  const YEAR = Y1_ON ? (() => { try { return localStorage.getItem('mz:year') === '1' ? '1' : '2'; } catch (e) { return '2'; } })() : '2';
+  if (!Y1_ON) try { localStorage.setItem('mz:year', '2'); } catch (e) {}
   App.YEAR = YEAR;
   const BUILT = (self.MZ_CONTENT || []).filter(s => String(s.year || 2) === YEAR);
   BUILT.forEach(s => { E.mergePlus(s, (self.MZ_PLUS || {})[s.id]); (s.concepts || []).forEach(c => { c.s = s.id; }); if (self.Figs) Figs.reg(s.id, s.figs); });
